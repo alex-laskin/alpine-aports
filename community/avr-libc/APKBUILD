@@ -1,43 +1,33 @@
 # Contributor: Stefan Wagner <stw@bit-strickerei.de>
-# Maintainer: Stefan Wagner <stw@bit-strickerei.de>
+# Maintainer: Marian Buschsieweke <marian.buschsieweke@posteo.net>
 pkgname=avr-libc
-pkgver=2.0.0
+pkgver=2.2.1
 pkgrel=0
 pkgdesc="The C runtime library for the AVR family of microcontrollers"
-url="http://savannah.nongnu.org/projects/avr-libc/"
+url="https://github.com/avrdudes/avr-libc"
 depends="gcc-avr"
-makedepends="autoconf automake bash"
+makedepends="autoconf automake python3"
 arch="all"
-license="BSD"
+license="BSD-3-Clause"
 subpackages="$pkgname-doc"
-source="http://download.savannah.gnu.org/releases/$pkgname/$pkgname-$pkgver.tar.bz2"
-
-builddir="$srcdir/$pkgname-$pkgver"
-
-prepare() {
-	default_prepare || return 1
-	update_config_guess || return 1
-}
+builddir="$srcdir/$pkgname-$pkgname-${pkgver//./_}-release"
+source="
+	avr-libc-$pkgver.tar.gz::https://github.com/avrdudes/avr-libc/archive/refs/tags/avr-libc-${pkgver//./_}-release.tar.gz
+	"
 
 build() {
-	cd "$builddir"
-	./bootstrap || return 1
+	./bootstrap
 	CC=avr-gcc ./configure \
-		--build="$(./config.guess)" \
+		--build="$(/bin/sh config.guess)" \
 		--host=avr \
-		--prefix=/usr || return 1
+		--prefix=/usr
 	make
 }
 
 package() {
-	cd "$builddir"
-	make install DESTDIR="$pkgdir" || return 1
-	if [ -d "$pkgdir"/usr/lib64 ]; then
-		mv "$pkgdir"/usr/lib64/* "$pkgdir"/usr/lib/
-		rmdir "$pkgdir"/usr/lib64
-	fi
+	make install DESTDIR="$pkgdir"
 }
 
-md5sums="2360981cd5d94e1d7a70dfc6983bdf15  avr-libc-2.0.0.tar.bz2"
-sha256sums="b2dd7fd2eefd8d8646ef6a325f6f0665537e2f604ed02828ced748d49dc85b97  avr-libc-2.0.0.tar.bz2"
-sha512sums="fc8d062043d633350dbe05978935dcb8028257a4f1013f246af9658aef0671def19ac11577d1ee9302df68df1b8cf030b22441d96852e185db212263aacabea6  avr-libc-2.0.0.tar.bz2"
+sha512sums="
+df87983efff438091cff86d65b8e9ca6c3919d8242f0204fdcff7ad3852a094a8a56e9df1d0468d3efaa386b638d2d028dea691290e841b7e4da8652dd46b73c  avr-libc-2.2.1.tar.gz
+"

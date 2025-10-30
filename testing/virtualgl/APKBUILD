@@ -1,44 +1,54 @@
 # Contributor: ScrumpyJack <scrumpyjack@st.ilet.to>
-# Maintainer: ScrumpyJack <scrumpyjack@st.ilet.to>
+# Maintainer: Leon White <badfunkstripe@gmail.com>
 pkgname=virtualgl
-_pkgname=VirtualGL
-pkgver=2.5.1
-pkgrel=3
-pkgdesc="VirtualGL is a toolkit to run remote OpenGL applications with full 3D hardware acceleration."
-url="http://www.virtualgl.org"
-arch="x86_64 ppc64le"
-license="LGPL"
-depends=""
-depends_dev=""
-makedepends="mesa-dev cmake libressl-dev libjpeg-turbo-dev libx11-dev glu-dev libxv-dev"
-install=""
+pkgver=3.1.4
+pkgrel=0
+pkgdesc="Toolkit to run remote OpenGL applications with full 3D hardware acceleration"
+url="https://virtualgl.org/"
+arch="all"
+license="LGPL-2.1-or-later"
+makedepends="
+	cmake
+	fltk-dev
+	glu-dev
+	libjpeg-turbo-dev
+	libx11-dev
+	libxtst-dev
+	libxv-dev
+	mesa-dev
+	opencl-dev
+	openssl-dev
+	samurai
+	xcb-util-keysyms-dev
+	"
 subpackages="$pkgname-dev $pkgname-doc"
-source="http://downloads.sourceforge.net/project/${pkgname}/${pkgver}/${_pkgname}-${pkgver}.tar.gz"
+source="https://github.com/VirtualGL/virtualgl/releases/download/$pkgver/VirtualGL-$pkgver.tar.gz
+	install.patch
+	"
+builddir="$srcdir/VirtualGL-$pkgver"
 
-builddir=${srcdir}/${_pkgname}-${pkgver}
 build() {
-	cd "$builddir"
-	mkdir -p build && cd build
-
-	cmake .. \
-	-DCMAKE_INSTALL_PREFIX=/usr/share \
-	-DTJPEG_INCLUDE_DIR=/usr/include \
-	-DTJPEG_LIBRARY=/usr/lib/libturbojpeg.so \
-        -DOPENGL_glu_LIBRARY=/usr/lib/libGLU.so \
-        -DVGL_USESSL=1 \
-	-DVGL_LIBDIR=/usr/lib \
-	-DVGL_BINDIR=/usr/bin \
-	-DVGL_DOCDIR=/usr/share/doc/${pkgname} \
-	-DVGL_FAKEXCB=1 || return 1
-	make
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_DOCDIR=/usr/share/doc/$pkgname \
+		-DVGL_FAKEXCB=ON \
+		-DVGL_FAKEOPENCL=ON \
+		-DVGL_SYSTEMFLTK=ON
+	cmake --build build
 }
 
 package() {
-	cd "$builddir/build"
-        make  DESTDIR="$pkgdir" install || return 1
-        cd "$builddir" && rm -r build
+	DESTDIR="$pkgdir" cmake --install build
+	# conflicts with mesa-utils
+	mv "$pkgdir"/usr/bin/eglinfo "$pkgdir"/usr/bin/virtualgl-eglinfo
+	mv "$pkgdir"/usr/bin/glxinfo "$pkgdir"/usr/bin/virtualgl-glxinfo
+
+	# not required
+	rm -f "$pkgdir"/usr/bin/.vglrun.vars64
 }
 
-md5sums="7c6bac673fab01c572de618d7e8f61a5  VirtualGL-2.5.1.tar.gz"
-sha256sums="da342e0157257cd7b7c9c6705c7f2b9853f28f6bb6c51c90c710cc14257f3659  VirtualGL-2.5.1.tar.gz"
-sha512sums="a60a55bae58c80bcea418702f4d3b41356a9e599f007fd539043228c4fe75c28582bab376caf121a5eeee4a21cddb80f1edc2f89abfe88a584321c46383d3654  VirtualGL-2.5.1.tar.gz"
+sha512sums="
+266af1ddb923e07f52bba166cd6dd6066b371928946a0cd7cf5d200dde2b4bad6d3c7f1477dd6c575f830b42705468d444e413eedb4305ec34dfefab138d949f  VirtualGL-3.1.4.tar.gz
+acd348b3005840869baf3f51b0e66bcfbbc93bab2630460a6801a972a13cf428bfe6bee1fac409fe927f0a9d9f6a498ab08c36c4b892b073511503ab81557089  install.patch
+"

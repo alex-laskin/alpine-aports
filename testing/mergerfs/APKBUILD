@@ -1,19 +1,19 @@
 # Contributor: Nathan Caldwell <saintdev@gmail.com>
 # Maintainer: Nathan Caldwell <saintdev@gmail.com>
-# TODO: Build against system-provided libfuse, don't use bundled libfuse.
+# NOTE: For now we must use vendored libfuse, see the URL below for details.
+#       https://github.com/trapexit/mergerfs/blob/2.27.0/README.md#why-was-libfuse-embedded-into-mergerfs
 pkgname=mergerfs
-pkgver=2.23.1
-pkgrel=0
+pkgver=2.40.2
+pkgrel=1
 pkgdesc="A FUSE based union filesystem"
 url="https://github.com/trapexit/mergerfs"
 arch="all"
 license="ISC"
-depends="libattr fuse"
-makedepends="autoconf automake libtool gettext-dev attr-dev fuse-dev linux-headers"
+depends="libattr"
+makedepends="autoconf automake libtool gettext-dev attr-dev linux-headers"
+options="suid !check" # No test suite
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/trapexit/$pkgname/archive/$pkgver.tar.gz
-	makefile-no-debug.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver.tar.gz::https://github.com/trapexit/mergerfs/archive/$pkgver.tar.gz"
 
 prepare() {
 	default_prepare
@@ -21,21 +21,14 @@ prepare() {
 }
 
 build() {
-	cd "$builddir"
-	make OPTS="$CXXFLAGS" GIT=
-}
-
-check() {
-	cd "$builddir"
-
-	# Both --version and --help exists with 1...
-	./mergerfs --version | grep 'mergerfs version'
+	export GIT_CEILING_DIRECTORIES="$srcdir"
+	make OPTS="$CXXFLAGS"
 }
 
 package() {
-	cd "$builddir"
-	make PREFIX="/usr" DESTDIR="$pkgdir" install
+	make PREFIX="/usr" DESTDIR="$pkgdir" SBINDIR=/usr/sbin install
 }
 
-sha512sums="1f2ecb162bd2aee390d5067a888f38c0b7137022f7447b93ff2b743d759b815408f6f09e68bcf240e5274d6c872b9a8c9cbe48b5e11538ae0af02713a4f66745  mergerfs-2.23.1.tar.gz
-1836bbfc38d167d0107fdb1b29630625d4eec0ce3e505d48df1fcb8fc9122e55522535a7f45c9db51e9b66a43af7293eb9c684fd4faec5ced2ba2140c2615c5e  makefile-no-debug.patch"
+sha512sums="
+b491007ef14ebd9c9193e730cccd7a178fb7d96426066d5a61cc654eae0b81824a3bf25258b1fafd248f4454ebe55787653f3d906cdc2e89a5cd0884db534876  mergerfs-2.40.2.tar.gz
+"

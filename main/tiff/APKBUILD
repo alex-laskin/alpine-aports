@@ -2,24 +2,99 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
 # Maintainer: Michael Mason <ms13sp@gmail.com>
 pkgname=tiff
-pkgver=4.0.9
-pkgrel=5
-pkgdesc="Provides support for the Tag Image File Format or TIFF"
-url="http://www.libtiff.org"
+pkgver=4.7.1
+pkgrel=0
+pkgdesc="Support for the Tag Image File Format or TIFF"
+url="https://gitlab.com/libtiff/libtiff"
 arch="all"
 license="libtiff"
-depends=
-depends_dev="zlib-dev libjpeg-turbo-dev"
-makedepends="libtool autoconf automake $depends_dev"
-subpackages="$pkgname-doc $pkgname-dev $pkgname-tools"
-builddir="$srcdir/$pkgname-$pkgver"
-source="http://download.osgeo.org/libtiff/$pkgname-$pkgver.tar.gz
-	CVE-2017-18013.patch
-	CVE-2018-5784.patch
-	CVE-2018-7456.patch
-	CVE-2018-8905.patch
+makedepends="
+	cmake
+	libjpeg-turbo-dev
+	libwebp-dev
+	python3
+	samurai
+	zlib-dev
+	zstd-dev
 	"
+checkdepends="diffutils"
+subpackages="$pkgname-doc $pkgname-dev $pkgname-tools libtiffxx"
+source="https://download.osgeo.org/libtiff/tiff-$pkgver.tar.gz"
+
 # secfixes:
+#   4.7.1-r0:
+#     - CVE-2025-8961
+#     - CVE-2025-9165
+#   4.5.0-r5:
+#     - CVE-2023-0795
+#     - CVE-2023-0796
+#     - CVE-2023-0797
+#     - CVE-2023-0798
+#     - CVE-2023-0799
+#     - CVE-2023-0800
+#     - CVE-2023-0801
+#     - CVE-2023-0802
+#     - CVE-2023-0803
+#     - CVE-2023-0804
+#   4.5.0-r3:
+#     - CVE-2022-48281
+#   4.5.0-r0:
+#     - CVE-2022-2953
+#     - CVE-2022-3213
+#     - CVE-2022-3570
+#     - CVE-2022-3597
+#     - CVE-2022-3598
+#     - CVE-2022-3599
+#     - CVE-2022-3626
+#     - CVE-2022-3627
+#     - CVE-2022-3970
+#   4.4.0-r1:
+#     - CVE-2022-2056
+#     - CVE-2022-2057
+#     - CVE-2022-2058
+#     - CVE-2022-2519
+#     - CVE-2022-2520
+#     - CVE-2022-2521
+#     - CVE-2022-34526
+#   4.4.0-r0:
+#     - CVE-2022-2867
+#     - CVE-2022-2868
+#     - CVE-2022-2869
+#   4.3.0-r1:
+#     - CVE-2022-0561
+#     - CVE-2022-0562
+#     - CVE-2022-0865
+#     - CVE-2022-0891
+#     - CVE-2022-0907
+#     - CVE-2022-0908
+#     - CVE-2022-0909
+#     - CVE-2022-0924
+#     - CVE-2022-22844
+#     - CVE-2022-34266
+#   4.2.0-r0:
+#     - CVE-2020-35521
+#     - CVE-2020-35522
+#     - CVE-2020-35523
+#     - CVE-2020-35524
+#   4.1.0-r0:
+#     - CVE-2019-6128
+#   4.0.10-r2:
+#     - CVE-2019-10927
+#   4.0.10-r1:
+#     - CVE-2019-14973
+#   4.0.10-r0:
+#     - CVE-2018-12900
+#     - CVE-2018-18557
+#     - CVE-2018-18661
+#   4.0.9-r8:
+#     - CVE-2018-10779
+#     - CVE-2018-17100
+#     - CVE-2018-17101
+#   4.0.9-r6:
+#     - CVE-2017-9935
+#     - CVE-2017-11613
+#     - CVE-2017-17095
+#     - CVE-2018-10963
 #   4.0.9-r5:
 #     - CVE-2018-8905
 #   4.0.9-r4:
@@ -46,42 +121,36 @@ source="http://download.osgeo.org/libtiff/$pkgname-$pkgver.tar.gz
 #   4.0.7-r1:
 #     - CVE-2017-5225
 
-prepare() {
-	default_prepare
-	update_config_sub
-}
-
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--disable-cxx
-	make
+	CFLAGS="$CFLAGS -flto=auto" \
+	CXXFLAGS="$CXXFLAGS -flto=auto" \
+	cmake3.5 -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=MinSizeRel
+
+	cmake --build build
 }
 
 check() {
-	cd "$builddir"
-	make check
+	ctest --test-dir build
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+libtiffxx() {
+	pkgdesc="C++ binding to libtiff"
+
+	amove usr/lib/libtiffxx.so.*
 }
 
 tools() {
 	pkgdesc="Command-line utility programs for manipulating TIFF files"
-	mkdir -p "$subpkgdir"/usr/
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+
+	amove usr/bin
 }
 
-sha512sums="04f3d5eefccf9c1a0393659fe27f3dddd31108c401ba0dc587bca152a1c1f6bc844ba41622ff5572da8cc278593eff8c402b44e7af0a0090e91d326c2d79f6cd  tiff-4.0.9.tar.gz
-3a31e4315ecc5c5bf709e2ca0fefb5bc7ff50c79f911b8b8366be38d007d3f79e89982700a620b2d82739313fbd79041428dbf3ecf0a790c9ec3bc2e211d6fce  CVE-2017-18013.patch
-c9cb1f712241c5bbd01910d4f4becf50ba8498bb04393f45451af4ace948b6a41b3d887adc9fbce1a53edeb0aeba03868f4d31428f3c5813ed14bb4b6f4c0f96  CVE-2018-5784.patch
-8f3ad4065f6ef349c4bd0fe9161cbe19744fbbc89f17c52eb4e43548ca4816f09c7f7e270cb77ced820a95ca009b5f7ad65ee79e7b23ffe1d31c137e3b2bef47  CVE-2018-7456.patch
-ba283d0def89bf7caee753f39b5717780e9aec2ba32b8ce400b3d86b50eb1414a92bd56ebcf5e9550436a71aa18c55e31c6b5966f24dc5ec1863f28ca769d887  CVE-2018-8905.patch"
+sha512sums="
+89c5af880626888451caf8b78a2f57b2973719db837dce6530c1fb30318fc6fba7ef9f9d8e46c547821eae29322607cb5146bf3de39b3d7b70bcf5b68c4ee3b1  tiff-4.7.1.tar.gz
+"

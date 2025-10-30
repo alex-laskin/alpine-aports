@@ -1,36 +1,33 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=sshfs
-pkgver=2.10
+pkgver=3.7.3
 pkgrel=2
 pkgdesc="FUSE client based on the SSH File Transfer Protocol"
 url="https://github.com/libfuse/sshfs"
 arch="all"
-license="GPL"
-depends="openssh-client"
-makedepends="fuse-dev glib-dev automake autoconf"
+license="GPL-2.0-or-later"
+depends="openssh-client fuse3"
+makedepends="fuse3-dev glib-dev meson coreutils py3-docutils"
 subpackages="$pkgname-doc"
-source="https://github.com/libfuse/$pkgname/releases/download/$pkgname-$pkgver/$pkgname-$pkgver.tar.gz"
-options="!check"
-builddir="$srcdir"/${pkgname}-${pkgver}
+source="https://github.com/libfuse/sshfs/releases/download/sshfs-$pkgver/sshfs-$pkgver.tar.xz"
+options="!check" # requires FUSE kernel module to run tests
 
-build () {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var
-	make
+build() {
+	abuild-meson . output
+	meson compile -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 
 	mkdir -p "$pkgdir"/usr/share/doc/$pkgname/
-	install -Dm644 AUTHORS COPYING "$pkgdir"/usr/share/doc/$pkgname/
+	install -Dm644 README.rst ChangeLog.rst AUTHORS COPYING \
+		"$pkgdir"/usr/share/doc/$pkgname/
+
+	mkdir -p "$pkgdir"/sbin
+	ln -s /usr/sbin/mount.sshfs "$pkgdir"/sbin/mount.sshfs
 }
 
-sha512sums="8887eb634edc4c64cf7a0c1a1be4d9ef72d5080eec687d187898dc31bb841ed730850bae8467247a05e56c2b4ef7e9d02fdc0812d48876e145c9826a7406d9ff  sshfs-2.10.tar.gz"
+sha512sums="
+ba0928f85819984a3eb83d2debab658b2cd4e958ed1c3ba9787e361f452687d42b82d478b7d95e7a7c5580bae5c1cdebe4cf3c9b6cb5eb6a570311f276903d99  sshfs-3.7.3.tar.xz
+"

@@ -1,28 +1,35 @@
 # Contributor: Stuart Cardall <developer@it-offshore.co.uk>
+# Contributor: Oleg Titov <oleg.titov@gmail.com>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=cython
-pkgver=0.28.2
+pkgver=3.0.12
 pkgrel=0
 pkgdesc="Cython is an optimising static compiler for both the Python & the extended Cython programming languages."
-url="http://cython.org"
+url="https://cython.org/"
 arch="all"
 license="Apache-2.0"
-depends=""
-depends_dev="python2-dev py-pgen cython"
-makedepends="$depends_dev"
-subpackages="$pkgname-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/cython/cython/archive/$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="py3-gpep517 py3-setuptools py3-wheel python3-dev"
+depends="python3"
+subpackages="cython-pyc cython-doc"
+source="cython-$pkgver.tar.gz::https://github.com/cython/cython/archive/$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	python2 setup.py build
+	gpep517 build-wheel --wheel-dir .dist --output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 runtests.py -j${JOBS:-$(nproc)}
 }
 
 package() {
-	cd "$builddir"
-	python2 setup.py install --prefix=/usr \
-		--root="$pkgdir" --optimize=1
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+
+	install -Dm 644 LICENSE.txt "$pkgdir/usr/share/licenses/cython/license"
+	install -Dm 644 README.rst "$pkgdir/usr/share/doc/cython/readme.rst"
 }
 
-sha512sums="4325cd7a5a7998da0b65e98fd4d8d61279f0cb693170ca7b904b61c2d8366b0240c8b4af73b8abe30530adf53bd4ebcacc49cc4f8a6273df88fa3ce7cb1f23b3  cython-0.28.2.tar.gz"
+sha512sums="
+bbf2cc662b846cf5ff9b686046ec210ea9d3893482e2b5a2696d2ad44f12facd15075b168a3eb6d1f4ea799786f676868eab2593451bceb2937aec2cb1aea99e  cython-3.0.12.tar.gz
+"

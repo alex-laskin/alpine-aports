@@ -1,21 +1,29 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libxfce4ui
-pkgver=4.13.1
-pkgrel=0
+pkgver=4.20.1
+pkgrel=1
 pkgdesc="Widgets library for the Xfce desktop environment"
 url="https://xfce.org/"
 arch="all"
-license="GPL-2.0"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-lang $pkgname-gtk3"
-depends=
-depends_dev="startup-notification-dev"
-makedepends="$depends_dev gtk+2.0-dev gtk+3.0-dev libxfce4util-dev xfconf-dev
-	glade3-dev gtk-doc"
-source="http://archive.xfce.org/src/xfce/${pkgname}/${pkgver%.*}/${pkgname}-${pkgver}.tar.bz2"
+license="GPL-2.0-only"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+depends_dev="startup-notification-dev intltool"
+makedepends="
+	$depends_dev
+	gobject-introspection-dev
+	gtk+3.0-dev
+	gtk-doc
+	libepoxy-dev
+	libgtop-dev
+	libxfce4util-dev
+	xfconf-dev
+	vala
+	"
+source="https://archive.xfce.org/src/xfce/libxfce4ui/${pkgver%.*}/libxfce4ui-$pkgver.tar.bz2
+	alpine-logo.svg"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -23,34 +31,25 @@ build() {
 		--sysconfdir=/etc \
 		--libexecdir=/usr/lib \
 		--localstatedir=/var \
-		--enable-gladeui \
 		--with-vendor-info="${DISTRO_NAME:-Alpine Linux}" \
 		--disable-static \
-		--enable-gtk-doc
+		--enable-introspection \
+		--enable-gtk-doc \
+		--enable-glibtop \
+		--enable-epoxy
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
+	install -D -m644 "$srcdir"/alpine-logo.svg "$pkgdir"/usr/share/pixmaps/alpine-logo.svg
 }
 
-dev() {
-	default_dev
-	mkdir -p "$subpkgdir"/usr/lib "$subpkgdir"/usr/share
-	mv "$pkgdir"/usr/lib/glade3 "$subpkgdir"/usr/lib/
-	mv "$pkgdir"/usr/share/glade3 "$subpkgdir"/usr/share/
-}
-
-gtk3() {
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libxfce4ui-2.so.* \
-		"$pkgdir"/usr/lib/libxfce4kbd-private-3.so.* \
-		"$subpkgdir"/usr/lib/
-}
-sha512sums="056f6c944f1060f43037427304fccc7bb835a0ba5263d9c2f41c5cd2f980a61d4c45f9aa4b97004bae0b57e0020de0af43345b28f53748cea94fcd97fe785523  libxfce4ui-4.13.1.tar.bz2"
+sha512sums="
+f530e14302a4e11cc04111d5488ad4b8727bc016bfdef5fd29e1098209fd5e886dde3102bd0feab7c49daff964a4fa208b67dd83be806171f832f09e27ba40a7  libxfce4ui-4.20.1.tar.bz2
+d9547480b2ffa98e6dce59992c99ae50929428dffe7dca8eaeafe0b8985678177ba3b838fbe91fcce08db1975852a84d8b63dda6dd258cb57f18cd2eecebb0ef  alpine-logo.svg
+"

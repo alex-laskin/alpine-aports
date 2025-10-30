@@ -1,43 +1,58 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
-# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
+# Maintainer: Bart Ribbers <bribbers@disroot.org>
 pkgname=qt5-qtconnectivity
-_pkgname=${pkgname/qt5-//}-everywhere-src
-pkgver=5.10.1
-_ver=${pkgver/_/-}
-_ver=${_ver/beta0/beta}
-_ver=${_ver/rc0/rc}
-_V=${_ver/rc/RC}
-pkgrel=0
+pkgver=5.15.10_git20230612
+pkgrel=1
+_module="${pkgname#qt5-}"
+_pkgver=eeaf42bccd49e8161fbae82d110026d25a5a9a7f
+_fullname=$_module-$_pkgver
 pkgdesc="QT5 Connectivity Compontents"
-url="http://qt-project.org/"
+url="https://www.qt.io/developers/"
 arch="all"
-license="LGPL-2.0 with exceptions or GPL-3.0 with exceptions"
-options="!check" #upstream does not provide check
-makedepends="qt5-qtbase-dev"
+license="( LGPL-2.0-or-later OR GPL-3.0-only OR GPL-2.0-or-later ) AND Qt-GPL-exception-1.0"
+makedepends="
+	bluez-dev
+	qt5-qtbase-dev
+	qt5-qtdeclarative-dev
+	"
 subpackages="$pkgname-dev"
+options="!check" # No tests
 
-case $pkgver in
-*_beta*|*_rc*) _rel=development_releases;;
-*) _rel=official_releases;;
-esac
-source="http://download.qt-project.org/$_rel/qt/${pkgver%.*}/$_ver/submodules/$_pkgname-$_V.tar.xz"
+source="https://dev.alpinelinux.org/archive/qt/$_fullname.tar.xz"
+builddir="$srcdir/$_fullname"
 
-builddir="$srcdir"/$_pkgname-${_V%-*}
+_disturl="dev.alpinelinux.org:/archive/qt/"
+snapshot() {
+	clean
+	makedepends="git xz rsync tar" deps
+	mkdir -p "$srcdir" && cd "$srcdir"
+	git clone --filter=tree:0 https://invent.kde.org/qt/qt/$_module.git .
+	git archive --format tar --prefix=$_fullname/ $_pkgver > "$SRCDEST"/$_fullname.tar
+	xz -vv -T0 -9 -e "$SRCDEST"/$_fullname.tar
+	rsync --progress -La "$SRCDEST"/$_fullname.tar.xz $_disturl
+}
 
 prepare() {
 	default_prepare
-	cd "$builddir"
-	mkdir -p build
+
+	# We need to make the build system think we're running in a git repository
+	# so it correctly symlinks during the build
+	mkdir .git
 }
 
 build() {
-	cd "$builddir"/build
-	qmake-qt5 ..
+	qmake-qt5
 	make
 }
 
 package() {
-	cd "$builddir"/build
 	make INSTALL_ROOT="$pkgdir" install
+
+	# Drop QMAKE_PRL_BUILD_DIR because reference the build dir
+	find "$pkgdir/usr/lib" -type f -name '*.prl' \
+		-exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 }
-sha512sums="69387989640b2ea918706d5e0ae91d7f0e978b9946e0cf4da39344c05e5acb6ad48e6a5635c1651f2f4df321be2ae7b8596e836c6ec8e56c070c86f684dc2733  qtconnectivity-everywhere-src-5.10.1.tar.xz"
+
+sha512sums="
+95edb166174382eb620ad48fc1b269b7b195e7321e4cb0f6309d49f4caa5d2a62a819fddf5b6af36cab4dad9b9195d9c445e8762a94b860e176d39d1b1b81e1e  qtconnectivity-eeaf42bccd49e8161fbae82d110026d25a5a9a7f.tar.xz
+"

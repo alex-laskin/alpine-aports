@@ -1,37 +1,31 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
-# Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
+# Maintainer:
 pkgname=debian-archive-keyring
-pkgver=2017.7
+pkgver=2025.1
 pkgrel=0
 pkgdesc="GnuPG archive keys of the Debian archive"
-url="http://packages.debian.org/sid/debian-archive-keyring"
+url="https://packages.debian.org/sid/debian-archive-keyring"
 arch="noarch"
-license="GPL"
+license="GPL-2.0-or-later"
 depends="gnupg"
-depends_dev=""
-makedepends="tar xz"
-install=""
 options="!check" # upstream doesn't have a test suite.
 subpackages="$pkgname-doc"
-source="http://ftp.debian.org/debian/pool/main/d/debian-archive-keyring/${pkgname}_${pkgver}_all.deb"
+source="https://deb.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_${pkgver}_all.deb"
 
 unpack() {
 	cd "$srcdir"
 	for i in $source; do
 		case $i in
-			*.deb) ar x ${i##*/} || return 1 ;;
+			*.deb) ar x ${i##*/} ;;
 		esac
 	done
 }
 
-build() {
-	return 0
-}
-
 package() {
 	mkdir -p "$pkgdir"
-	tar -xJf "$srcdir"/data.tar.xz -C "$pkgdir"/
+	unxz -c "$srcdir"/data.tar.xz | tar -x -C "$pkgdir"/
 }
 
-sha512sums="9802058a9de69d941eab9ebf7a8370b1b5af0130444ca8fd46996d1699f940775fec2820f7963fdcf70e49a467682d1ac023a1da72e34f90cf3c09a04dface74  debian-archive-keyring_2017.7_all.deb"
+sha512sums="
+d99dafbe92c40468012d0a95fa4e4dedbdb96e6e96bcc8b8f0fb082eadcbad42f625303ba128257dc7f660d6ba536f5bb27f7d72ded33121bf4679ae60070397  debian-archive-keyring_2025.1_all.deb
+"

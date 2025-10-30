@@ -1,34 +1,33 @@
 # Contributor: Gennady Feldman <gena01@gmail.com>
 # Maintainer: Gennady Feldman <gena01@gmail.com>
 pkgname=cassandra-cpp-driver
-_pkgreal=cpp-driver
-pkgver=2.8.1
-pkgrel=2
+_pkgname=cpp-driver
+pkgver=2.17.1
+pkgrel=0
 pkgdesc="Cassandra CPP Driver"
-url="http://datastax.github.io/cpp-driver/"
-arch="x86_64 x86 ppc64le"
+url="https://datastax.github.io/cpp-driver/"
+arch="all"
 license="Apache-2.0"
-options="!check"  # FIXME: cassandra_integration_tests won't link
-depends=""
-makedepends="cmake make libressl-dev libuv-dev"
+options="!check" # FIXME: cassandra_integration_tests won't link
+makedepends="cmake make openssl-dev>3 libuv-dev zlib-dev samurai"
 subpackages="$pkgname-dev"
-source="$_pkgreal-$pkgver.tar.gz::https://github.com/datastax/cpp-driver/archive/$pkgver.tar.gz"
-builddir="$srcdir/$_pkgreal-$pkgver"
+source="$_pkgname-$pkgver.tar.gz::https://github.com/datastax/cpp-driver/archive/$pkgver.tar.gz
+	"
+builddir="$srcdir/$_pkgname-$pkgver"
 
 build() {
-	mkdir -p "$builddir"/build
-	cd "$builddir"/build
-	cmake \
-		-DCMAKE_BUILD_TYPE=RELEASE \
+	cmake3.5 -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
 		-DCASS_BUILD_STATIC=ON \
 		-DCMAKE_INSTALL_PREFIX:PATH=/usr \
-		-DCMAKE_INSTALL_LIBDIR=lib ..
-	make
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
 }
 
 package() {
-	cd "$builddir"/build
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-sha512sums="1b303e874d6b24cb429ec92d6030880ad7d7b28b167a25c62060626c206f623863ecf58eab33e89b0efea4a474ca9500e1701b719ac203c76b0875c2b5d0a1c8  cpp-driver-2.8.1.tar.gz"
+sha512sums="
+06608a378cc7489031276ea4981905a7689debf15330f256565f3a5702a6dcd43f6efaff008445cb122f7d1a60176618f4e1dc49c025ff834c09faf7d9ce087c  cpp-driver-2.17.1.tar.gz
+"

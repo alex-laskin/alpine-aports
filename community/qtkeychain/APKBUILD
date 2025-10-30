@@ -1,32 +1,48 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
-# Maintainer:
+# Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=qtkeychain
-pkgver=0.8.0
-pkgrel=1
+pkgver=0.15.0
+pkgrel=0
 pkgdesc="Qt API to store passwords and other secret data"
 url="https://github.com/frankosterfeld/qtkeychain"
 arch="all"
-license="BSD"
-depends_dev="qt-dev"
-makedepends="$depends_dev cmake"
-subpackages="$pkgname-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/frankosterfeld/qtkeychain/archive/v$pkgver.tar.gz"
-
-builddir="$srcdir/$pkgname-$pkgver"
+license="BSD-2-Clause"
+depends="dbus:org.freedesktop.Secrets"
+makedepends="
+	cmake
+	libsecret-dev
+	qt6-qttools-dev
+	samurai
+	"
+subpackages="
+	$pkgname-dev
+	$pkgname-lang
+	"
+# replace prior names
+replaces="qtkeychain"
+source="$pkgname-$pkgver.tar.gz::https://github.com/frankosterfeld/qtkeychain/archive/$pkgver.tar.gz"
+options="!check"
 
 build() {
-	cd "$builddir"
-	cmake \
+	export CXXFLAGS="$CXXFLAGS -DNDEBUG -flto=auto"
+
+	cmake -B build -G Ninja \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_INSTALL_LIBDIR=lib \
-		-DCMAKE_INSTALL_LIBEXECDIR=lib/${pkgname} \
-		-DCMAKE_BUILD_TYPE=Release
-	make
+		-DBUILD_SHARED_LIBS=True \
+		-DCMAKE_BUILD_TYPE=None \
+		-DBUILD_WITH_QT6=ON
+	cmake --build build
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-sha512sums="be83ebc665a7916e96a2fd9990c72cd29373196591cf557fa6f9691f332ab67cc5475cab240c3e50e76cb37e0b7f189f0a1f2c3a70a6f655918e1d2465ed2f33  qtkeychain-0.8.0.tar.gz"
+lang() {
+	amove usr/share/qt6keychain/translations
+}
+
+sha512sums="
+b1068ae513d5eab8f300186497ddcce4075e11a2a569deddbc949177efaa27970ed7bdce0b1aff61a021144540e942f60c9259b975601a92c60b8a742754624a  qtkeychain-0.15.0.tar.gz
+"

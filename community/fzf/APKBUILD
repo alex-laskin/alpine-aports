@@ -1,49 +1,51 @@
-# Contributor: Kevin Daudt <ops@ikke.info>
-# Maintainer: Kevin Daudt <ops@ikke.info>
+# Contributor: Robert White <rjwhite2453@gmail.com>
+# Contributor: Kevin Daudt <kdaudt@alpinelinux.org>
+# Maintainer: Kevin Daudt <kdaudt@alpinelinux.org>
 pkgname=fzf
-pkgver="0.17.3"
-pkgrel=2
+pkgver=0.66.0
+pkgrel=0
 pkgdesc="A command-line fuzzy finder"
 url="https://github.com/junegunn/fzf"
-arch="x86 x86_64"
+arch="all"
 license="MIT"
-makedepends="go glide bash tmux"
+makedepends="go bash"
+options="net chmod-clean"
 subpackages="
-	$pkgname-doc
 	$pkgname-tmux::noarch
-	$pkgname-bash-completion:bashcomp:noarch
-	$pkgname-zsh-completion:zshcomp:noarch
+	$pkgname-bash-plugin:_bash:noarch
+	$pkgname-zsh-plugin:_zsh:noarch
+	$pkgname-fish-plugin:_fish:noarch
+	$pkgname-vim:vim:noarch
+	$pkgname-neovim:nvim:noarch
+	$pkgname-doc
 	"
-source="$pkgname-$pkgver.tar.gz::https://github.com/junegunn/fzf/archive/$pkgver.tar.gz
-	no-glide-install.patch
-	disable-vet-for-tests.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+install="$pkgname.post-upgrade $pkgname-vim.post-install"
+source="$pkgname-$pkgver.tar.gz::https://github.com/junegunn/fzf/archive/v$pkgver.tar.gz
+	$pkgname.plugin.sh
+	$pkgname.plugin.zsh
+	"
 
-prepare() {
-	default_prepare
-	cd "$builddir"
-	export GOPATH="$startdir"
-	glide install
-}
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
 
 build() {
-	cd "$builddir"
-	make
+	go build -ldflags "-X main.version=$pkgver -X main.revision=AlpineLinux"
 }
 
 check() {
-	cd "$builddir"
-	make test
+	# shellcheck disable=SC1007
+	SHELL=/bin/sh GOOS= go test -v \
+		github.com/junegunn/fzf/src \
+		github.com/junegunn/fzf/src/algo \
+		github.com/junegunn/fzf/src/tui \
+		github.com/junegunn/fzf/src/util
 }
 
 package() {
-	cd "$builddir"
-	make install # Just copies the target binary to $buildir/bin
-	install -Dm0755 bin/fzf "$pkgdir"/usr/bin/fzf
+	install -Dm0755 fzf "$pkgdir"/usr/bin/fzf
 
-	mkdir -p "$pkgdir"/usr/share/doc/$pkgname/examples/
-	install -m0644 shell/key-bindings.* \
-		"$pkgdir"/usr/share/doc/$pkgname/examples/
+	install -Dm0644 -t "$pkgdir"/usr/share/man/man1 man/man1/*.1
 }
 
 tmux() {
@@ -54,26 +56,76 @@ tmux() {
 	install -Dm0755 bin/fzf-tmux "$subpkgdir"/usr/bin/fzf-tmux
 }
 
-bashcomp() {
-	pkgdesc="additional scripts for bash like shell completion and keybindings"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
+_bash() {
+	pkgdesc="Bash plugin for $pkgname (completion and key bindings)"
+	depends="perl"
+	install_if="$pkgname=$pkgver-r$pkgrel bash"
+	# For backward compatibility (Alpine <3.16).
+	replaces="$pkgname-bash-completion<0.29.0-r4"
 
 	cd "$builddir"
-	install -Dm0644 shell/completion.bash \
-		"$subpkgdir"/usr/share/bash-completion/completions/$pkgname
+
+	install -D -m644 shell/*.bash "$srcdir"/$pkgname.plugin.sh \
+		-t "$subpkgdir"/usr/share/bash/plugins/$pkgname/
+
+	# For backward compatibility (Alpine <3.16).
+	mkdir -p "$subpkgdir"/usr/share/fzf/
+	ln -s ../bash/plugins/$pkgname/key-bindings.bash "$subpkgdir"/usr/share/fzf/
 }
 
-zshcomp() {
-	pkgdesc="additional scripts for zsf like shell completion and keybindings"
+_zsh() {
+	pkgdesc="Zsh plugin for $pkgname (completion and key bindings)"
 	depends=""
 	install_if="$pkgname=$pkgver-r$pkgrel zsh"
+	# For backward compatibility (Alpine <3.16).
+	replaces="$pkgname-zsh-completion<0.29.0-r4"
 
 	cd "$builddir"
-	install -Dm0644 shell/completion.zsh \
-		"$subpkgdir"/usr/share/zsh/site-functions/_$pkgname
+
+	install -D -m644 shell/*.zsh "$srcdir"/$pkgname.plugin.zsh \
+		-t "$subpkgdir"/usr/share/zsh/plugins/$pkgname/
+
+	# For backward compatibility (Alpine <3.16).
+	mkdir -p "$subpkgdir"/usr/share/fzf/
+	ln -s ../zsh/plugins/$pkgname/key-bindings.zsh "$subpkgdir"/usr/share/fzf/
 }
 
-sha512sums="2713ef7adb0dd278ac0a0c362c5cd23e7b0f1867efdfa964ad1f63f48c7f518e0cf96cc0b2571487585a0271fb0d2398edfebdbe603ec2bb42d3bd87febd2156  fzf-0.17.3.tar.gz
-daa16985079e3b55ccf5e74dde356e1e13e43865c9809e432b5d272b053f541f1eacd402f3b04957ee855fb8c0ca1820b507d08e408f55dc80004990a949874c  no-glide-install.patch
-e58121867dbf06ce8a66ffe77b0a17a572833cc5c94ab73761f631908f8106eed9e0bd69fd0ca47127c64dda43086a4ea908b61daa2e75fa0dc7f5274a6b98cc  disable-vet-for-tests.patch"
+_fish() {
+	pkgdesc="Fish key bindings for $pkgname"
+	depends=""
+	install_if="$pkgname=$pkgver-r$pkgrel fish"
+	# For backward compatibility (Alpine <3.16).
+	replaces="$pkgname-fish-completion<0.29.0-r4"
+
+	cd "$builddir"
+	install -D -m644 shell/key-bindings.fish \
+		"$subpkgdir"/usr/share/fish/vendor_functions.d/$pkgname-key-bindings.fish
+
+	# For backward compatibility (Alpine <3.16).
+	mkdir -p "$subpkgdir"/usr/share/fzf/
+	ln -s ../fish/vendor_functions.d/$pkgname-key-bindings.fish "$subpkgdir"/usr/share/fzf/
+}
+
+vim() {
+	pkgdesc="fzf vim plugin"
+	install_if="$pkgname=$pkgver-r$pkgrel vim"
+	depends="vim"
+
+	cd "$builddir"
+	install -Dm0644 plugin/fzf.vim "$subpkgdir"/usr/share/vim/vimfiles/plugin/fzf.vim
+	install -Dm0644 doc/fzf.txt "$subpkgdir"/usr/share/vim/vimfiles/doc/fzf.txt
+}
+
+nvim() {
+	pkgdesc="fzf vim plugin for neovim"
+	install_if="$pkgname=$pkgver-r$pkgrel neovim"
+	cd "$builddir"
+	install -Dm0644 plugin/fzf.vim "$subpkgdir"/usr/share/nvim/runtime/plugin/fzf.vim
+	install -Dm0644 doc/fzf.txt "$subpkgdir"/usr/share/nvim/runtime/doc/fzf.txt
+}
+
+sha512sums="
+b5c60dcf5169fc8cab344e19cafed29a051a32db1d0171950a697cde7064b7815ec109528dcea0b52bc2a258638cd13d115e2d01a887497aefab8c66e6a31a87  fzf-0.66.0.tar.gz
+a13ba25c08fe5b54231508be8d2f0a9f4d342630e6c31f2524cc6b8b99cead5b80daa2e2e37a581198f9ce79df2b00fdf81acf84fe1ad8043ee96e4db0870ee6  fzf.plugin.sh
+4ea4a5511704ef6fe57e7d3187739ba501ddb80d249738310d773edd9e2d08c26d27ec0c8976320e979aa8688984fe591b63a63b3c8589d5b80190e7d85d1c8b  fzf.plugin.zsh
+"

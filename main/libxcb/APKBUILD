@@ -1,22 +1,19 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libxcb
-pkgver=1.13
-pkgrel=2
+pkgver=1.17.0
+pkgrel=0
 pkgdesc="X11 client-side library"
-url="https://xcb.freedesktop.org"
+url="https://xcb.freedesktop.org/"
 arch="all"
 license="MIT"
-depends=
-subpackages="$pkgname-dev $pkgname-doc"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc"
 depends_dev="libxau-dev xcb-proto"
 checkdepends="check-dev"
-makedepends="$depends_dev libpthread-stubs libxdmcp-dev libxslt python3"
-source="https://xcb.freedesktop.org/dist/$pkgname-$pkgver.tar.bz2"
-
-builddir="$srcdir"/$pkgname-$pkgver
+options="!check" # upstream requires an old check version (0.9.4)
+makedepends="$depends_dev libxdmcp-dev libxslt python3"
+source="https://xorg.freedesktop.org/archive/individual/lib/libxcb-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -28,13 +25,13 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
-sha512sums="d99bbe386a65f60fcc0cc2935e4a365bc0577b5e90433e18778a665a5aee8ebc8e9e8cb0aedac0ac4a276147c0507e759a716874ea4f80792b2fc18eefbc128c  libxcb-1.13.tar.bz2"
+sha512sums="
+945b1f28e8b407a4d0ebf88c99ef3cbef763fd75e6eaa8e971946e44ce8dbe9b478c56ae85aaaadab7fdb25987e88570d9d4fb9ad2febd6d6bf21d644a0e10d0  libxcb-1.17.0.tar.xz
+"

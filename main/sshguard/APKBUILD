@@ -1,25 +1,22 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
+# Contributor: Michał Polański <michal@polanski.me>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=sshguard
-pkgver=2.1.0
+pkgver=2.5.1
 pkgrel=0
-pkgdesc="Log monitor that blocks with iptables on bad behaviour"
+pkgdesc="Protects hosts from brute-force attacks against SSH and other services"
 url="https://www.sshguard.net/"
 arch="all"
-license="BSD"
+license="ISC"
 depends="iptables"
-depends_dev=""
-makedepends="$depends_dev flex bison autoconf automake libtool"
-install=""
-subpackages="$pkgname-doc"
-source="http://downloads.sourceforge.net/project/sshguard/sshguard/$pkgver/sshguard-$pkgver.tar.gz
+makedepends="flex bison autoconf automake libtool"
+subpackages="$pkgname-openrc $pkgname-doc"
+source="https://downloads.sourceforge.net/project/sshguard/sshguard/$pkgver/sshguard-$pkgver.tar.gz
 	sshguard.initd
 	sshguard.confd
 	"
-builddir="$srcdir"/sshguard-$pkgver
 
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -28,13 +25,19 @@ build() {
 	make
 }
 
-package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	install -Dm755 "$srcdir"/sshguard.initd "$pkgdir"/etc/init.d/sshguard
-	install -Dm755 "$srcdir"/sshguard.confd "$pkgdir"/etc/conf.d/sshguard
+check() {
+	make check
 }
 
-sha512sums="0a75e9d1a8c9c010c767a49e96e88db4a92aae8d428deebcff1ce8befa36b77cb1937f2fcb2a4e2a3e86d47896a8405265eb30ee7a603fc18a3ee117d646b119  sshguard-2.1.0.tar.gz
-3827bc437cf9e8281e12ce9a7e74e1186fd509aa971934d0f190215889a1eff83455e87f87812abfa3209b3d4fcf8b184e6aa778d753b9da5e778ac79d39c729  sshguard.initd
-fc59e273e481dc7256a33114fc3b113f8b85406401a7d7113d0daba012dfd413c7bf85a0106539b859d90442976fe265355ccdf943a455f37c8ad7e5891e4b26  sshguard.confd"
+package() {
+	make DESTDIR="$pkgdir" install
+
+	install -Dm755 "$srcdir"/sshguard.initd "$pkgdir"/etc/init.d/sshguard
+	install -Dm644 "$srcdir"/sshguard.confd "$pkgdir"/etc/conf.d/sshguard
+}
+
+sha512sums="
+346d8a7287bd664b2efd5aae19b398d9fb1fbe6b940c791c1932b3ba5b00e7fcc777dcc61fb549eb916ad79c9e3e7b18d015c028c068c1f622818c6e2a06542e  sshguard-2.5.1.tar.gz
+3dfd291b74fd7082ade5e3339e5641e546fb98cf88be29cc9744e5cd316b128580a17c4d1d36f6b03eec73491645c670759ca6f82fe2555eff34adb090df69cb  sshguard.initd
+be29acae12bc51019febc283bb1c4fff0cd0a475a330a0ca1b4196bbc88a9a70922b82b7d56250e04d6491a4670ebb36d39c65c28fa0f20093355bd7ad3e4d2f  sshguard.confd
+"

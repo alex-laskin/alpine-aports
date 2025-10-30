@@ -1,0 +1,26 @@
+# Contributor: Jose-Luis Rivas <ghostbar@riseup.net>
+# Maintainer: qaqland <qaq@qaq.land>
+pkgname=bats-core
+pkgver=1.12.0
+pkgrel=0
+pkgdesc="Bash Automated Testing System"
+url="https://github.com/bats-core/bats-core"
+arch="noarch"
+license="MIT"
+depends="bash"
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.zip::https://github.com/bats-core/bats-core/archive/v$pkgver.zip"
+
+replaces="bats" # for backward compatibility
+
+check() {
+	bash -c 'bin/bats --tap test'
+}
+
+package() {
+	./install.sh "$pkgdir"/usr
+}
+
+sha512sums="
+3847575758b646a0d1cdfe051bc3e246f019fce27e55e59783c25ad427fadc09e4c572a722b911b9d1040efa8e1148193cf9a96c15c4dd1a96a407cb7f2522b8  bats-core-1.12.0.zip
+"

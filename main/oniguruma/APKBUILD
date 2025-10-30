@@ -1,29 +1,26 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=oniguruma
-pkgver=6.8.2
+pkgver=6.9.10
 pkgrel=0
 pkgdesc="a regular expressions library"
-url="http://www.geocities.jp/kosako3/oniguruma/"
+url="https://github.com/kkos/oniguruma"
 arch="all"
-license="BSD"
+license="BSD-2-Clause"
 makedepends="automake autoconf libtool"
 subpackages="$pkgname-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/kkos/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+source="$pkgname-$pkgver.tar.gz::https://github.com/kkos/oniguruma/archive/v$pkgver.tar.gz"
 
-check() {
-	cd "$builddir"
-	make check
-}
+# secfixes:
+#   6.9.5-r2:
+#     - CVE-2020-26159
 
 prepare() {
-	cd "$builddir"
+	default_prepare
 	autoreconf -vfi
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -31,13 +28,19 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
-		--localstatedir=/var
+		--localstatedir=/var \
+		--enable-posix-api
 	make
 }
 
+check() {
+	make check
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="f07257f5cc1cbffe038a6877014930e5b07ff0bc198bc929806ab26446be71c64f123bf0d7456a9aa96d50c24800426d8d40f51138b2d752fc4c23d260e37497  oniguruma-6.8.2.tar.gz"
+sha512sums="
+60975b876662dec8701cca5d8d4027c0a36b8effe7dd32679395ed473e26b3d6b72d7f6eb63bd4dc96c3774b594e56808ce14f993f127a5d04363232586160e4  oniguruma-6.9.10.tar.gz
+"

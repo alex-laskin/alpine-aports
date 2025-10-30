@@ -1,0 +1,48 @@
+# Contributor: Alex Yam <alex@alexyam.com>
+# Contributor: Grigory Kirillov <txgk@bk.ru>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=flint
+pkgver=3.3.1
+pkgrel=0
+pkgdesc="C library in support of computations in number theory"
+url="https://flintlib.org/"
+arch="all"
+license="LGPL-2.1-or-later"
+makedepends="
+	clang
+	gmp-dev
+	libntl-dev
+	m4
+	mpfr-dev
+	openblas-dev
+	"
+subpackages="$pkgname-dev"
+source="https://github.com/flintlib/flint/releases/download/v$pkgver/flint-$pkgver.tar.gz"
+
+build() {
+	export CC=clang CXX=clang++
+
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--libdir=/usr/lib \
+		--mandir=/usr/share/man \
+		--localstatedir=/var \
+		--with-ntl
+	make
+}
+
+check() {
+	make check
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+}
+
+sha512sums="
+8a34e3ef11b3c26c89a5c0d863ba09113f4d5fbbd075a649aa7db881c6db7c124113224aff7912aa78bdbfd30981dc8898b17afa8021d51d3cb334ba348a5970  flint-3.3.1.tar.gz
+"

@@ -1,21 +1,27 @@
 # Contributor: Alan Lacerda <alacerda@alpinelinux.org>
 # Maintainer: Alan Lacerda <alacerda@alpinelinux.org>
 pkgname=mate-media
-pkgver=1.20.0
+pkgver=1.28.1
 pkgrel=0
-pkgdesc="media tools for MATE"
+pkgdesc="Media tools for MATE"
 url="https://github.com/mate-desktop/mate-media"
 arch="all"
-license="GPL-2.0"
-makedepends="intltool gobject-introspection-dev gtk+3.0-dev
-	libcanberra-dev libunique-dev libmatemixer-dev mate-desktop-dev
-	dconf-dev libxml2-dev startup-notification-dev"
+license="GPL-2.0-or-later"
+makedepends="
+	dconf-dev
+	gobject-introspection-dev
+	gtk+3.0-dev
+	intltool
+	libcanberra-dev
+	libmatemixer-dev
+	libxml2-dev
+	mate-desktop-dev
+	mate-panel-dev
+	"
 subpackages="$pkgname-doc $pkgname-lang"
-source="http://pub.mate-desktop.org/releases/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://pub.mate-desktop.org/releases/${pkgver%.*}/mate-media-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -26,13 +32,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="415d9325413e36805f0255cb6f9903146cb5bc8b61e4615d7e7e84a82ffc344c7c4eb85297abb62dff162bc11b1abdbaac86040b22467d9b220f2ac50800bf59  mate-media-1.20.0.tar.xz"
+sha512sums="
+0ec675c59fcce26c26ec32cc11f6590060aeb0a302a434fcf381130c257e5833bc7a8075a8aab4bec85ad16a5a42e601d412b22a6f601c88c3c62006938674d2  mate-media-1.28.1.tar.xz
+"

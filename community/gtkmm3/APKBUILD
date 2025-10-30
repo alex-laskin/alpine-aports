@@ -1,30 +1,49 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=gtkmm3
-pkgver=3.22.2
+pkgver=3.24.10
 pkgrel=0
+# NOTE: Upgrade only to even-numbered versions (e.g. 1.18.x, 1.20.x)!
 pkgdesc="C++ wrappers for GTK+"
-url="http://gtkmm.sourceforge.net/"
+url="https://www.gtkmm.org/"
 arch="all"
-license="LGPL"
-options="!check"
-makedepends="atkmm-dev gtk+3.0-dev glibmm-dev pangomm-dev intltool"
-subpackages="$pkgname-dev $pkgname-doc"
+license="LGPL-2.1-or-later"
+makedepends="
+	meson
+	gtk+3.0-dev
+	cairomm1.14-dev
+	pangomm2.46-dev
+	gdk-pixbuf-dev
+	atkmm2.28-dev
+	glibmm-dev
+	"
+checkdepends="xvfb-run"
+subpackages="$pkgname-dev"
 source="https://download.gnome.org/sources/gtkmm/${pkgver%.*}/gtkmm-$pkgver.tar.xz"
 builddir="$srcdir/gtkmm-$pkgver"
 
 build() {
-	cd "$builddir"
-	CXXFLAGS="$CXXFLAGS -std=c++11" \
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr
-	make
+	abuild-meson \
+		-Db_lto=true \
+		-Dbuild-demos=false \
+		-Dbuild-tests=true \
+		. output
+	meson compile -C output
+}
+
+check() {
+	xvfb-run -a meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make install DESTDIR="$pkgdir"
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
-sha512sums="6e96b543e459481145ee0f56f31a7ad2466bd8ccdd2abf3205998aecede73d235149ca6e5ba6e8d20a4fd5345e310870d81ac2a716d4f78d1460ed685badbdc2  gtkmm-3.22.2.tar.xz"
+
+dev() {
+	default_dev
+	amove usr/lib/'*'/proc/m4/
+}
+
+sha512sums="
+d7478b66b94924e1457b1a6b4a46ee8027361ae1db0b3e203019957e4e591220de3a12c11d34cc5d381e707435c0cfe5eae12d620cd8db0e56a0485c39bd7abb  gtkmm-3.24.10.tar.xz
+"

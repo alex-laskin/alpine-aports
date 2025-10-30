@@ -3,37 +3,33 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=perl-glib
 _pkgreal=Glib
-pkgver=1.326
-pkgrel=0
+pkgver=1.3294
+pkgrel=2
 pkgdesc="Perl module for Glib"
-url="http://search.cpan.org/dist/Glib/"
+url="https://metacpan.org/release/Glib"
 arch="all"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends="perl-extutils-depends perl-extutils-pkgconfig"
-depends="$cpandepends"
-makedepends="perl-dev glib-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
+makedepends="perl-dev glib-dev perl-extutils-depends perl-extutils-pkgconfig"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/X/XA/XAOC/Glib-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/X/XA/XAOC/Glib-$pkgver.tar.gz"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 build() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-
-sha512sums="28f4f6d544389b7bedd5ccfce17659759e0996cdfea4f73e140de336b6395f5688bbb4707e3cf3e29b39f840eb8db9fc52dcbdaeb51154ae8fded2975ce9308d  Glib-1.326.tar.gz"
+sha512sums="
+f02560fe6de2d98f2b391ed37a60d231cbfdde1cddfcbf614883c61d666dda1264c215220748985cc4cbbe06dbd1b5df35d21c2ce259b46d468a16bffdfd2dae  Glib-1.3294.tar.gz
+"

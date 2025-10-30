@@ -1,0 +1,55 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-frameworks
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kdoctools
+pkgver=6.19.0
+pkgrel=0
+pkgdesc="Documentation generation from docbook"
+# armhf blocked by qt6-qtdeclarative -> ki18n
+arch="all !armhf"
+url="https://community.kde.org/Frameworks"
+license="LGPL-2.1-only OR LGPL-3.0-only"
+depends="
+	docbook-xml
+	docbook-xsl
+	"
+depends_dev="
+	karchive-dev
+	ki18n-dev
+	libxml2-dev
+	libxml2-utils
+	libxslt-dev
+	qt6-qtbase-dev
+	"
+makedepends="$depends_dev
+	doxygen
+	extra-cmake-modules
+	graphviz
+	perl-uri
+	qt6-qttools-dev
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-doc"
+_repo_url="https://invent.kde.org/frameworks/kdoctools.git"
+source="https://download.kde.org/stable/frameworks/${pkgver%.*}/kdoctools-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_QCH=ON
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+71a148c4851f63870ba2cf6486bf01fbb75e5d132180ab29f38429b314bf360129cb77adaf3401e0ac063f2d04d57d64b531665ea8e5a69f08fa7365f80582ac  kdoctools-6.19.0.tar.xz
+"

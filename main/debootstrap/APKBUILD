@@ -1,24 +1,26 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=debootstrap
-pkgver=1.0.97
+pkgver=1.0.141
 pkgrel=0
 pkgdesc="Debian/Ubuntu bootstrap scripts"
 url="https://packages.qa.debian.org/d/debootstrap.html"
 arch="noarch"
 license="MIT"
 options="!check" # upstream doesn't have a test suite
-depends="debian-archive-keyring dpkg tar"
-makedepends=""
+depends="debian-archive-keyring dpkg perl tar"
 subpackages="$pkgname-doc"
-source="http://ftp.debian.org/debian/pool/main/d/${pkgname}/${pkgname}_${pkgver}.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+source="https://salsa.debian.org/installer-team/debootstrap/-/archive/$pkgver/debootstrap-$pkgver.tar.bz2
+	auto-detect-arch.patch
+	"
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	install -Dm644 $pkgname.8 \
 		"$pkgdir"/usr/share/man/man8/$pkgname.8
 }
 
-sha512sums="581973e45acb3aec9123b8a6a4b1be23630374442251a26a115ff3b391f778eaa8cd55539cccea3df569e5eac87caeb87026a0548f7630b945f1ff6b3d968fbe  debootstrap_1.0.97.tar.gz"
+sha512sums="
+89cace8769c64ba573584dd49888aecf2b610e5efbf1a34f5bf5a53f489a3449448d682585ebe3c045bfda7aa020fad0ff306445b63315c9bb66e739d5170ee6  debootstrap-1.0.141.tar.bz2
+a349d9d8f5fe9e4ccb67d7206d5e87174722c0e0ee07405557662e94fb3c330a922f9cfe12bbd096103cbbe2146262ea300d9e1854f7fef77f4f1949984f5591  auto-detect-arch.patch
+"

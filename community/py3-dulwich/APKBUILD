@@ -1,0 +1,44 @@
+# Contributor: Fabian Affolter <fabian@affolter-engineering.ch>
+# Maintainer: Patrycja Rosa <alpine@ptrcnull.me>
+pkgname=py3-dulwich
+_pkgname=dulwich
+pkgver=0.22.8
+pkgrel=0
+pkgdesc="Python implementation of the Git file formats and protocols"
+url="https://www.dulwich.io/"
+arch="all"
+license="GPL-2.0-or-later OR Apache-2.0"
+depends="py3-certifi py3-urllib3"
+makedepends="py3-setuptools-rust python3-dev py3-gpep517 py3-wheel"
+checkdepends="py3-mock py3-gpgme py3-gevent"
+subpackages="$pkgname-pyc"
+source="https://github.com/jelmer/dulwich/archive/$_pkgname-$pkgver.tar.gz
+	skip-network-tests.patch
+	"
+builddir="$srcdir"/$_pkgname-dulwich-$pkgver
+
+replaces="py-dulwich" # Backwards compatibility
+provides="py-dulwich=$pkgver-r$pkgrel" # Backwards compatibility
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m unittest tests.test_suite
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+	rm -r "$pkgdir"/usr/lib/python3*/site-packages/dulwich/tests/
+}
+
+sha512sums="
+feed3477fdcea8241cbaa02c01458558aca9b00dfce324e0a111132796d953558a77789d3beef3bb49020be4f15fab6fd9ee9d9f8c134b95350b2c36ded461ff  dulwich-0.22.8.tar.gz
+02453dfde901ca2ec9b527dc2a5afc05550d33a47cd5ab6e5014eb8900d326258472bf41b8a9089b1d4adebc2bc554aed9c892b3df574fc3402fedc1a2fb64d1  skip-network-tests.patch
+"

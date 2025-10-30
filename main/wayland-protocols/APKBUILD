@@ -1,37 +1,37 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
-# Maintainer: Valery Kartel <valery.kartel@gmail.com>
+# Contributor: Valery Kartel <valery.kartel@gmail.com>
+# Maintainer: Peter Shkenev <santurysim@gmail.com>
 pkgname=wayland-protocols
-pkgver=1.13
+pkgver=1.45
 pkgrel=0
 pkgdesc="Protocols and protocol extensions complementing the Wayland core protocol"
-url="http://wayland.freedesktop.org"
+url="https://wayland.freedesktop.org"
 arch="noarch"
 license="MIT"
-depends=
-provides="$pkgname-dev"
-makedepends="wayland-dev"
-subpackages=
-source="https://wayland.freedesktop.org/releases/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+provides="$pkgname-dev=$pkgver-r$pkgrel"
+makedepends="meson wayland-dev"
+source="https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/$pkgver/downloads/wayland-protocols-$pkgver.tar.xz"
+
+case "$CARCH" in
+ppc64*)
+	# xdg_toplevel_interface: symbol not found in a test
+	options="$options !check"
+	;;
+esac
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var
-	make
+	abuild-meson . output
+	meson compile -C output
 }
 
 check() {
-	make -C "$builddir" check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	make -C "$builddir" DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="f35c21da289038651b75af064ec7c10779158829f578e7320faf401e980da3c958d85e5bcad00994c574cac6319a3ab975aa5483a9b438f781b767bd6303e194  wayland-protocols-1.13.tar.xz"
+sha512sums="
+d0557a75eb486fb824f182648bec346e270cb1ada8727613377ab95b0ccb595c516de242f486110c88b7009e98c87b071bf5b598f84466e5624aa1d81f19e195  wayland-protocols-1.45.tar.xz
+"

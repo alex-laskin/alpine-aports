@@ -1,0 +1,73 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=sdc
+pkgver=0.0.15_git20250829
+pkgrel=1
+_gitrev=d2dbea1b898da85266f0cbf20fbc9d73b7f7f7fc
+pkgdesc="Snazzy D Compiler"
+url="https://github.com/snazzy-d/sdc"
+arch="x86_64" # limited by dmd
+license="MIT"
+_llvmver=21
+depends="
+	gcc
+	musl-dev
+	"
+makedepends="
+	coreutils
+	dmd
+	lld$_llvmver
+	llvm$_llvmver-dev
+	llvm$_llvmver-gtest
+	llvm$_llvmver-static
+	llvm-libunwind-dev
+	"
+checkdepends="dtools" # for cmd:rdmd
+source="https://github.com/snazzy-d/sdc/archive/$_gitrev/sdc-$_gitrev.tar.gz
+	avoid-builder-specific-cpu-features.patch
+	"
+builddir="$srcdir/$pkgname-$_gitrev"
+
+export LLVM_CONFIG=llvm-config-$_llvmver
+
+prepare() {
+	default_prepare
+
+	if want_check; then
+		# uses `git rev-parse --show-toplevel` to find $builddir
+		git init
+	fi
+}
+
+build() {
+	unset DFLAGS LDFLAGS
+	make
+}
+
+check() {
+	make check
+}
+
+package() {
+	install -Dvm755 bin/sdc bin/sdfmt bin/sdunit -t "$pkgdir"/usr/bin/
+	install -Dvm644 lib/* -t "$pkgdir"/usr/lib/sdc/
+	install -Dvm644 LICENCE -t "$pkgdir"/usr/share/licenses/$pkgname/
+
+	mkdir -p "$pkgdir"/usr/include
+	cp -RT sdlib "$pkgdir"/usr/include/sdc
+	rm -v "$pkgdir"/usr/include/sdc/*.mak \
+		"$pkgdir"/usr/include/sdc/tools/*.o
+
+	mkdir -p "$pkgdir"/etc
+	cat > "$pkgdir"/etc/sdconfig <<-'EOF'
+	{
+		"includePaths": ["/usr/include/sdc", "."],
+		"libPaths": ["/usr/lib/sdc"],
+	}
+	EOF
+}
+
+sha512sums="
+6ccbdb87963787c146ab139e258d1654d4273bac4d9779c0cf7e9917d8cbb7d616c1c4bb035baedf34010818a990ed964aa86a7321d41203314b0f6348701a86  sdc-d2dbea1b898da85266f0cbf20fbc9d73b7f7f7fc.tar.gz
+aadae92a1aff4631796e5beb0f05a48ebdaf4eaf91837e3bc5202689eb8b661aaefcb3d531625d08c995b408e1651ee3387990c64ba9a66d16ba3c355940189b  avoid-builder-specific-cpu-features.patch
+"

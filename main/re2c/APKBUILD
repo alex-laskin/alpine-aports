@@ -1,19 +1,28 @@
 # Contributor: Jeff Bilyk <jbilyk at gmail>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=re2c
-pkgver=1.0.2
+pkgver=4.3
 pkgrel=0
-pkgdesc="A tool for writing fast and flexible scanners in C from regular expressions"
-url="http://www.re2c.org"
+pkgdesc="Lexer generator for C, C++ and Go"
+url="https://re2c.org/"
 arch="all"
 license="Public-Domain"
-checkdepends="bash"
+makedepends="python3"
 subpackages="$pkgname-doc"
-source="https://github.com/skvadrik/re2c/releases/download/$pkgver/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+source="https://github.com/skvadrik/re2c/releases/download/$pkgver/re2c-$pkgver.tar.xz"
+
+# secfixes:
+#   1.3-r1:
+#     - CVE-2020-11958
+
+prepare() {
+ 	default_prepare
+	update_config_sub
+}
 
 build() {
-	cd "$builddir"
+	CXXFLAGS="$CXXFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -25,13 +34,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
-	make tests
+	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="9d85933ae874cb9240175ce7210d3808173bafe246c67b9c333578846239b7bcef074287f26040b5a048bcd98db8d0393035c417918b80db1f74098695a77176  re2c-1.0.2.tar.gz"
+sha512sums="
+14889a19774c8d97a5e2365d67b4112b8a346feea75b380b94874a7a7a33807da1ee89a2d6528039efda09977c57487d49cf05833f9d3641906da21bef8d0de4  re2c-4.3.tar.xz
+"

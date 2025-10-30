@@ -1,0 +1,30 @@
+# Contributor: Jonas <spameier+alpine@proton.me>
+# Maintainer: Jonas <spameier+alpine@proton.me>
+pkgname=httpx
+pkgver=1.7.1
+pkgrel=2
+pkgdesc="A fast and multi-purpose HTTP toolkit that allows running multiple probes."
+url="https://docs.projectdiscovery.io/tools/httpx"
+arch="all"
+license="MIT"
+makedepends="go"
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/projectdiscovery/httpx/archive/refs/tags/v$pkgver.tar.gz"
+options="net"
+
+build() {
+	make build
+}
+
+check() {
+	make test
+}
+
+package() {
+	install -Dm755 "$builddir/httpx" -t "$pkgdir/usr/bin/"
+	install -Dm644 LICENSE.md "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+}
+
+sha512sums="
+ad8c511150e3546f389d7d8d3873171a709160e8bd84045bf56c7ff01c4e0331496633310b72fdbff5ebccdaeca011ef99482010fd861fb3dc304f9ced5a1d4e  httpx-1.7.1.tar.gz
+"

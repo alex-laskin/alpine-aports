@@ -1,49 +1,46 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=beanstalkd
-pkgver=1.10
-pkgrel=0
+pkgver=1.13
+pkgrel=1
 pkgdesc="Beanstalk is a simple, fast work queue"
-url="http://kr.github.io/beanstalkd/"
+url="https://kr.github.io/beanstalkd/"
 arch="all"
 license="MIT"
-depends=""
 makedepends="clang"
 install="$pkgname.pre-install"
 pkgusers="beanstalk"
-subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/kr/$pkgname/archive/v$pkgver.tar.gz
-	alpine.patch
+subpackages="$pkgname-doc $pkgname-openrc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/kr/beanstalkd/archive/v$pkgver.tar.gz
 	$pkgname.confd
-	$pkgname.initd"
-builddir="$srcdir/$pkgname-$pkgver"
+	$pkgname.initd
+	gcc15.patch
+	remove-werror.patch
+	"
 
 build() {
-	cd "$builddir"
-	make || return 1
+	make
+}
+
+check() {
+	make check
 }
 
 package() {
-	cd "$builddir"
 	mkdir -p "$pkgdir"/var/lib/beanstalkd
 	chown $pkgusers "$pkgdir"/var/lib/beanstalkd
 	make PREFIX="$pkgdir"/usr install
 	install -Dm755 "$srcdir"/$pkgname.initd \
-		"$pkgdir"/etc/init.d/$pkgname || return 1
+		"$pkgdir"/etc/init.d/$pkgname
 	install -Dm644 "$srcdir"/$pkgname.confd \
-		"$pkgdir"/etc/conf.d/$pkgname || return 1
-	install -D -m644 "doc/beanstalkd.1" "${pkgdir}/usr/share/man/man1/beanstalkd.1"
+		"$pkgdir"/etc/conf.d/$pkgname
+	install -D -m644 "doc/beanstalkd.1" "$pkgdir/usr/share/man/man1/beanstalkd.1"
 }
 
-md5sums="0994d83b03bde8264a555ea63eed7524  beanstalkd-1.10.tar.gz
-5a0879a6019e1dfb2c1e86ccd9c25dec  alpine.patch
-34f82111d964733fc17b002b86f158a3  beanstalkd.confd
-f2ac6c87e91e14310f24b6a6956b06ac  beanstalkd.initd"
-sha256sums="923b1e195e168c2a91adcc75371231c26dcf23868ed3e0403cd4b1d662a52d59  beanstalkd-1.10.tar.gz
-7fb20ed1108a82adbc159dd033e7e27d875e40d28b1bf2d13c0515cb6e1cb57c  alpine.patch
-d6171d865c438d51f3aa7e22333e90b4f11545d95be25edba9eca9f1e0031685  beanstalkd.confd
-d9002202904ed5b88140cbc9ab9e519f6a97b4aa1d544d5e6739619484fc07db  beanstalkd.initd"
-sha512sums="db85e4a32c686330e50d64d497a39bb9806de42a2c2d2c84eb260ae8cfad91b4c99eef6a8f0ab3e62d0ca71a31837778ec68a4299899ac5a9d94a5a4403d673b  beanstalkd-1.10.tar.gz
-a7c63512a61b5f9bb2bb04e89d56471983620b6b501f4a98dd87e2299596d147484ffcb85b6f98164adb2f7373a5adf4821be5f76dd35891c3dfc5a3623c01f5  alpine.patch
+sha512sums="
+7b5d1a185765a6abe4f1fb8ff2ce7ab0d00b9b2d87ed78ee6349895cdab43e7eac9bb9da5aa1e7b378038e69ac20113e7a663529b0fd77b697257bc384b7deda  beanstalkd-1.13.tar.gz
 0460ba20e5596308a1a07ce50a8e431de6a86d557e0b4c63097c8d5998dc5704b56bec573fce37619cc4f5c0e7abf28ad251b4279fd6ad7fceb0e93b49d221fe  beanstalkd.confd
-6b665411341033c16781f8ef254a527ff60629860fd649bb7aa4b79dabbd87edee8d33a4579a4f451eb8a5fbb979d2cc3f8a23d4c5e2eaa18c7225362f94df3e  beanstalkd.initd"
+6b665411341033c16781f8ef254a527ff60629860fd649bb7aa4b79dabbd87edee8d33a4579a4f451eb8a5fbb979d2cc3f8a23d4c5e2eaa18c7225362f94df3e  beanstalkd.initd
+98387d0c12720ed26d36acd399dfe9c7dd97119084533344cc9bae9dc545016abc2d9198ab7f77776cd6282599761f2e17988a8076eefac352de31a7078c566c  gcc15.patch
+42949d11294b5f42c96d06ce13aff76d596c3268af7442ade669cada29a58ed7612bf88521e6621bb100232b5875c982f3e6ddb1989799d74175135c89981146  remove-werror.patch
+"

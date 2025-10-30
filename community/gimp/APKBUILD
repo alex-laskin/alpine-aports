@@ -1,28 +1,55 @@
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=gimp
-pkgver=2.8.22
-pkgrel=2
+pkgver=3.0.4
+pkgrel=1
 pkgdesc="GNU Image Manipulation Program"
 url="https://www.gimp.org/"
-arch="all"
+# nobody is using this on s390x
+arch="all !s390x"
 license="GPL-3.0-or-later"
-depends="dbus"
-makedepends="gtk+-dev libxpm-dev libxmu-dev librsvg-dev dbus-glib-dev
-	libexif-dev desktop-file-utils intltool gegl-dev tiff-dev
-	libjpeg-turbo-dev libpng-dev iso-codes-dev lcms2-dev poppler-dev babl-dev"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="https://download.gimp.org/mirror/pub/$pkgname/v${pkgver%.*}/$pkgname-$pkgver.tar.bz2
-	CVE-2017-17784.patch
-	CVE-2017-17785.patch
-	CVE-2017-17786-1.patch
-	CVE-2017-17786-2.patch
-	CVE-2017-17787.patch
-	CVE-2017-17789.patch
+depends="py3-gobject3"
+makedepends="
+	appstream-glib-dev
+	babl-dev
+	desktop-file-utils
+	gegl-dev
+	gexiv2-dev
+	glib-networking
+	gobject-introspection-dev
+	gtk+3.0-dev
+	intltool
+	iso-codes-dev
+	lcms2-dev
+	libavif-dev
+	libexif-dev
+	libheif-dev
+	libjpeg-turbo-dev
+	libjxl-dev
+	libmypaint-dev
+	libpng-dev
+	librsvg-dev
+	libxcursor-dev
+	libxmu-dev
+	libxpm-dev
+	meson
+	mypaint-brushes
+	poppler-data
+	poppler-dev
+	tiff-dev
+	xz-dev
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+source="https://download.gimp.org/pub/gimp/v${pkgver%.*}/gimp-$pkgver.tar.xz
+	build-deps.patch"
+options="!check"
 
 # secfixes:
+#   2.10.36-r0:
+#     - CVE-2023-44441 ZDI-CAN-22093
+#     - CVE-2023-44442 ZDI-CAN-22094
+#     - CVE-2023-44443 ZDI-CAN-22096
+#     - CVE-2023-44444 ZDI-CAN-22097
 #   2.8.22-r2:
 #     - CVE-2017-17784
 #     - CVE-2017-17785
@@ -32,37 +59,30 @@ builddir="$srcdir/$pkgname-$pkgver"
 #     - CVE-2017-17789
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--disable-dependency-tracking \
-		--sysconfdir=/etc \
-		--enable-mp \
-		--enable-gimp-console \
-		--disable-python \
-		--with-gvfs \
-		--with-gif-compression=lzw \
-		--without-aa
-	make
+	CFLAGS="$CFLAGS -flto=auto" \
+	CXXFLAGS="$CXXFLAGS -flto=auto" \
+	abuild-meson \
+		-Dopenmp=enabled \
+		-Denable-console-bin=true \
+		-Dcheck-update=no \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
 dev() {
 	default_dev
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/gimptool* "$subpkgdir"/usr/bin
+	amove usr/bin/gimptool*
 }
 
-sha512sums="84a78d428282538b606b3cd1ff571e52c3d828fceade171b2012bc1cdcb85919fc7734e7e6c45ed3a8683657fa580412b32c1b511b8a512172a8c1df930493e6  gimp-2.8.22.tar.bz2
-8feab75b01c8d5d57bf869f64ca377f8cfb239079fba97f66bf34f341d9d15f9a8e403b1fe04d27bdbb39151f99a208aa5236c8dd0b6afeac45400a29efa0da7  CVE-2017-17784.patch
-51794739489a5e8babbc13c426dc34172caeab07cc8a64b5a8f19a4b88b736e3c9801cc4dadf6848b1e49031d2f1c7a336403a470a26a9ad8cad0a485a8342bd  CVE-2017-17785.patch
-d4887c49cf73c8f0238c338137ac94854524daea8535e206e34a9dfdb63dbc9ec91839d01085c484c995b26882215b652f4f7e23aa614f29272b5a18c8afc019  CVE-2017-17786-1.patch
-24d02cff72ec684aafd2cc6006955f283e6d5e102c37be0b426cade34219022a8225b367643ce3cfd786425fe53005e7db6a595ba507c7eacf402eebe2b44fa0  CVE-2017-17786-2.patch
-438376075d0a46809fd5f12f3d364b914c989ca512739b69da0f609100525da8dbc525ce57c144b5388eec525fd2d7b5c8098e63ddb70c68c186dee9b2ce7b83  CVE-2017-17787.patch
-f2f4aff0f0478356513a1f6da0732c5d0986ef1deb7b8e68bd283b7259887cf9a4d4785f00e48f03892cc86aa715b9764302640b2b891ab16617ef595ab779b8  CVE-2017-17789.patch"
+sha512sums="
+7a83768caae458b75883522c87d5297e9642b64b0516c482804034b8b9acc6af6afc89d1b4a549fd26de3e33816136c31d440f554f66669c8ccd43536260916a  gimp-3.0.4.tar.xz
+42a975816cf946d4a9077aa14cde5d06ee4c9110c9e5e2e837bc5ef5264f0202487c41528cf4d9e8b4947d6a215d60423aa7ca9a70b014ddd562bf09e06473c1  build-deps.patch
+"

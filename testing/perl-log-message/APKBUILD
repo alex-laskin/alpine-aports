@@ -4,19 +4,14 @@
 pkgname=perl-log-message
 _pkgreal=Log-Message
 pkgver=0.08
-pkgrel=0
+pkgrel=3
 pkgdesc="Powerful and flexible message logging mechanism"
-url="http://search.cpan.org/dist/Log-Message/"
+url="https://metacpan.org/release/Log-Message/"
 arch="noarch"
 license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends=""
-cpancheckdepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
-checkdepends="$cpancheckdepends"
+depends="perl"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/B/BI/BINGOS/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/B/BI/BINGOS/$_pkgreal-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {

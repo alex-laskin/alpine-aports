@@ -1,24 +1,21 @@
 # Contributor: Robert Boisvert <rdboisvert@gmail.com>
 # Maintainer: Robert Boisvert <rdboisvert@gmail.com>
 pkgname=sqliteodbc
-pkgver=0.9995
+pkgver=0.99991
 pkgrel=0
 pkgdesc="SQLite ODBC driver"
 url="http://www.ch-werner.de/sqliteodbc"
 arch="all"
-license="BSD"
+license="TCL"
 makedepends="libtool sqlite-dev unixodbc-dev"
-source="http://www.ch-werner.de/sqliteodbc/$pkgname-$pkgver.tar.gz"
-
-builddir="$srcdir/$pkgname-$pkgver"
+source="http://www.ch-werner.de/sqliteodbc/sqliteodbc-$pkgver.tar.gz"
 
 prepare() {
-	cd "$builddir"
+	default_prepare
 	update_config_sub
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,10 +24,11 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	mkdir -p "$pkgdir/usr/lib"
 	make DESTDIR="$pkgdir" install
 	rm $pkgdir/usr/lib/*.la $pkgdir/usr/lib/*.a
 }
 
-sha512sums="21a9b1ae7f5b607de6d22478befdfaf55e1248f7e1e9984c9dea039bcdec2b69ade9ec92e31fcae2007652d6764b74a9a1cebae199fdc52afeca06a226de85d9  sqliteodbc-0.9995.tar.gz"
+sha512sums="
+ba45b4646083e577e7c54995e0d929fbc2a3bc4ed1667e4422521b6c035f3775f7c5d0ae9985808b8680bc9c2b5b79606289fd047a8805c82ce34d5631239285  sqliteodbc-0.99991.tar.gz
+"

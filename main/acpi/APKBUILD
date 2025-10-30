@@ -1,22 +1,16 @@
-# Maintainer: Cág <ca6c@bitmessage.ch>
+# Maintainer: Patrycja Rosa <alpine@ptrcnull.me>
 pkgname=acpi
-pkgver=1.7
-pkgrel=2
+pkgver=1.8
+pkgrel=0
 pkgdesc="ACPI client for battery, power, and thermal readings"
 url="https://sourceforge.net/projects/acpiclient/files/acpiclient/"
 arch="all"
 options="!check"  # No test suite.
-license="GPL-2.0"
-depends=
-depends_dev=""
-makedepends="$depends_dev"
-install=""
+license="GPL-2.0-or-later"
 subpackages="$pkgname-doc"
-source="http://downloads.sourceforge.net/acpiclient/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://downloads.sourceforge.net/acpiclient/acpi-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -28,8 +22,9 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="e6c96707d651eb20aa4a4c76f78891154d576ccdfaef08b5eff6094b90b62a0e97f6e35a4a996dcc3b5f0b57ee2c60542f41832039c6cbdf853ff3d022c1b609  acpi-1.7.tar.gz"
+sha512sums="
+b1f8da4ece480a7bbeb04f214950c169970b7171ffa3531aec58d55bd6a1ca0de68587b35e7379a2fa643f8863617d82da2e70af70ad4b5a175d4d8f8312a3e6  acpi-1.8.tar.gz
+"

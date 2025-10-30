@@ -1,42 +1,37 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-misc-cyrillic
-pkgver=1.0.3
-pkgrel=0
+pkgver=1.0.4
+pkgrel=1
 pkgdesc="X.org misc cyrillic fonts"
-url="http://xorg.freedesktop.org/"
-arch="all"
+url="https://xorg.freedesktop.org/"
+arch="noarch"
 license="custom"
-depends="encodings font-alias mkfontscale mkfontdir fontconfig"
+options="!check"
+depends="encodings font-alias mkfontscale fontconfig"
 makedepends="font-util-dev bdftopcf"
-install=
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$srcdir"/$pkgname-$pkgver
-	update_config_sub || return 1
-}
+source="https://www.x.org/releases/individual/font/font-misc-cyrillic-$pkgver.tar.xz"
+subpackages="$pkgname-doc"
 
 build() {
-	cd "$srcdir"/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-mapfiles=/usr/share/fonts/util \
-		--with-fontdir=/usr/share/fonts/cyrillic \
-		|| return 1
-	make || return 1
+		--with-fontdir=/usr/share/fonts/cyrillic
+	make
 }
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-	make -j1 DESTDIR="$pkgdir" \
+	make DESTDIR="$pkgdir" \
 		MKFONTDIR=: \
 		MKFONTSCALE=: \
 		FCCACHE=: \
-		install || return 1
+		install
+
+	install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
 }
 
-md5sums="96109d0890ad2b6b0e948525ebb0aba8  font-misc-cyrillic-1.0.3.tar.bz2"
-sha256sums="e40fe3e3323c62b738550795457ad555c70c008aa91b5912dfd46f8e745f5e60  font-misc-cyrillic-1.0.3.tar.bz2"
-sha512sums="75e49cdb633f7ce5b9612d5adb0a85471c8fde5d55e8ccd9302f79f01e99e78b02449642c2cf785289f58d833bfa62042fce4253093fb17c87471559d1f9bdbf  font-misc-cyrillic-1.0.3.tar.bz2"
+sha512sums="
+fb2102805fedbd04b1533b85abcde79f432b97b72822bcfcdc09f525488d0d0c63815c8c25b79bab864bbe11fa1b72e2c34f5ba7b96eee1b6c84b841bb333353  font-misc-cyrillic-1.0.4.tar.xz
+"

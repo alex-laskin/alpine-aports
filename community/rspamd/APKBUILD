@@ -1,153 +1,175 @@
-# Maintainer: Valery Kartel <valery.kartel@gmail.com>
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
 # Contributor: Nathan Angelacos <nangel@alpinelinux.org>
 # Contributor: TBK <alpine@jjtc.eu>
+# Contributor: Jakub Jirutka <jakub@jirutka.cz>
+# Contributor: Duncan Bellamy <dunk@denkimushi.com>
+# Maintainer: Duncan Bellamy <dunk@denkimushi.com>
 pkgname=rspamd
-pkgver=1.7.5
+pkgver=3.13.2
 pkgrel=0
 pkgdesc="Fast, free and open-source spam filtering system"
-url="https://rspamd.com"
-arch="x86_64 x86 armhf ppc64le"
-license="Apache-2.0"
-options="!check"
-pkgusers=$pkgname
-pkggroups=$pkgname
-makedepends="cmake ragel perl luajit-dev glib-dev pcre-dev icu-dev
-	libevent-dev sqlite-dev libressl-dev file-dev curl-dev
-	gd-dev fann-dev"
-install="$pkgname.pre-install"
-subpackages="$pkgname-doc $pkgname-client $pkgname-utils::noarch
-	$pkgname-controller::noarch $pkgname-fuzzy::noarch
-	$pkgname-proxy::noarch $pkgname-openrc
+url="https://rspamd.com/"
+arch="all"
+license="Apache-2.0 BSD-1-Clause BSD-2-Clause BSD-3-Clause CC0-1.0 LGPL-2.1-or-later
+	LGPL-3.0-only MIT Zlib"
+pkgusers="rspamd"
+pkggroups="rspamd"
+depends="icu-data-full"
+makedepends="
+	cmake
+	curl-dev
+	elfutils-dev
+	glib-dev
+	hiredis-dev
+	icu-dev
+	libarchive-dev
+	libsodium-dev
+	libstemmer-dev
+	libunwind-dev
+	fasttext-dev
+	fmt-dev
+	openssl-dev>3
+	pcre2-dev
+	perl
+	ragel
+	samurai
+	sqlite-dev
+	xxhash-dev
+	zlib-dev
+	zstd-dev
 	"
-source="$pkgname-$pkgver.tar.gz::https://github.com/vstakhov/$pkgname/archive/$pkgver.tar.gz
+case "$CARCH" in
+	riscv64|s390x|x86|loongarch64) makedepends="$makedepends lua5.4-dev"
+		_luajit="OFF" ;;
+	*) makedepends="$makedepends luajit-dev"
+		_luajit="ON" ;;
+esac
+install="$pkgname.pre-install $pkgname.post-upgrade"
+subpackages="
+	$pkgname-dbg
+	$pkgname-doc
+	$pkgname-client
+	$pkgname-libs
+	$pkgname-utils::noarch
+	$pkgname-openrc
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/rspamd/rspamd/archive/$pkgver.tar.gz
 	$pkgname.logrotated
 	$pkgname.initd
 	$pkgname.confd
-	cmakelists.patch
-	worker.conf.in
+	10-control_socket.patch
+	20-default-configs.patch
+	30-unbundle-snowball.patch
+	31-unbundle-hiredis.patch
+	tests.patch
+	"
+# merged into main package
+provides="
+	rspamd-controller=$pkgver-r$pkgrel
+	rspamd-fuzzy=$pkgver-r$pkgrel
+	rspamd-proxy=$pkgver-r$pkgrel
+	"
+replaces="
+	rspamd-controller
+	rspamd-fuzzy
+	rspamd-proxy
 	"
 
-prepare() {
-	local worker
-	default_prepare
+case "$CARCH" in
+	x86_64|aarch64|ppc64le)
+		makedepends="$makedepends vectorscan-dev"
+		_hm="ON" ;;
+	*)
+		_hm="OFF" ;;
+esac
 
-	cd "$builddir"
-	for worker in proxy:2 normal:3 controller:4 fuzzy:5; do
-		sed -e "s/@name@/${worker%:*}/g" -e "s/@port@/${worker#*:}/g" \
-			"$srcdir"/worker.conf.in > conf/worker-${worker%:*}.conf
-	done
-	sed -ri -e 's/worker /&"rspamd_proxy" /' \
-		conf/worker-proxy.conf
-	sed "$(grep -n -m1 'worker {' conf/rspamd.conf|cut -d: -f1),\$d" \
-		 -i conf/rspamd.conf && \
-		 echo '.include(glob=true) "$CONFDIR/worker-*.conf"' >> \
-		conf/rspamd.conf
-	sed -ri -e 's~DBDIR(/rspamd.sock)~RUNDIR\1~' \
-		-e 's~rspamd_dynamic~dynamic~' \
-		conf/options.inc
+prepare() {
+	default_prepare
+	rm -r contrib/fmt contrib/hiredis
+	mkdir -p contrib/fmt/include
+	ln -s /usr/include/fmt contrib/fmt/include/fmt
 }
 
 build() {
-	cd "$builddir"
-	cmake CMakeLists.txt \
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	case "$CARCH" in
+		arm*) local _backward=OFF ;;
+		*) local _backward=ON ;;
+	esac
+	cmake -B build \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCONFDIR=/etc/$pkgname \
 		-DRUNDIR=/run/$pkgname \
 		-DRSPAMD_USER=$pkgusers \
 		-DRSPAMD_GROUP=$pkggroups \
-		-DENABLE_DB=ON \
-		-DENABLE_SQLITE=ON \
-		-DENABLE_HIREDIS=ON \
-		-DENABLE_REDIRECTOR=ON \
+		-DENABLE_FASTTEXT=ON \
+		-DENABLE_BACKWARD="$_backward" \
+		-DENABLE_HYPERSCAN="$_hm" \
+		-DENABLE_LUAJIT="$_luajit" \
+		-DENABLE_PCRE2=ON \
 		-DENABLE_URL_INCLUDE=ON \
-		-DINSTALL_EXAMPLES=ON
-	make
+		-DSYSTEM_XXHASH=ON \
+		-DSYSTEM_ZSTD=ON \
+		-GNinja \
+		$CMAKE_CROSSOPTS
+	cmake --build build --target all check
+}
+
+check() {
+	cmake --build build --target run-test
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
+	cd "$pkgdir"
 
-	mkdir -p "$pkgdir"/etc/$pkgname/local.d \
-		"$pkgdir"/etc/$pkgname/override.d
+	install -D usr/share/"$pkgname"/www/README.md \
+		usr/share/doc/"$pkgname"/README.md
+	rm usr/share/"$pkgname"/www/README.md
 
-	install -Dm644 "$srcdir"/$pkgname.logrotated \
-		"$pkgdir"/etc/logrotate.d/$pkgname
-	install -Dm755 "$srcdir"/$pkgname.initd \
-		"$pkgdir"/etc/init.d/$pkgname
-	install -Dm644 "$srcdir"/$pkgname.confd \
-		"$pkgdir"/etc/conf.d/$pkgname
+	install -dm 750 -o rspamd -g rspamd \
+		var/lib/$pkgname
+	install -dm 750 -o rspamd -g rspamd \
+		var/log/$pkgname
+	install -dm 755 -o rspamd -g rspamd \
+		etc/$pkgname/local.d/maps.d
 
-	install -dm750 -o $pkgname -g $pkgname \
-		"$pkgdir"/var/lib/$pkgname/dynamic
-	install -dm750 -g $pkgname \
-		"$pkgdir"/var/log/$pkgname
-	chown $pkgname:$pkgname "$pkgdir"/var/lib/$pkgname
-
-	mkdir "$pkgdir"/usr/sbin
-	find "$pkgdir"/usr/bin -type l -delete
-	mv "$pkgdir"/usr/bin/rspamd-$pkgver \
-		"$pkgdir"/usr/sbin/rspamd
-	mv "$pkgdir"/usr/bin/rspamadm-$pkgver \
-		"$pkgdir"/usr/bin/rspamadm
-
-	mv "$pkgdir"/usr/share/examples \
-		"$pkgdir"/usr/share/doc
-	mv "$pkgdir"/usr/share/$pkgname/www/README.md \
-		"$pkgdir"/usr/share/$pkgname/www/plugins.txt \
-		"$pkgdir"/usr/share/doc/$pkgname
+	install -Dm 644 "$srcdir"/$pkgname.logrotated etc/logrotate.d/$pkgname
+	install -Dm 755 "$srcdir"/$pkgname.initd etc/init.d/$pkgname
+	install -Dm 644 "$srcdir"/$pkgname.confd etc/conf.d/$pkgname
+	install -d etc/"$pkgname"/local.d etc/"$pkgname"/override.d
 }
 
 client() {
 	pkgdesc="$pkgdesc (console client)"
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/rspamc-$pkgver \
-		"$subpkgdir"/usr/bin/rspamc
+
+	amove usr/bin/rspamc*
+}
+
+libs() {
+	pkgdesc="$pkgdesc (libraries)"
+
+	amove usr/lib/$pkgname/*.so
 }
 
 utils() {
-	depends="perl"
 	pkgdesc="$pkgdesc (utilities)"
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/${pkgname}_stats \
-		"$subpkgdir"/usr/bin/${pkgname}-stats
-	mv "$pkgdir"/usr/bin/${pkgname}-redirector "$subpkgdir"/usr/bin
+	depends="perl"
+
+	amove usr/bin/"$pkgname"_stats
 }
 
-fuzzy() {
-	depends="$pkgname"
-	pkgdesc="$pkgdesc (local fuzzy storage)"
-	mkdir -p "$subpkgdir"/etc/$pkgname/modules.d
-	mv "$pkgdir"/etc/$pkgname/worker-fuzzy.* \
-		"$subpkgdir"/etc/$pkgname
-	mv "$pkgdir"/etc/$pkgname/modules.d/fuzzy_* \
-		"$subpkgdir"/etc/$pkgname/modules.d
-}
-
-controller() {
-	license="MIT"
-	depends="$pkgname"
-	pkgdesc="$pkgdesc (controller web interface)"
-	mkdir -p "$subpkgdir"/usr/share/$pkgname \
-		"$subpkgdir"/etc/$pkgname
-	mv "$pkgdir"/usr/share/$pkgname/www \
-		"$subpkgdir"/usr/share/$pkgname
-	mv "$pkgdir"/etc/$pkgname/worker-controller.* \
-		"$subpkgdir"/etc/$pkgname
-}
-
-proxy() {
-	depends="$pkgname"
-	pkgdesc="$pkgdesc (milter support)"
-	mkdir -p "$subpkgdir"/etc/$pkgname
-	mv "$pkgdir"/etc/$pkgname/worker-proxy.* \
-		"$subpkgdir"/etc/$pkgname
-}
-
-sha512sums="3e77c99abd47b1d22ccae33c0312b4338253af0ff10825dc2796fc42864142c91324d349677098bcd0c156a9229c04d3ce8a08808b6eb702624c918722e3acc4  rspamd-1.7.5.tar.gz
+sha512sums="
+ff8d9c59f6d0caabf563e2c07bff5adf8cb82dd0988d595900e0206a0315433c69ee425c50d4b5073c3d14f16615f11d7776986fe77b41daed7801e7522244ba  rspamd-3.13.2.tar.gz
 2efe28575c40d1fba84b189bb872860e744400db80dce2f6330be6c6287fb3f46e6511284729b957488bf40bcb9b0952e26df9934f5f138334bd2766075c45cb  rspamd.logrotated
-df37726d03e676b16d707854d95bafc9162da65c27bb150edbfc0cb00f1842188a1f2a8f1b82be5ae2a253b4f4db4d93dfe804a89feb988b5af858eb3f3458be  rspamd.initd
-e417dd825d1b4d03d115db037b2fdf2f48a35420ee7a9010d97167b6c31e88d6c0a15dd33b21d7d76856db0fdc5097c922fcdf1d8164d1e92ae377f7c5303947  rspamd.confd
-fa0e14d507cd7421a20916506c03e6e6c95fb2f38736e69540ee3e066da883c2ee4cb779ee8787756e4a1831ff8f04150ce592d4d6df08d8a18d55f3c6de4646  cmakelists.patch
-2169a8c4b4af6df9f3bbf4addeac564c9485a9d6a30fd15cf167093488362791c003a0d03360049c43d827e7fa767c1ad3522de6699b0247b75aa049c0b51214  worker.conf.in"
+8af7bde8b0fa392913bc7891498ad27d5262897a0a2c0922fa3006b06b9782773876881ea34dd65a236d4f33e080d551dc3866a2cce6d61b35165cd6713dc53c  rspamd.initd
+a2003ef0c9d64a44480f59302864a2dfedcbe3a0047fcbb655408bc8aae9014b6ad0ddc6b64d4abeeb21bea0f86678afd30589ac8eed83e07ad7f87710e93702  rspamd.confd
+d82ee4c81d5e6401327a6f16cb2cbaa4e968532270ef5ef960319c5aac72720c0ac3a3d42fe8e1f76e20488eadd0d01a5cb313e0fe12979aef1363325dd7c716  10-control_socket.patch
+8801e3af59886847c25c87ca2f231cd9ededf35f376f9920967e72696fb017b1a4312f3a49017b52f65556bfe5c9f74a80405643afa32bb2906c38d39c5e1818  20-default-configs.patch
+0d02f5268eb943c9cc2a8db5e8adab1662aecf9aebf2e1ab467ffd67fd1468101fdb98de40e096f62392018a406505957fda8dbdfc88e0c357eea0292a165a9f  30-unbundle-snowball.patch
+606626bfb84ab415d9a6e15cfb487b449c7d00187120c2985ec93e20ebc3ae4c3d3c515525ed68e47a2a9bf449c5bab61045195a14fc4da7ecd7c6d623e1d078  31-unbundle-hiredis.patch
+fecb21f079756676674b506ab47b6e423d55c81cd3f0d2c5fe02994537853e4fd25ddd7fafd97c33058401eadb40e9da95307fe0cdbce37bdeac84cb4d5c9760  tests.patch
+"

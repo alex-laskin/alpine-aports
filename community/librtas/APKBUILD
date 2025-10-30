@@ -1,25 +1,23 @@
-# Maintainer: Breno Leitao <breno.leitao@gmail.com>
+# Contributor: Breno Leitao <breno.leitao@gmail.com>
+# Maintainer:
 pkgname=librtas
-pkgver=2.0.1
+pkgver=2.0.5
 pkgrel=0
 pkgdesc="Librtas provides a set of libraries that access Run-Time Abstraction Services (RTAS)"
-url="https://github.com/nfont/librtas"
+url="https://github.com/ibm-power-utilities/librtas"
 arch="ppc64le"
 options="!check"
-license="LGPL"
+license="LGPL-2.1-or-later"
 makedepends="autoconf automake libtool linux-headers"
 subpackages="$pkgname-dev $pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/nfont/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver.tar.gz::https://github.com/ibm-power-utilities/librtas/archive/v$pkgver.tar.gz"
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 	./autogen.sh
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -28,8 +26,9 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="922465aa08bc0de49ae259a2655081eb8f91dcc213475b6cac6c4740279433011699a3b50cc23941bb3275f85deec2ffefc2bf1faae51a4baf8baa067b4d6a4d  librtas-2.0.1.tar.gz"
+sha512sums="
+afc4f3417321f68494439d837cbda9a32bef9ac67e7f2514687f6be1f38fe4719c33ce4eee01bfbd575f052677b0303dcc1d4b392bcbfa6f464299a3353bd9c4  librtas-2.0.5.tar.gz
+"

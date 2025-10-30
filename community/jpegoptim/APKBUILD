@@ -1,26 +1,18 @@
 # Contributor: Aji Kisworo Mukti <aji.kisworo.mukti@gmail.com>
-# Maintainer: Aji Kisworo Mukti <aji.kisworo.mukti@gmail.com>
+# Maintainer: Sodface <sod@sodface.com>
 pkgname=jpegoptim
-pkgver=1.4.6
+pkgver=1.5.6
 pkgrel=0
 pkgdesc="JPEG optimization utility"
 url="https://github.com/tjko/jpegoptim"
 arch="all"
 license="GPL-2.0-or-later"
-depends=""
 makedepends="libjpeg-turbo-dev"
-options="!check"
+checkdepends="python3"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/tjko/jpegoptim/archive/RELEASE.$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-RELEASE.$pkgver"
-
-prepare() {
-	default_prepare
-	update_config_sub
-}
+source="$pkgname-$pkgver.tar.gz::https://github.com/tjko/jpegoptim/archive/v$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -30,9 +22,14 @@ build() {
 	make
 }
 
+check() {
+	make test
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="1ed2408302d4f28a8019ab28f77e08c4de199d4c750cfd7b1a083908a5cca16c11dcdf6eab9e57ba935821db1e0a8398cea2d6f8e6ba5e07052690c0053d1b14  jpegoptim-1.4.6.tar.gz"
+sha512sums="
+9501bdcdd3f56c97b649b7b8987fea3a3bd33d09368730f265a4833c0839b538fa658ad85dcf64a6ea13f8a2c919486f448e38a46fec7122b7bcf01d027c8b3a  jpegoptim-1.5.6.tar.gz
+"

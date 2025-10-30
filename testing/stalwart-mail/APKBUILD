@@ -1,0 +1,80 @@
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
+maintainer="Matthias Ahouansou <matthias@ahouansou.cz>"
+pkgname=stalwart-mail
+pkgver=0.13.3
+_ldap3ver=0.11.5
+pkgrel=0
+pkgdesc="Secure & Modern All-in-One Mail Server"
+url="https://github.com/stalwartlabs/stalwart"
+arch="all"
+license="AGPL-3.0-or-later"
+makedepends="
+	cargo
+	cargo-auditable
+	clang19-dev
+	linux-headers
+	protoc
+	rocksdb-dev
+	"
+install="$pkgname.pre-install"
+pkgusers="stalwart"
+pkggroups="stalwart"
+subpackages="$pkgname-openrc stalwart-cli:cli"
+source="
+	https://github.com/stalwartlabs/stalwart/archive/v$pkgver/stalwart-$pkgver.tar.gz
+	https://github.com/inejge/ldap3/archive/v$_ldap3ver/ldap3-$_ldap3ver.tar.gz
+	0001-Bump-ring-to-0.17.5.patch
+	$pkgname.initd
+	$pkgname.confd
+	"
+builddir="$srcdir/stalwart-$pkgver"
+options="net" # cargo crates
+
+# To prevent OOM on armv7 and armhf
+export CARGO_PROFILE_RELEASE_LTO="false"
+
+# link against system rocksdb
+export ROCKSDB_LIB_DIR="/usr/lib/"
+
+prepare() {
+	mv "$srcdir/ldap3-$_ldap3ver" vendored-ldap3
+
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	case "$CARCH" in
+		arm*) export JEMALLOC_SYS_WITH_LG_PAGE=16;;
+	esac
+	cargo auditable build --frozen --release -p stalwart -p stalwart-cli
+}
+
+check() {
+	# https://github.com/RustCrypto/elliptic-curves/issues/1097
+	export RUST_MIN_STACK="4194304"
+	cargo test --frozen -p stalwart -p stalwart-cli
+}
+
+cli() {
+	pkgdesc="$pkgdesc (cli tool)"
+	install -Dm 755 "$builddir"/target/release/stalwart-cli \
+		"$subpkgdir"/usr/bin/stalwart-cli
+}
+
+package() {
+	install -Dm 755 "$srcdir"/$pkgname.initd \
+		"$pkgdir"/etc/init.d/$pkgname
+	install -Dm 644 "$srcdir"/$pkgname.confd \
+		"$pkgdir"/etc/conf.d/$pkgname
+	install -Dm 755 "$builddir"/target/release/stalwart \
+		"$pkgdir"/usr/bin/stalwart
+}
+
+sha512sums="
+0da59440cad9ed1d79660ae0cef689ea53ab5a6a919c0b610dcf2660da4f91bd8b9de5064ecbe7015e7a82c229b6de2662e01a87163a1457b6e897502d7c77be  stalwart-0.13.3.tar.gz
+ae65ce1d088c3bf71db268b98b44a334dea099b240576fd37d8190acfb9a6f90450a574de14e06099fee002f7f8fba3330fbba79bdacb3bfc852ac7493d43111  ldap3-0.11.5.tar.gz
+dbc6ef68435a11c89bdf89b9129aa768a89be8468979509d19260b8654741710a085b8bdf8fa5281d8f9da51a258abd8a6b48505f8e997666efb4a52bdf9b0ae  0001-Bump-ring-to-0.17.5.patch
+de1bd0a938f8e4ac14e03717e72a9bee9b7630f1d124138afb6ec83b5832c30e5b4406a8f7575ae3dd83a8f6019bd8ef53cc80af4b9713cdbc03eacc887a5ec9  stalwart-mail.initd
+d61a79d874424c32916758d576861c00208233229b6c7e39302ed55d242a96571c41d8adccc9575dbe5524695bb9b18da46def16f6d57f2877470441d458498e  stalwart-mail.confd
+"

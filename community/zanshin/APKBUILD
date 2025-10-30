@@ -1,0 +1,60 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=zanshin
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="A Getting Things Done application which aims at getting your mind like water"
+# armhf blocked by qt6-qtdeclarative
+# x86, armv7, ppc64le and s390x blocked by qt6-qtwebengine -> akonadi-calendar
+arch="all !armhf !x86 !armv7 !ppc64le !s390x !riscv64 !aarch64"
+url="https://zanshin.kde.org/"
+license="(GPL-2.0-only OR GPL-3.0-only) AND LGPL-2.0-or-later"
+makedepends="
+	akonadi-calendar-dev
+	boost-dev
+	extra-cmake-modules
+	ki18n-dev
+	kontactinterface-dev
+	krunner-dev
+	kwindowsystem-dev
+	qt6-qtbase-dev
+	samurai
+	"
+checkdepends="
+	dbus
+	xvfb-run
+	"
+subpackages="$pkgname-lang"
+_repo_url="https://invent.kde.org/pim/zanshin.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/zanshin-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	local skipped_tests="tests-units-(widgets-pageview"
+	local tests="
+		akonadi-akonadi(serializer|storage|cachingstorageintegration)
+		compositejob
+		migrator-zanshin(021migration|contextitemsmigration)
+		"
+	for test in $tests; do
+		skipped_tests="$skipped_tests|$test"
+	done
+	skipped_tests="$skipped_tests)test"
+	xvfb-run ctest --test-dir build -E "$skipped_tests"
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+da3998ee1028658f38ba059a429a6a2256be22ce3eeb427e9b52e019e0412b5681dc7d18a2240a24837db9ee3edfd59b1eb2e6d9cedbbbb7d8e67ff6aa2f8323  zanshin-25.08.1.tar.xz
+"

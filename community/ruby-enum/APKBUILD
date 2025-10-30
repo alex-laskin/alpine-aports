@@ -2,32 +2,31 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=ruby-enum
 _gemname=$pkgname
-pkgver=0.7.2
+pkgver=1.0.0
 pkgrel=1
 pkgdesc="A handy way to define enums in Ruby"
 url="https://github.com/dblock/ruby-enum"
 arch="noarch"
 license="MIT"
-depends="ruby ruby-i18n"
-checkdepends="ruby-rspec"
-source="$pkgname-$pkgver.tar.gz::https://github.com/dblock/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+depends="ruby"
+checkdepends="
+	ruby-i18n
+	ruby-rspec
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/dblock/ruby-enum/archive/v$pkgver.tar.gz
+	skip-coverage.patch"
 
 build() {
-	cd "$builddir"
 	gem build $_gemname.gemspec
 }
 
 check() {
-	cd "$builddir"
 	rspec spec
 }
 
 package() {
 	local gemdir="$pkgdir/$(ruby -e 'puts Gem.default_dir')"
 	local geminstdir="$gemdir/gems/$_gemname-$pkgver"
-
-	cd "$builddir"
 
 	gem install --local \
 		--install-dir "$gemdir" \
@@ -43,4 +42,7 @@ package() {
 		"$geminstdir"/*.md
 }
 
-sha512sums="6dd8383bd6fb8d32f24c28da35bf19d1e67695968b42b908bbf0cb8b06152c38b604e07ab216e632e818f3b1f52d1dbbda6f8a209d85d51a4c6ae04c218180bf  ruby-enum-0.7.2.tar.gz"
+sha512sums="
+84b22f4b09d7efa9243eeeb83edfa25d438d4448f65a366b95a1b544081f567aaf090e4c1456f110361f5aabf710c7c64f6777c6c1bb2c0336485276f3db78aa  ruby-enum-1.0.0.tar.gz
+f02142db686f3ab57a46d4df76b192860f989c94bd32d91c146a1b3d36799935e0cb74729da47ebc18f4fbf32b4239073321f3ba0bed92a9edd9fcf45fc4ad7d  skip-coverage.patch
+"

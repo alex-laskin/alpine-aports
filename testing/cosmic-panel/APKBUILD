@@ -1,0 +1,47 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-panel
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Panel component for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-panel"
+# loongarch64: https://github.com/bytecodealliance/rustix/issues/1496
+arch="all !loongarch64"
+license="GPL-3.0-or-later"
+makedepends="
+	appstream-glib
+	cargo
+	desktop-file-utils
+	findutils
+	intltool
+	just
+	libxkbcommon-dev
+	wayland-dev
+	wayland-protocols
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-panel/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo build --release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+cc844669037e279e6b22ae66a61347a43be5854e0549a9de4c6f065494024a5b4b5651c1de760dc4b9a3fa5eea88df09c8cb1bf8eaeac1c9193a87835d4aa5d4  cosmic-panel-1.0.0_beta4.tar.gz
+"

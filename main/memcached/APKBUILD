@@ -1,48 +1,43 @@
 # Contributor: Jeff Bilyk <jbilyk@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=memcached
-pkgver=1.5.8
+pkgver=1.6.39
 pkgrel=0
 pkgdesc="Distributed memory object caching system"
-url="http://memcached.org/"
+url="https://memcached.org/"
 arch="all"
-license="BSD"
-depends_dev="${pkgname}=${pkgver}-r${pkgrel}"
-makedepends="$depends_dev cyrus-sasl-dev libevent-dev libseccomp-dev linux-headers"
+license="BSD-3-Clause"
+depends_dev="$pkgname=$pkgver-r$pkgrel"
+makedepends="$depends_dev cyrus-sasl-dev libevent-dev libseccomp-dev linux-headers bsd-compat-headers"
 install="$pkgname.pre-install"
-subpackages="$pkgname-dev $pkgname-doc"
-source="https://www.memcached.org/files/${pkgname}-${pkgver}.tar.gz
+subpackages="$pkgname-dev $pkgname-doc $pkgname-openrc"
+source="https://www.memcached.org/files/memcached-$pkgver.tar.gz
 	$pkgname.confd
-	$pkgname.initd"
-builddir="$srcdir/$pkgname-$pkgver"
+	$pkgname.initd
+	fix-bsd-headers.patch
+	"
+
+# secfixes:
+#   0:
+#     - CVE-2022-26635
 
 build() {
-	# extstore is broken on non-x86_64
-	# https://github.com/memcached/memcached/issues/319
-	local _extstore=''
-	case "$CARCH" in
-		x86_64) _extstore='--enable-extstore';;
-	esac
-
-	cd "$builddir"
+	CFLAGS="$CFLAGS -flto=auto -O2" \
 	./configure \
-		--build="$CBUILD" \
-		--host="$CHOST" \
+		--build=$CBUILD \
+		--host=$CHOST \
 		--prefix=/usr \
 		--enable-sasl \
 		--enable-sasl-pwdb \
-		--enable-seccomp \
-		$_extstore
+		--enable-seccomp
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	install -m755 -D "$srcdir/$pkgname.initd" \
 		"$pkgdir/etc/init.d/$pkgname"
@@ -50,6 +45,9 @@ package() {
 		"$pkgdir/etc/conf.d/$pkgname"
 }
 
-sha512sums="6f0e3ce9cae3e424c41223597353b9520e7e7f97fb4719a5d520dfd34e1d917d4ee0e42bced0a5799042227b80bc4ed2778715a71b9941239db13cb367bdb088  memcached-1.5.8.tar.gz
+sha512sums="
+b04faed42514a5943a41736bd411fd62e3433dd631d13a59102958e39a01e1e0e89def90b39f09e1cdc5bb9c057977c46176e73fa9f162092a90c0b179d0ccb6  memcached-1.6.39.tar.gz
 31bd788433b8021ed332f86d291e7f03222ae234520e52ba673b581d5da2adf5656e8f73e8b985df73258dea9b2a1b8ef36195163fe47a92fda59825deedfed4  memcached.confd
-9615769b14175a25b50c9871b48c0635b5397ebe45231b43ee29a603eceb7b16bfc5ac744017b89b19082209c09597b3038a03ed0d5d9b45c60454d5b2717a55  memcached.initd"
+11566ce544c3feedbbcca7f87cf21c9d7f7e47c8a0ebdbc0e833ac18a858211c5b00d4128457f957401f6f20453f0cbe902570488133a503c79ee01c102a7c18  memcached.initd
+6c2bc5fd6a16dae82d8fde013fc2db5a79805ad8a59ed2be35a7fb5140dcc5571be53181da815d3ab6f469b85dfa8e9f22b867f353306b8fb668b9e1cb79a583  fix-bsd-headers.patch
+"

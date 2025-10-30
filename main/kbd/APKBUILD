@@ -1,58 +1,57 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=kbd
-pkgver=2.0.4
-pkgrel=3
+pkgver=2.8.0
+pkgrel=0
 pkgdesc="Tools for configuring the console (keyboard, virtual terminals, etc.)"
-url="http://ftp.altlinux.org/pub/people/legion/kbd"
+url="https://kbd-project.org/"
 arch="all"
 license="GPL-2.0-or-later"
 depends="kbd-misc"
-makedepends="linux-headers linux-pam-dev check-dev ckbcomp xkeyboard-config"
-install=""
+makedepends="
+	ckbcomp
+	linux-headers
+	linux-pam-dev
+	xkeyboard-config
+	"
+checkdepends="autoconf"
 subpackages="$pkgname-bkeymaps::noarch $pkgname-legacy::noarch
 	$pkgname-misc::noarch $pkgname-doc $pkgname-openrc $pkgname-vlock"
 source="https://www.kernel.org/pub/linux/utils/kbd/kbd-$pkgver.tar.gz
+	lex.patch
+	valgrind.patch
+	busybox.patch
+	tests.patch
+
 	loadkeys.initd
 	loadkeys.confd
-
-	error.h
-	fix-tests.patch
 	"
-builddir="$srcdir"/kbd-$pkgver
 
 _datadir=/usr/share
 _xmapdir="$_datadir"/keymaps/xkb
 _bmapdir="$_datadir"/bkeymaps
 _badmaps="pk-ara"
 
-prepare() {
-	default_prepare
-
-	cd "$builddir"
-	cp "$srcdir"/error.h .
-}
-
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--disable-nls \
 		--prefix=/usr \
+		--sysconfdir=/etc \
 		--datadir="$_datadir" \
-		--htmldir=/usr/share/html/$pkgname
+		--htmldir=/usr/share/html/$pkgname \
+		--disable-static \
+		$(want_check || echo --disable-tests)
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 _listxmaps() {
 	local invariant line; invariant=false
-	grep -v '^$' /usr/share/X11/xkb/rules/base.lst | while read line; do
+	grep -v '^$' /usr/share/X11/xkb/rules/base.lst | while read -r line; do
 	case "$line" in
 		'! variant') invariant=true ;;
 		'!'*) invariant=false ;;
@@ -64,7 +63,6 @@ _listxmaps() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 
 	install -Dm755 "$srcdir"/loadkeys.initd \
@@ -89,7 +87,6 @@ package() {
 	ln -s sr-cy.map.gz qwerty/sr-latin.map.gz
 
 	# Rename conflicting keymaps
-	mv dvorak/no.map.gz dvorak/no-dvorak.map.gz
 	mv fgGIod/trf.map.gz fgGIod/trf-fgGIod.map.gz
 	mv olpc/es.map.gz olpc/es-olpc.map.gz
 	mv olpc/pt.map.gz olpc/pt-olpc.map.gz
@@ -106,22 +103,22 @@ package() {
 	_listxmaps | while read -r variant layout; do
 		if ! test -f "$pkgdir$_xmapdir"/"$layout".map.gz; then
 			echo "Generating keymap $layout..."
-			ckbcomp "$layout" | gzip > "$pkgdir$_xmapdir"/"$layout".map.gz || exit 1
+			ckbcomp "$layout" | gzip -n > "$pkgdir$_xmapdir"/"$layout".map.gz
 		fi
 		echo "Generating keymap $layout-$variant..."
-		ckbcomp "$layout" "$variant" | gzip > "$pkgdir$_xmapdir"/"$layout"-"$variant".map.gz || exit 1
+		ckbcomp "$layout" "$variant" | gzip -n > "$pkgdir$_xmapdir"/"$layout"-"$variant".map.gz
 	done
 
 	# Do some fix-ups on X.org keymaps
 	mv "$pkgdir$_xmapdir"/fi.map.gz "$pkgdir$_xmapdir"/fi-kotoistus.map.gz
 
-	# Install html documentation
-	mkdir -p "$pkgdir$_datadir"/html/$pkgname
-	mv docs/doc/*.html "$pkgdir$_datadir"/html/$pkgname
-
 	# Replace busybox setfont utility.
 	mkdir -p "$pkgdir"/usr/sbin
 	mv "$pkgdir"/usr/bin/setfont "$pkgdir"/usr/sbin
+
+	# Replace busybox kbd_mode
+	mkdir -p "$pkgdir"/bin
+	mv "$pkgdir"/usr/bin/kbd_mode "$pkgdir"/bin
 
 	# Link open to openvt
 	ln -s openvt "$pkgdir"/usr/bin/open
@@ -134,8 +131,7 @@ vlock() {
 	# This is the only binary needing linux-pam so moving this to a
 	# subpackage reduces the amount of depencies of the kbd package.
 
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/vlock "$subpkgdir"/usr/bin
+	amove usr/bin/vlock
 }
 
 bkeymaps() {
@@ -147,12 +143,13 @@ bkeymaps() {
 	mkdir -p "$subpkgdir$_bmapdir"
 	local map variant layout; for map in "$pkgdir$_xmapdir"/*.map.gz; do
 		variant="$(basename "$map" | cut -d. -f1)"
+		# shellcheck disable=2254
 		case "$variant" in $_badmaps) continue ;; esac
 
 		layout="${variant%%-*}"
 		mkdir -p "$subpkgdir$_bmapdir"/$layout
 		echo "Generating binary keymap $variant..."
-		"$pkgdir"/usr/bin/loadkeys -ub "$map" | gzip > "$subpkgdir$_bmapdir"/$layout/$variant.bmap.gz
+		"$pkgdir"/usr/bin/loadkeys -ub "$map" | gzip -n > "$subpkgdir$_bmapdir"/$layout/$variant.bmap.gz
 	done
 }
 
@@ -160,22 +157,24 @@ legacy() {
 	pkgdesc="kbd legacy keymaps"
 	depends=
 
-	mkdir -p "$subpkgdir$_datadir"/keymaps
-	mv "$pkgdir$_datadir"/keymaps/legacy "$subpkgdir$_datadir"/keymaps
+	amove "$_datadir"/keymaps/legacy
 }
 
 misc() {
 	pkgdesc="kbd keymaps and console data"
 	depends=
 
-	mkdir -p "$subpkgdir$_datadir"
 	local dir; for dir in consolefonts consoletrans keymaps unimaps; do
-		mv "$pkgdir$_datadir"/$dir "$subpkgdir$_datadir"
+		amove "$_datadir"/$dir
 	done
 }
 
-sha512sums="e37bc661c75a8363e9a5ba903310fa7f7ded4f381c2c77aa7edc0b1aca5a63224933fd113cddcf180e7fb85f55407e0d1f47be1cdf69dcf2787e83ac996bbf03  kbd-2.0.4.tar.gz
+sha512sums="
+b34ed901cb52be3c918b31c985059eb3bc1e7d237a4c413c04fc073868ea128e5ee0352ee453582ec9e6c0c7737eb58cfb70a75b63bceca4f13a67f6a073abcc  kbd-2.8.0.tar.gz
+af39b1cad57120912132618c0f5c0432de3f2a4bb8865585f52d23971ab1b8c17fd4f7d97e105ad938f0ff4165c51ca212f5ada18b78b03a4666157d81eacddb  lex.patch
+41a5be8588048ddf4d5aae23a298948ae12f65ecbca7a90120c1ed8ba80b4fab448fff41d660fe5c0111a1b002f87a9b6f90aa8f8e77f6c1d7dea49af9fcfc26  valgrind.patch
+ec670b5467551d4a72e7cc0d1181a3e0852d8f26604e1151f575a0ac42bc0062c902456f33c39f4eb74fbab7528747d8aeb2cc56d07bf40ecb4020de1832c255  busybox.patch
+52fcb7b938fb47f08b2cc359a472de9c12fd3e08c99b070df75c695e7f64393cb666336c24307dab71f788c7acb3e65399b82d754eaee1042871f85db231bf09  tests.patch
 64b5ab4c362350521da8f507d22c0b77784da99bbe1b32f0c001cd826f63c607e3f9cd6af01f06a61af8bd709760bbf2bb3cfe2010c33925f2987a1af6ef4998  loadkeys.initd
 12028796552a5ffed1d5cb19d37fc6a73fb4f2e2bf34d837a81171c7ebee98d6c3f557715bf79706d79ce053b9b2450cd8cf1c4ea045428fb7d8a5915ae3ed78  loadkeys.confd
-c66f6b0d8c8b8d285c740bdbe7130dee272ac01cd5e73b35a58cedf1a77fe8d9e062631b804fb58014d8eb9861c8f28aed07bc022ef31662bcc61b5c85a21752  error.h
-bb67e5bb933a48f4a04402e07d7d67169a97485e6b469f8ccd4436466eb17ec2ddcf0ef74d22b3aae9e813feaee5bef0822ec50c384e0276a8c91f9325502a5f  fix-tests.patch"
+"

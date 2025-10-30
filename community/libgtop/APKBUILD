@@ -1,20 +1,24 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libgtop
-pkgver=2.38.0
-pkgrel=0
+pkgver=2.41.3
+pkgrel=1
 pkgdesc="GNOME top library"
 url="https://www.gnome.org/"
 arch="all"
-license="LGPL"
-options="!check"
-makedepends="intltool linux-headers glib-dev libxau-dev libx11-dev"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="https://download.gnome.org/sources/${pkgname}/${pkgver%.*}/${pkgname}-${pkgver}.tar.xz"
-builddir="${srcdir}/${pkgname}-${pkgver}"
+license="LGPL-2.1-or-later"
+options="suid !check" # No testsuite
+makedepends="
+	intltool
+	linux-headers
+	glib-dev
+	gobject-introspection-dev
+	libxau-dev
+	libx11-dev
+	"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang $pkgname-tools"
+source="https://download.gnome.org/sources/libgtop/${pkgver%.*}/libgtop-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -25,8 +29,15 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="96586b7f12a2b63c5ec7f69c51b6e28361a7458f24f20270fc589213bfae43ae99d1e39efb6101d189741bba084c887554f745131e99d8ed90b7db6d53c36e1d  libgtop-2.38.0.tar.xz"
+tools() {
+	pkgdesc="$pkgdesc SETUID server for unsupported platforms"
+
+	amove usr/libexec
+}
+
+sha512sums="
+17eca4214229b7b4e40ef572ea61feb60829f3db7870db2c474a813e59c4723d67da8e1c2d22be6ab3b19a6beeab05edbc4833a115196c2288f9a7a0de3d6ef2  libgtop-2.41.3.tar.xz
+"

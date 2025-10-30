@@ -1,26 +1,24 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
-# Contributor: Kiyoshi Aman <kiyoshi.aman@gmail.com>
-# Maintainer: Kiyoshi Aman <kiyoshi.aman@gmail.com>
+# Contributor: Sheila Aman <sheila@vulpine.house>
+# Maintainer: Sheila Aman <sheila@vulpine.house>
 pkgname=lynx
-pkgver=2.8.8_p2
+pkgver=2.9.2
 _relver=${pkgver/_p/rel.}
-_v=${_relver%rel.*}
-pkgrel=7
+pkgrel=1
 pkgdesc="Cross-platform text-based browser"
-url="http://lynx.invisible-island.net/"
+url="https://lynx.invisible-island.net/"
 arch="all"
-license="GPL"
-depends="gzip"
-makedepends="libressl-dev gettext zlib-dev glib-dev perl ncurses-dev"
-install=""
-subpackages="$pkgname-doc"
-source="http://invisible-mirror.net/archives/lynx/tarballs/${pkgname}${_relver}.tar.bz2
-	ncurses.patch
-	libressl.patch"
+license="GPL-2.0-only"
+makedepends="openssl-dev>3 gettext zlib-dev glib-dev perl ncurses-dev"
+subpackages="$pkgname-doc $pkgname-lang"
+source="https://invisible-mirror.net/archives/lynx/tarballs/lynx$_relver.tar.bz2"
+builddir="$srcdir"/$pkgname$_relver
 
-builddir="$srcdir"/${pkgname}${_v//./-}
+# secfixes:
+#   2.8.9_p1-r3:
+#     - CVE-2021-38165
+
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -30,23 +28,27 @@ build() {
 		--infodir=/usr/share/info \
 		--localstatedir=/var \
 		--enable-ipv6 \
-		--with-ssl
+		--with-ssl \
+		--enable-default-colors \
+		--with-screen=ncursesw \
+		--with-zlib \
+		--disable-full-paths \
+		--enable-externs \
+		--enable-nls
 	make helpdir=/usr/share/doc/lynx/help \
 		docdir=/usr/share/doc/lynx
 }
 
 check() {
-	cd "$builddir"
 	./lynx -version
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install install-help install-doc \
 		helpdir=/usr/share/doc/lynx/help \
 		docdir=/usr/share/doc/lynx
 }
 
-sha512sums="a475fb7b79641ddd7c20861e16d3d71ccb1a5ae33247cce0b9e73690dd664ebf129964c026bc33b0f082a7585e5a6acae9afc9a65f308e19b49fa0a8bebc0362  lynx2.8.8rel.2.tar.bz2
-cb5336b3528d2d52dc3414e908ffa8c01bea9c0d111d542259308d673ee7dd93814a6281ba7d0b31c96b4d1276726ec3806e29e3be287d0bc257a401826bdc3f  ncurses.patch
-e67413579c486a89dcd19bd8c3d8e719f9e2ac754e2466d4af1a5c32bc804358d7f11cf0313d4759b4ce330c0442a1f9edad6c63b90cdd4a321cc83b4d8a324b  libressl.patch"
+sha512sums="
+bb9ed23a5f8664ca8bccd95cc55683849aa707f601e209d84e0acaed151b78cd772316f527881022ff120049c4fc586c05d579f9d616a2b108d9ddfaa5b2159d  lynx2.9.2.tar.bz2
+"

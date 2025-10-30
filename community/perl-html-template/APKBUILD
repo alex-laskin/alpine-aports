@@ -4,36 +4,30 @@
 pkgname=perl-html-template
 _pkgreal=HTML-Template
 pkgver=2.97
-pkgrel=0
+pkgrel=3
 pkgdesc="Perl module to use HTML-like templating language"
-url="http://search.cpan.org/dist/HTML-Template/"
+url="https://metacpan.org/release/HTML-Template/"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends="perl-cgi"
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
+makedepends="perl-cgi"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/S/SA/SAMTREGAR/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/S/SA/SAMTREGAR/$_pkgreal-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 prepare() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }

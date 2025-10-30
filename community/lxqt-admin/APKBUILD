@@ -1,0 +1,45 @@
+# Contributor: Zachary Lee Andrews <zcrayfish@gmail.com>
+maintainer="Antoni Aloy <aaloytorrens@gmail.com>"
+pkgname=lxqt-admin
+pkgver=2.2.0
+pkgrel=0
+pkgdesc="LXQt system administration tool"
+url="https://github.com/lxqt/lxqt-admin"
+# armhf: blocked by liblxqt and kwindowsystem
+arch="all !armhf"
+license="LGPL-2.0-or-later"
+makedepends="
+	cmake
+	kwindowsystem-dev
+	liblxqt-dev
+	lxqt-build-tools
+	polkit-qt-dev
+	qt6-qttools-dev
+	samurai
+	"
+options="!check" # No testsuite
+subpackages="$pkgname-lang"
+source="https://github.com/lxqt/lxqt-admin/releases/download/$pkgver/lxqt-admin-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+lang() {
+	install_if="lang $pkgname=$pkgver-r$pkgrel"
+	amove usr/share/lxqt/translations/$pkgname-time
+	amove usr/share/lxqt/translations/$pkgname-user
+}
+
+sha512sums="
+9596a6868b9db9f4a3848cf459fce3894a75f5f9c438311bae9483892bbe553626ff3f3dbb9bc55f4d0902b6298af0e05e672817280dd941f25e9b90bd56d922  lxqt-admin-2.2.0.tar.xz
+"

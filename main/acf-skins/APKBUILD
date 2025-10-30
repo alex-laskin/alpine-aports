@@ -2,18 +2,19 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-skins
 pkgver=0.6.0
-pkgrel=1
+pkgrel=3
 pkgdesc="Skins for ACF"
-url="https://git.alpinelinux.org/cgit/acf/acf-skins"
+url="https://gitlab.alpinelinux.org/acf/acf-skins"
 arch="noarch"
-license="GPL-2.0"
-depends=""
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+license="GPL-2.0-only"
+options="!check" # no test suite
+source="https://gitlab.alpinelinux.org/acf/acf-skins/-/archive/v$pkgver/acf-skins-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
 	make DESTDIR="$pkgdir" install
 }
-md5sums="a210fc27bd861272fe8e1b7a0829ea04  acf-skins-0.6.0.tar.xz"
-sha256sums="1d3b4f4b86f4503ef0eaeab00d40853fed7ef0d8d249dc302ac39b049d612554  acf-skins-0.6.0.tar.xz"
-sha512sums="941b760086b6c214b4b4118dabc131b0699b66d52043e9014018e609179e96ec209c1b7667844b6771abc5b0c0c0e0d44798bf6bf4eb5ddb765a746fffccd9a9  acf-skins-0.6.0.tar.xz"
+
+sha512sums="
+8814b9c97cb2451c2dd16b8bcf652550a1b961dd741a6c2ff37b083bdeed1dfabdd4a7548a5fd291999aae9909c4eccc6ee3887bd1dc3cba5a06c9da41167360  acf-skins-v0.6.0.tar.gz
+"

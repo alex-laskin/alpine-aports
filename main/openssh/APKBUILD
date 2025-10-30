@@ -1,43 +1,88 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
+# Contributor: Will Sinatra <wpsinatra@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=openssh
-pkgver=7.7_p1
+pkgver=10.2_p1
 _myver=${pkgver%_*}${pkgver#*_}
-pkgrel=2
+pkgrel=0
 pkgdesc="Port of OpenBSD's free SSH release"
-url="http://www.openssh.org/portable.html"
+url="https://www.openssh.com/portable.html"
 arch="all"
-license="BSD"
+license="SSH-OpenSSH"
 options="suid"
-depends="openssh-client openssh-sftp-server openssh-server"
-makedepends_build="linux-pam-dev"
-makedepends_host="libressl-dev zlib-dev linux-headers"
-makedepends="$makedepends_build $makedepends_host"
-# Add more packages support here e.g. kerberos
-_pkgsupport=""
-[ -z "$BOOTSTRAP" ] && _pkgsupport="pam"
-subpackages="$pkgname-doc
-	$pkgname-keygen
-	$pkgname-client
-	$pkgname-keysign
-	$pkgname-sftp-server:sftp
-	$pkgname-server-common:server_common:noarch
-	$pkgname-server
+depends="openssh-sftp-server openssh-server"
+makedepends_build="autoconf automake"
+makedepends_host="
+	linux-headers
+	openssl-dev
+	zlib-dev
 	"
-for _flavour in $_pkgsupport; do
-	subpackages="$subpackages ${pkgname}-server-$_flavour:_pkg_flavour"
-done
+#
+# NOTE: if you edit this file, please make sure that it builds with `BOOTSTRAP=1 abuild -r`
+#
+# build bootstrap sshd without libedit, linux-pam and krb5
+if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+	makedepends_host="$makedepends_host libedit-dev linux-pam-dev krb5-dev libfido2-dev
+		utmps-dev utmps-static"
+	subpackages="$pkgname-client-krb5:_client_krb5
+		$pkgname-server-pam:_server_with_flavor
+		$pkgname-server-krb5:_server_with_flavor
+		$pkgname-sk-helper:_ssh_sk_helper"
+fi
 
-source="http://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/$pkgname-$_myver.tar.gz
-	openssh7.4-peaktput.patch
+makedepends="$makedepends_build $makedepends_host"
+
+install="$pkgname-server.post-upgrade"
+subpackages="$pkgname-dbg
+	$subpackages
+	$pkgname-doc
+	$pkgname-keygen
+	$pkgname-client-default:_client_default
+	$pkgname-client-common:_client_common
+	$pkgname-keysign
+	$pkgname-sftp-server:_sftp_server
+	$pkgname-server-common:_server_common:noarch
+	$pkgname-server
+	$pkgname-server-common-openrc
+	$pkgname-nftrules
+	"
+
+source="https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-$_myver.tar.gz
 	fix-utmp.patch
-	bsd-compatible-realpath.patch
+	disable-forwarding-by-default.patch
+	avoid-redefined-warnings-when-building-with-utmps.patch
+	default-internal-sftp.patch
+	include-config-dir.patch
+	sshd-flavor.patch
+	disable-fzero-call-used-regs-used-on-ppc64le.patch
+
 	sshd.initd
 	sshd.confd
-	sftp-interactive.patch
+	sshd.pam
+	sshd.nft
 	"
+
 # secfixes:
+#   9.9_p2-r0:
+#     - CVE-2025-26465
+#     - CVE-2025-26466
+#   9.8_p1-r0:
+#     - CVE-2024-6387
+#   9.6_p1-r0:
+#     - CVE-2023-48795
+#   8.8_p1-r0:
+#     - CVE-2021-41617
+#   8.5_p1-r0:
+#     - CVE-2021-28041
+#   8.4_p1-r0:
+#     - CVE-2020-14145
+#   7.9_p1-r3:
+#     - CVE-2018-20685
+#     - CVE-2019-6109
+#     - CVE-2019-6111
+#   7.7_p1-r4:
+#     - CVE-2018-15473
 #   7.5_p1-r8:
 #     - CVE-2017-15906
 #   7.4_p1-r0:
@@ -45,21 +90,25 @@ source="http://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/$pkgname-$_myver.tar
 #     - CVE-2016-10010
 #     - CVE-2016-10011
 #     - CVE-2016-10012
+#   0:
+#     - CVE-2023-38408
 
 builddir="$srcdir"/$pkgname-$_myver
 
-prepare() {
-	cd "$builddir"
-	default_prepare
-	for _flavour in $_pkgsupport; do
-		cp -R "$srcdir"/$pkgname-$_myver "$srcdir"/$pkgname-${_myver}-$_flavour
-	done
-}
+_do_configure() {
+	autoreconf
+	local _with_libedit="--with-libedit"
+	if [ -n "$BOOTSTRAP" ] || [ "$APORTS_BOOTSTRAP" ]; then
+		_with_libedit="--without-libedit"
+	fi
 
-build() {
-	cd "$builddir"
-	export LD="$CC"
-	_configure_vanilla="./configure \
+	local _extra_cflags="" _extra_libs=""
+	if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+		_extra_cflags="$(pkg-config --cflags --static libutmps)"
+		_extra_libs="-Wl,--push-state,-Bstatic $(pkg-config --libs --static libutmps) -Wl,--pop-state"
+	fi
+
+	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
@@ -68,134 +117,213 @@ build() {
 		--mandir=/usr/share/man \
 		--with-pid-dir=/run \
 		--with-mantype=doc \
-		--with-ldflags='${LDFLAGS}' \
+		--with-cflags="$CFLAGS $_extra_cflags" \
+		--with-libs="$_extra_libs" \
+		--with-ldflags="$LDFLAGS" \
+		--disable-utmp \
+		--disable-wtmp \
 		--disable-lastlog \
 		--disable-strip \
-		--disable-wtmp \
 		--with-privsep-path=/var/empty \
 		--with-xauth=/usr/bin/xauth \
+		--with-default-path='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
 		--with-privsep-user=sshd \
-		--with-md5-passwords \
 		--with-ssl-engine \
-		"
-	# now we build "vanilla" openssh
-	_configure="$_configure_vanilla"
-	for _flavour in $_pkgsupport; do
-		_configure="$_configure --without-$_flavour"
-	done
-	msg "Building openssh..."
-	eval "$_configure"
-	make
+		$_with_libedit \
+		"$@"
+}
 
-	# now we build other openssh-$_flavour
-	_configure="$_configure_vanilla"
-	for _flavour in $_pkgsupport; do
-		cd "$builddir-$_flavour"
-		msg "Building openssh with $_flavour support..."
-		eval "$_configure --with-$_flavour"
-		make
+build() {
+	export LD="$CC"
+	export TEST_SSH_UTF8=no # utf8 test fails
+	local _with_security_key_builtin=
+
+	if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+		msg "Building openssh with pam support..."
+		_do_configure --without-kerberos5 --with-pam --with-pam-service=sshd
+		SSHD_FLAVOR=.pam make
+		mv sshd sshd.pam
+		mv sshd-auth sshd-auth.pam
+		mv sshd-session sshd-session.pam
+
+		msg "Building openssh with kerberos5"
+		_do_configure --with-kerberos5 --with-pam
+		SSHD_FLAVOR=.krb5 make
+		mv sshd sshd.krb5
+		mv sshd-auth sshd-auth.krb5
+		mv sshd-session sshd-session.krb5
+		mv ssh ssh.krb5
+
+		_with_security_key_builtin="--with-security-key-builtin"
+	fi
+
+	msg "Building openssh without pam and kerberos5"
+	_do_configure --without-kerberos5 --without-pam $_with_security_key_builtin
+	make
+}
+
+check() {
+	# Run all tests except the t-exec tests which fail on the
+	# builders for some reason but pass locally (needs further
+	# investigation).
+	TEST_SSH_UNSAFE_PERMISSIONS=1 make -j1 file-tests interop-tests unit
+
+	if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+		msg "verify pam build"
+		strings sshd.pam | grep sshd-session.pam
+		scanelf -n sshd-auth.pam | grep libpam
+		scanelf -n sshd-session.pam | grep libpam
+
+		msg "verify krb5 build"
+		strings sshd.krb5 | grep sshd-session.krb5
+		scanelf -n sshd-auth.krb5 | grep krb5
+		scanelf -n sshd-session.krb5 | grep krb5
+		scanelf -n sshd.krb5 | grep krb5
+		scanelf -n ssh.krb5 | grep krb5
+	fi
+
+	msg "verify minimal build"
+	for i in sshd ssh; do
+		if scanelf -n $i | grep -E '(libpam|krb5)'; then
+			error "$i should not be linked to libpam or libkrb5"
+			return 1
+		fi
 	done
 }
 
 package() {
-	cd "$builddir"
+	depends="openssh-client $depends"
+
 	make DESTDIR="$pkgdir" install
-	mkdir -p "$pkgdir"/var/empty
+	if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+		install -m755 -t "$pkgdir"/usr/sbin/ sshd.pam sshd.krb5
+		install -m755 -t "$pkgdir"/usr/lib/ssh/ \
+			sshd-session.pam sshd-auth.pam sshd-session.krb5 sshd-auth.krb5
+		install -m755 -t "$pkgdir"/usr/bin/ ssh.krb5
+		install -Dm644 "$srcdir"/sshd.pam "$pkgdir"/etc/pam.d/sshd
+	fi
+
+	mkdir -p "$pkgdir"/etc/ssh/ssh_config.d
+	mkdir -p "$pkgdir"/etc/ssh/sshd_config.d
+
 	install -D -m755 "$srcdir"/sshd.initd \
 		"$pkgdir"/etc/init.d/sshd
 	install -D -m644 "$srcdir"/sshd.confd \
 		"$pkgdir"/etc/conf.d/sshd
 	install -Dm644 "$builddir"/contrib/ssh-copy-id.1 \
 		"$pkgdir"/usr/share/man/man1/ssh-copy-id.1
-	sed -i 's/#UseDNS yes/UseDNS no/' "$pkgdir"/etc/ssh/sshd_config
+	install -Dm755 "$builddir"/contrib/findssl.sh \
+		"$pkgdir"/usr/bin/findssl.sh
+	install -Dm755 "$builddir"/contrib/ssh-copy-id \
+		"$pkgdir"/usr/bin/ssh-copy-id
+	install -Dm755	"$builddir"/ssh-pkcs11-helper \
+		"$pkgdir"/usr/bin/ssh-pkcs11-helper
+	install -Dm644 "$srcdir"/sshd.nft \
+		"$pkgdir"/usr/share/nftables.avail/50_sshd.nft
 }
 
 keygen() {
 	pkgdesc="ssh helper program for generating keys"
-	depends=
-	install -d "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/ssh-keygen \
-		"$subpkgdir"/usr/bin/
+	depends="libcrypto3>=3.1.0"
+
+	amove usr/bin/ssh-keygen
 }
 
-client() {
+_client_krb5() {
+	pkgdesc="OpenBSD's SSH client with kerberos support"
+	depends="openssh-keygen=$pkgver-r$pkgrel openssh-client-common=$pkgver-r$pkgrel !openssh-client-default"
+	provides="openssh-client=$pkgver-r$pkgrel"
+	provider_priority=1
+
+	amove usr/bin/ssh.krb5
+	mv "$subpkgdir"/usr/bin/ssh.krb5 "$subpkgdir"/usr/bin/ssh
+}
+
+_ssh_sk_helper() {
+	pkgdesc="OpenSSH libfido2 security key helper"
+	depends="openssh-keygen=$pkgver-r$pkgrel openssh-server-common=$pkgver-r$pkgrel"
+	amove usr/lib/ssh/ssh-sk-helper
+}
+
+_client_default() {
 	pkgdesc="OpenBSD's SSH client"
-	depends="openssh-keygen"
-	install -d "$subpkgdir"/usr/bin \
-		"$subpkgdir"/usr/lib/ssh \
-		"$subpkgdir"/etc/ssh \
+	depends="openssh-keygen=$pkgver-r$pkgrel openssh-client-common=$pkgver-r$pkgrel !openssh-client-krb5"
+	provides="openssh-client=$pkgver-r$pkgrel"
+	provider_priority=2
+
+	amove usr/bin/ssh
+}
+
+_client_common() {
+	pkgdesc="OpenBSD's SSH client common files"
+	depends="libcrypto3>=3.1.0"
+
+	install -d "$subpkgdir"/usr/lib/ssh \
 		"$subpkgdir"/var/empty
 
-	mv "$pkgdir"/usr/bin/* \
-		"$subpkgdir"/usr/bin/
-	mv "$pkgdir"/etc/ssh/ssh_config \
-		"$pkgdir"/etc/ssh/moduli \
-		"$subpkgdir"/etc/ssh/
-	install -Dm755 "$builddir"/contrib/findssl.sh \
-		"$subpkgdir"/usr/bin/findssl.sh
-	install -Dm755 "$builddir"/contrib/ssh-copy-id \
-		"$subpkgdir"/usr/bin/ssh-copy-id
-	install -Dm755	"$builddir"/ssh-pkcs11-helper \
-		"$subpkgdir"/usr/bin/ssh-pkcs11-helper
+	amove usr/bin
+	amove etc/ssh/ssh_config
+	amove etc/ssh/ssh_config.d
+	amove etc/ssh/moduli
 }
 
 keysign() {
 	pkgdesc="ssh helper program for host-based authentication"
-	depends="openssh-client"
-	install -d "$subpkgdir"/usr/lib/ssh
-	mv "$pkgdir"/usr/lib/ssh/ssh-keysign \
-		"$subpkgdir"/usr/lib/ssh/
+	depends="openssh-client=$pkgver-r$pkgrel libcrypto3>=3.1.0"
+
+	amove usr/lib/ssh/ssh-keysign
 }
 
-sftp() {
+_sftp_server() {
 	pkgdesc="ssh sftp server module"
 	depends=""
-	install -d "$subpkgdir"/usr/lib/ssh
-	mv "$pkgdir"/usr/lib/ssh/sftp-server \
-		"$subpkgdir"/usr/lib/ssh/
+
+	amove usr/lib/ssh/sftp-server
 }
 
-server_common() {
+_server_common() {
 	pkgdesc="OpenSSH server configuration files"
 	depends=""
-	for i in etc/ssh/sshd_config \
-		etc/init.d/sshd \
-		etc/conf.d/sshd; do
 
-		install -d "$subpkgdir"/${i%/*}
-		mv "$pkgdir"/$i \
-			"$subpkgdir"/${i%/*}/
-
-	done
+	amove etc/ssh/sshd_config
+	amove etc/ssh/sshd_config.d
 }
 
 server() {
 	pkgdesc="OpenSSH server"
-	depends="openssh-keygen openssh-server-common"
-	cd "$builddir"
-	install -d "$subpkgdir"/usr/sbin
-	mv "$pkgdir"/usr/sbin/sshd "$subpkgdir"/usr/sbin/
+	depends="openssh-keygen=$pkgver-r$pkgrel openssh-server-common=$pkgver-r$pkgrel"
+
+	amove usr/sbin/sshd
+	amove usr/lib/ssh/sshd-auth
+	amove usr/lib/ssh/sshd-session
 }
 
-_server() {
-	cd "$builddir"
-	install -d "$subpkgdir"/usr/sbin
-	mv "$1"/sshd "$subpkgdir"/usr/sbin/
+_server_with_flavor() {
+	local _flavor="${subpkgname#openssh-server-}"
+	pkgdesc="OpenSSH server with $_flavor support"
+	depends="openssh-keygen=$pkgver-r$pkgrel openssh-server-common=$pkgver-r$pkgrel"
+
+	# pam flavor also ships a pam entry
+	if [ "$_flavor" = "pam" ]; then
+		amove etc/pam.d/sshd
+	fi
+
+	amove usr/sbin/sshd.$_flavor
+	amove usr/lib/ssh/sshd-auth.$_flavor
+	amove usr/lib/ssh/sshd-session.$_flavor
 }
 
-_pkg_flavour() {
-	pkgdesc="OpenSSH server with $_flavour support"
-	depends="openssh-keygen openssh-server-common"
-	for _flavour in $_pkgsupport; do
-		cd "${builddir}"-$_flavour
-		_server "${builddir}"-$_flavour
-	done
-}
-
-sha512sums="597252cb48209a0cb98ca1928a67e8d63e4275252f25bc37269204c108f034baade6ba0634e32ae63422fddd280f73096a6b31ad2f2e7a848dde75ca30e14261  openssh-7.7p1.tar.gz
-398096a89aa104abeff31aa043ac406a6348e0fdd4d313b7888ee0b931d38fd71fc21bceee46145e88f03bc27e00890e068442faee2d33f86cfbc04d58ffa4b6  openssh7.4-peaktput.patch
-f35fffcd26635249ce5d820e7b3e406e586f2d2d7f6a045f221e2f9fb53aebc1ab1dd1e603b3389462296ed77921a1d08456e7aaa3825cbed08f405b381a58e1  fix-utmp.patch
-f2b8daa537ea3f32754a4485492cc6eb3f40133ed46c0a5a29a89e4bcf8583d82d891d94bf2e5eb1c916fa68ec094abf4e6cd641e9737a6c05053808012b3a73  bsd-compatible-realpath.patch
-bcd56bebe37acb69986abd247d6b74daf7dde1712f30640244a1dd70c505a6a536c5536bef11345e128b6785e1c8ff9736627556e702218805fb14b23bd7047c  sshd.initd
-ec506156c286e5b28a530e9964dd68b7f6c9e881fbc47247a988e52a1f9cd50cbfaf4955c96774f9e2508d8b734c4abf98785fbaa75ae6249e3464b5495f1afc  sshd.confd
-c1d09c65dbc347f0904edc30f91aa9a24b0baee50309536182455b544f1e3f85a8cecfa959e32be8b101d8282ef06dde3febbbc3f315489339dcf04155c859a9  sftp-interactive.patch"
+sha512sums="
+66f3dd646179e71aaf41c33b6f14a207dc873d71d24f11c130a89dee317ee45398b818e5b94887b5913240964a38630d7bca3e481e0f1eff2e41d9e1cfdbdfc5  openssh-10.2p1.tar.gz
+53c99ef1d3a1f6ab4a9937986330787b1014098a39cc1639b36538e41e9322f81ee2f7f0cb6e2fbc4ac40c03c08e2b34df0a58316918bcecbb02539b0058d182  fix-utmp.patch
+8df35d72224cd255eb0685d2c707b24e5eb24f0fdd67ca6cc0f615bdbd3eeeea2d18674a6af0c6dab74c2d8247e2370d0b755a84c99f766a431bc50c40b557de  disable-forwarding-by-default.patch
+e85754b2b6c4c37b432d166e63d6293e58c9c8bb6ebd8d3527c83afa2337f14c06d6a4e008ffcc0afd7dc3409e960b89c1dde41d2543c4be7d4813d477ff3a5e  avoid-redefined-warnings-when-building-with-utmps.patch
+1fb55aae445dfd9ededeba1f204a0c3e4a752128ad0a388f473ace074e68b040112f309192243621fd4f16b0d1cce4f083612b1639c3e18166abf92babe52c93  default-internal-sftp.patch
+ff73563e6018e94a1b2dd320cf32426f3945c0f4aa509eeb95783c34dd5c5c8dec91f6d71e4d538c4735539a4d8c724cf61d71513887d8a96b84109ae3a5562e  include-config-dir.patch
+8a8003c13c8c9545dd684fce8cbff9887e37ab325db8554e0bd937ca5f954f362cd0d4b822fffb38c141d2be621c16eb15df9711a36473a7fe378e5496decce1  sshd-flavor.patch
+6250ab32cd1018c6372b0c5c61eeb091fba3d9c99da56078d1bdfb89b06b90dab373c3a22b61acde577f29834f17a704e263b6e2a67e8234426e947a42a04d6f  disable-fzero-call-used-regs-used-on-ppc64le.patch
+af7988a48e4ccd5b0a4ff76f4c929e14a2193a6de14517c048ead286906e88506b841c0f1f65a35d822fa92eca5070373016c2b3602b08b4428ab937087fedae  sshd.initd
+be7dd5f6d319b2e03528525a66a58310d43444606713786b913a17a0fd9311869181d0fb7927a185d71d392674857dea3c97b6b8284886227d47b36193471a09  sshd.confd
+5d3b62d724d930bafb6263d0600828771e667751cb5ba5070414dce7c3d0559bebdfb05960b721cfd20c81d3ad824291ffb10498798171c8bbbcbf389b706265  sshd.pam
+57bf486c2de139c383184986f6005e6cc9cc17bb5838ee6c3c7bb053433a7403aab41cb0f4ff79ca0ad4d79ca13cd58b732a57e073d3c28b38548d4a726d0dd2  sshd.nft
+"

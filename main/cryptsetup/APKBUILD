@@ -1,70 +1,86 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=cryptsetup
-pkgver=2.0.2
-pkgrel=3
+pkgver=2.8.1
+pkgrel=0
 pkgdesc="Userspace setup tool for transparent encryption of block devices using the Linux 2.6 cryptoapi"
 url="https://gitlab.com/cryptsetup/cryptsetup"
 arch="all"
-options="!checkroot"
-license="GPL-2.0-or-later"
-depends=""
-makedepends_build=""
-makedepends_host="lvm2-dev libressl-dev popt-dev util-linux-dev
-	json-c-dev argon2-dev"
-makedepends="$makedepends_build $makedepends_host"
-checkdepends="device-mapper sharutils which bash"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-libs"
-source="https://www.kernel.org/pub/linux/utils/$pkgname/v${pkgver%.*}/$pkgname-$pkgver.tar.gz
-	flush-stdout.patch
-	libressl-2.7.patch
-	dmcrypt.confd
-	dmcrypt.initd
+license="GPL-2.0-or-later WITH cryptsetup-OpenSSL-exception"
+makedepends_build="asciidoctor bash coreutils"
+makedepends_host="
+	argon2-dev
+	json-c-dev
+	lvm2-dev
+	openssl-dev>3
+	popt-dev
+	util-linux-dev
 	"
-builddir="$srcdir"/$pkgname-$pkgver
+makedepends="$makedepends_build $makedepends_host"
+checkdepends="device-mapper which sharutils"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-libs $pkgname-openrc"
+source="https://www.kernel.org/pub/linux/utils/cryptsetup/v${pkgver%.*}/cryptsetup-$pkgver.tar.gz
+	dmcrypt.initd
+	dmcrypt.confd
+	"
+
+# secfixes:
+#   2.4.3-r0:
+#     - CVE-2021-4122
+#   2.3.4-r0:
+#     - CVE-2020-14382
 
 build() {
-	cd "$builddir"
+	# Disable support for external tokens since it requires
+	# dlvsym(3) which is a GNU extension and not available in musl.
+	if [ -z "$BOOTSTRAP" ]; then
+		export CFLAGS="$CFLAGS -flto=auto"
+	fi
 	./configure \
 		--build="$CBUILD" \
 		--host="$CHOST" \
 		--prefix=/usr \
-		--libdir=/lib \
 		--sbindir=/sbin \
 		--disable-static \
 		--enable-libargon2 \
-		--with-crypto_backend=openssl
+		--with-crypto_backend=openssl \
+		--disable-external-tokens \
+		--disable-ssh-token
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR=$pkgdir install
-
-	mkdir -p "$pkgdir"/usr/lib
-	mv "$pkgdir"/lib/pkgconfig "$pkgdir"/usr/lib/
 
 	install -Dm644 "$srcdir"/dmcrypt.confd "$pkgdir"/etc/conf.d/dmcrypt
 	install -Dm755 "$srcdir"/dmcrypt.initd "$pkgdir"/etc/init.d/dmcrypt
 
 	mkdir -p "$pkgdir"/usr/share/doc/$pkgname/
-	install -m644 README TODO FAQ NEWS docs/v${pkgver}-ReleaseNotes \
-		"$pkgdir"/usr/share/doc/$pkgname/
+	install -m644 README.md FAQ.md docs/v$pkgver-ReleaseNotes \
+		-t "$pkgdir"/usr/share/doc/$pkgname/
+
+	# mandoc does not support the .so directive which replace the
+	# content of a man page with that of another. cryptsetup uses
+	# several man pages which just contain an .so directive. Replace
+	# these with symlinks to make them work by default in mandoc.
+	#
+	# See https://inbox.vuxu.org/mandoc-tech/20101024194129.GJ20876@iris.usta.de/#r
+	grep -l -R '^\.so ' "$pkgdir"/usr/share/man | \
+		xargs awk '/^\.so/ { system("ln -fs " $2 " " FILENAME) }'
 }
 
 libs() {
 	pkgdesc="Cryptsetup shared library"
-	mkdir -p "$subpkgdir"
-	mv "$pkgdir"/lib "$subpkgdir"/
+
+	amove usr/lib
 }
 
-sha512sums="a1a47320a608885acd43bd13f3c0160021c5f987e64de582f69d3bc35d444f5e65f8a4e2312118283ce8aa6c97322ec4ba279ae3aa7200e8046c4be70a492c2c  cryptsetup-2.0.2.tar.gz
-301e3e3da5a899e0a6f01f44fbf37bb6a3f5b6a4fb41243bae6d3b7aea747276e784626cd1b19721cc264652c10ae8c560c4d20094e33bb82fb2fae0160682c0  flush-stdout.patch
-7224bb46f1b09cd5bbf2f8c194e8b618432f8273bdc65470fdbe929dde2efa168c4e00eb7728d03dd1658902ded6ebbf13d9bcc6932a2d10c642aef0d148d37a  libressl-2.7.patch
+sha512sums="
+ae7eacc3584d3bcc6269e037582a81927d6163044280eba789561466fcde1620425ee599bd7cf33506b3a91c8fda119cc35ea2379740f5b1bc2f337676c99a87  cryptsetup-2.8.1.tar.gz
+2a7abe572809d070579ceaeeeb25f050d32408756c1086ddf0e16f41bde239cfb1b8b95e1009362188faccd8060926cbf48a04714e8ddbb09ae3c903f6a490c8  dmcrypt.initd
 74422d5e1614b43af894ea01da1ea80d805ec7f77981cbb80a6b1a4becad737a8825d7269812499095a7f50d39fa7da5bf4e4edae63529b1fe87b9176943a733  dmcrypt.confd
-81dad61cdecf1dc529b26eb3cdc15979a582c876b01268f88e7a71c8fae6911137c03bfa63fee64e064e5fb31f673610be27ecab9fc432229f13e7040698bd5c  dmcrypt.initd"
+"

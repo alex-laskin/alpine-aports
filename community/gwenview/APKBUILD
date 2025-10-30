@@ -1,0 +1,68 @@
+# Contributor: Bart Ribbers <bribbers@disroot.org>
+
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=gwenview
+pkgver=25.08.1
+pkgrel=1
+# armhf blocked by extra-cmake-modules
+# ppc64le, s390x, and riscv64 blocked by qt6-qtwebengine -> purpose
+arch="all !armhf !ppc64le !s390x !riscv64"
+url="https://kde.org/applications/graphics/org.kde.gwenview"
+pkgdesc="Fast and easy to use image viewer by KDE"
+license="GPL-2.0-only"
+depends="
+	kimageformats
+	qt6-qtimageformats
+	"
+makedepends="
+	baloo-dev
+	extra-cmake-modules
+	kdoctools-dev
+	ki18n-dev
+	kiconthemes-dev
+	kimageannotator-dev
+	kio-dev
+	kitemmodels-dev
+	knotifications-dev
+	kparts-dev
+	kwindowsystem-dev
+	lcms2-dev
+	libjpeg-turbo-dev
+	libkdcraw-dev
+	libpng-dev
+	plasma-activities-dev
+	purpose-dev
+	qt6-qtbase-dev
+	qt6-qtsvg-dev
+	samurai
+	"
+checkdepends="
+	dbus
+	xvfb-run
+	"
+subpackages="$pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/graphics/gwenview.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/gwenview-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	dbus-run-session -- xvfb-run -a ctest --test-dir build -E "(thumbnailprovider|placetreemodel|urlutils|importer|contextmanager)test"
+
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+e67518b7fcb5a6891933790203a5228de5093021498b4cba461746cf7582c5544edae19829ef9294d0c3756166a16940a7842f688c722004fe7817e213531c44  gwenview-25.08.1.tar.xz
+"

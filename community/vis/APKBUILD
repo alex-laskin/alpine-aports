@@ -1,28 +1,23 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
 pkgname=vis
-pkgver=0.5
-_testver=0.3
+pkgver=0.9
+_testver=0.5
 pkgrel=0
 pkgdesc="Modern, legacy free, simple yet efficient vim-like editor"
 url="https://github.com/martanne/vis"
 arch="all"
 license="ISC"
 depends="!outils-vis lua5.3-lpeg"
-depends_dev=""
 makedepends="libtermkey-dev ncurses-dev acl-dev lua5.3-dev"
 checkdepends="vim"
-install=""
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/martanne/$pkgname/archive/v$pkgver.tar.gz
-	$pkgname-test-$pkgver.tar.gz::https://github.com/martanne/$pkgname-test/archive/v$_testver.tar.gz
-	fortify-source.patch
+source="$pkgname-$pkgver.tar.gz::https://github.com/martanne/vis/archive/refs/tags/v$pkgver.tar.gz
+	$pkgname-test-$pkgver.tar.gz::https://github.com/martanne/vis-test/archive/v$_testver.tar.gz
 	"
 _testdir="$srcdir"/$pkgname-test-$_testver
-builddir="$srcdir"/$pkgname-$pkgver
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
 		--enable-lua \
@@ -31,14 +26,15 @@ build() {
 }
 
 check() {
-	cp -r "$_testdir"/* "$builddir"/test/
-	make -C "$builddir" test
+	cp -r "$_testdir"/* ./test/
+	make test
 }
 
 package() {
-	make -C "$builddir" DESTDIR="$pkgdir" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="e6ee7228c13d26342a4fb7884412c018118199a809cf18985eaa48232081fad0d7110364e55937e71e139bbe2cd24c2964d801e64f078d7ba7f2a999eeef72cc  vis-0.5.tar.gz
-5f68a70cf6f1fb64f9b50c1a56940c966f205e51240c7dd1175bc15f3e42b475fb6842a53e36547113955c2efa359de0cc71e0800305b0e45881c319a14564e5  vis-test-0.5.tar.gz
-fbcb897cb7d8cdfdc1f647691bbe23b383901a3dc9af97e2218cac18da72535ec4d138998d6016d5424e5882e15236fe13909509ca50c387227aecd2071acb9d  fortify-source.patch"
+sha512sums="
+64025569f6feb1a3b5aa8aaa79af319cdf8fc1fd5d1f5b29a6838ff00ea950cade1efb366d0a95d77e516f5605048bcb557fd7aa52b3a9510a15e69acaee147c  vis-0.9.tar.gz
+c41b40f23a45a7ebd9c16aa853d9c3b517767cb88ff8dc268da44276a02aa8c77de0fc6aa243a1e4cdfbc27182870b82d0b9bc892bb87ea74d5275d76c554ed1  vis-test-0.9.tar.gz
+"

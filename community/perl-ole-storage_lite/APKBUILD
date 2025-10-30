@@ -3,44 +3,40 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=perl-ole-storage_lite
 _pkgreal=OLE-Storage_Lite
-pkgver=0.19
+pkgver=0.22
 pkgrel=1
 pkgdesc="Read and write OLE storage files."
-url="http://search.cpan.org/dist/OLE-Storage_Lite/"
+url="https://metacpan.org/release/OLE-Storage_Lite"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
+makedepends="perl-dev"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/J/JM/JMCNAMARA/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/J/JM/JMCNAMARA/OLE-Storage_Lite-$pkgver.tar.gz"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
 	default_prepare
 
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
 check() {
-        cd "$builddir"
-        make test
+	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="d59030ccdd519e14d0e84dacdce7a627d71d53c755c8aedbf903a3b78ba769d0b98fe6e813eeb8e6c35e45d5a1c19d519fa5792b183b8b2ec1de8fddccaa534c  OLE-Storage_Lite-0.19.tar.gz"
+sha512sums="
+672b44f033a8c13fcf6258c2ff08627bd6ed8fe3c105b2c20e9627e361df217511fdb2c7be117634883c5ec050894a64a4d06b21fac252602c0ac1b828bf1dd5  OLE-Storage_Lite-0.22.tar.gz
+"

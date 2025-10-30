@@ -1,0 +1,49 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-workspaces
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Workspace component for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-workspaces"
+arch="all"
+license="GPL-3.0-or-later"
+depends="
+	cosmic-icons
+"
+makedepends="
+	cargo
+	eudev-dev
+	desktop-file-utils
+	just
+	libinput-dev
+	libxkbcommon-dev
+	mesa-dev
+	wayland-dev
+	wayland-protocols
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-workspaces-epoch/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	make ARGS+=' --frozen --release'
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+}
+
+sha512sums="
+e7e39034bba2a6c6dc482af9e3eb7f3a173f057338fcb954628ba905f495813c06bf537ee7832647fee0d652f6cb93c9507005fe8b06d3d260ed81108bb2c038  cosmic-workspaces-1.0.0_beta4.tar.gz
+"

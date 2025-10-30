@@ -1,21 +1,16 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=xkbcomp
-pkgver=1.4.2
+pkgver=1.4.7
 pkgrel=0
 pkgdesc="XKBD keymap compiler"
 url="https://xorg.freedesktop.org"
 arch="all"
 license="MIT"
-depends=
 makedepends="libx11-dev libxkbfile-dev util-macros"
 subpackages="$pkgname-dev $pkgname-doc"
-source="https://www.x.org/releases/individual/app/$pkgname-$pkgver.tar.bz2"
-
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://www.x.org/releases/individual/app/xkbcomp-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,13 +22,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="b00d1eb08c19be86044418c8ea3bfc3c3973406c481878270138a70ed9dab348acb8e4d0af8678879598ffbd7df1c640a63d0abad3d7481758be99af8dd7734e  xkbcomp-1.4.2.tar.bz2"
+sha512sums="
+6f468dce9d2499ab1022f4288d46f66af149dac0a161fb5b9dc0c262bc70c2c3d254db2c6fb5df1e2793c822e2d55c6da5fd037ce523a555b7c3de23e35c49ef  xkbcomp-1.4.7.tar.xz
+"

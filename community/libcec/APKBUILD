@@ -1,47 +1,55 @@
 # Contributor: Róbert Nagy <vrnagy@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libcec
-pkgver=4.0.2
-pkgrel=1
+pkgver=7.1.1
+pkgrel=0
 pkgdesc="libcec for the Pulse-Eight USB-CEC adapter"
 url="https://github.com/Pulse-Eight/libcec"
 arch="all"
-license="GPL"
-depends=""
-depends_dev="eudev-dev python3-dev libxrandr-dev swig"
-makedepends="$depends_dev p8-platform-dev cmake"
-install=""
-subpackages="$pkgname-dev"
-source="https://github.com/Pulse-Eight/libcec/archive/libcec-$pkgver.tar.gz"
+license="GPL-2.0-or-later"
+depends_dev="
+	eudev-dev
+	libxrandr-dev
+	python3-dev
+	swig
+	"
+makedepends="$depends_dev
+	cmake
+	linux-headers
+	p8-platform-dev
+	samurai
+	"
+subpackages="$pkgname-dev py3-$pkgname:py3 $pkgname-tools"
+source="https://github.com/Pulse-Eight/libcec/archive/libcec-$pkgver.tar.gz
+	0001-Add-an-udev-rule-making-the-CEC-adapter-part-of-the-input-group.patch
+	"
 
-builddir="$srcdir"/libcec-libcec-$pkgver
-
-prepare() {
-	default_prepare
-	# remove non linux binaries
-	cd "$builddir"
-	rm -r support
-}
+builddir="$srcdir/libcec-libcec-$pkgver"
 
 build() {
-	mkdir "$builddir/build"
-	cd "$builddir/build"
-	cmake -DCMAKE_BUILD_TYPE=Release \
-		-DBUILD_SHARED_LIBS=1 \
-		-DCMAKE_INSTALL_PREFIX=/usr \
-		.. || return 1
-	make || return 1
+	cmake -G Ninja -B build \
+		-DHAVE_LINUX_API=1 \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr
+	cmake --build build
 }
 
 package() {
-	cd "$builddir/build"
-	make DESTDIR="$pkgdir" install || return 1
-
-	# Add cec directory to sys.path to get rid of issue https://github.com/Pulse-Eight/libcec/issues/316
-	python_dir=$(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
-	echo "cec" > "${pkgdir}${python_dir}/cec.pth"
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-md5sums="47892140fbda566f6a6f944b52eb44fd  libcec-4.0.2.tar.gz"
-sha256sums="b8b8dd31f3ebdd5472f03ab7d401600ea0d959b1288b9ca24bf457ef60e2ba27  libcec-4.0.2.tar.gz"
-sha512sums="7bb80965cd1bef713f59bff136dc4a7f1172c4a9bdb8e2f59c6bcc5b74110848c0b2912263280ea68177908a688127e8d7208fc43ce6e65d589343b85395a0bb  libcec-4.0.2.tar.gz"
+py3() {
+	amove usr/lib/python*
+}
+
+tools() {
+	pkgdesc="$pkgdesc (tools)"
+	depends="$pkgname=$pkgver-r$pkgrel"
+
+	amove usr/bin
+}
+
+sha512sums="
+f4c12b68f275bde32a1f91e48e392c0d7fc0cf9f86fb4635a79869dc2398cbd63a1f8fdedc21d61f15afbe53ac8ece20cddeec4bac91de97de32fdcca61848e6  libcec-7.1.1.tar.gz
+7b361ac6d7dd825bd7667085682cbc503796caf3a54966ebe0981189cf39cd34f2fde283dab73e5e883aa21c7f4b3ad0d34c2d260ce03219b083e555f6c521af  0001-Add-an-udev-rule-making-the-CEC-adapter-part-of-the-input-group.patch
+"

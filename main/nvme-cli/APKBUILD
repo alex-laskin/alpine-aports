@@ -1,0 +1,53 @@
+# Contributor: Florian Heigl <florian.heigl@gmail.com>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=nvme-cli
+pkgver=2.15
+pkgrel=0
+pkgdesc="NVM-Express user space tooling for Linux"
+arch="all"
+url="https://github.com/linux-nvme/nvme-cli"
+license="GPL-2.0-or-later"
+makedepends="
+	bash
+	json-c-dev
+	libnvme-dev>=1.14
+	linux-headers
+	meson
+	util-linux-dev
+	uuidgen
+	zlib-dev
+	"
+checkdepends="
+	py3-nose2
+	"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/linux-nvme/nvme-cli/archive/v$pkgver.tar.gz
+	"
+options="!check" # needs pci nvme stuff
+
+build() {
+	abuild-meson \
+		-Db_lto=true \
+		-Ddocs=man \
+		-Dudevrulesdir=/usr/lib/udev/rules.d/ \
+		-Djson-c=enabled \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+	rm -rf "$pkgdir"/usr/lib/systemd
+}
+
+sha512sums="
+6f4c9fe52883df5424ba28d8b66b00e61f4b6f7226d7385f026c1d3b8aeb473bdf637102d9cf7e049349c4f7e61eccbb33f7400cc09056f74be03a80b7d51c0d  nvme-cli-2.15.tar.gz
+"

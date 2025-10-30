@@ -1,22 +1,19 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=luarocks
-pkgver=2.4.4
+pkgver=3.12.2
 pkgrel=0
 pkgdesc="Deployment and management system for Lua modules"
-url="http://www.luarocks.org/"
+url="https://luarocks.org/"
 arch="noarch"
 license="MIT"
 depends="curl"
-makedepends=""
-subpackages=""
-triggers=""
-source="http://luarocks.org/releases/$pkgname-$pkgver.tar.gz
-	fix-tree-rocks_dir.patch
-	config.lua"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://luarocks.org/releases/$pkgname-$pkgver.tar.gz
+	prefer-curl-to-wget.patch
+	config.lua
+	"
 
-_lua_versions="5.1 5.2 5.3"
+_lua_versions="5.1 5.2 5.3 5.4"
 for _v in $_lua_versions; do
 	makedepends="$makedepends lua$_v-dev"
 	subpackages="$subpackages $pkgname${_v}:_subpackage"
@@ -39,15 +36,11 @@ build() {
 
 		./configure \
 			--prefix=/usr \
-			--sysconfdir=/etc/luarocks \
+			--sysconfdir=/etc \
 			--rocks-tree=/usr/local \
 			--lua-version="$lver" \
-			--lua-suffix="$lver" \
 			--with-lua-include="$(pkg-config --variable=includedir lua$lver)" \
-			--with-lua-lib="$(pkg-config --variable=libdir lua$lver)" \
-			--with-downloader=curl \
-			--with-md5-checker=md5sum \
-			--versioned-rocks-dir
+			--with-lua-lib="$(pkg-config --variable=libdir lua$lver)"
 		make
 	done
 }
@@ -60,18 +53,18 @@ _subpackage() {
 	local lver="${subpkgname#$pkgname}"
 	pkgdesc="Deployment and management system for Lua $lver modules"
 	install_if="lua$lver $pkgname=$pkgver-r$pkgrel"
-	depends="lua$lver"
+	depends="$depends lua$lver"
 
 	cd "$builddir-$lver"
 
 	make install DESTDIR="$subpkgdir"
 
-	# Remove default script names which conflict per Lua version.
-	rm "$subpkgdir"/usr/bin/luarocks \
-		"$subpkgdir"/usr/bin/luarocks-admin
+	# Move default scripts which conflict per Lua version.
+	mv "$subpkgdir"/usr/bin/luarocks "$subpkgdir"/usr/bin/luarocks-"$lver"
+	mv "$subpkgdir"/usr/bin/luarocks-admin "$subpkgdir"/usr/bin/luarocks-admin-"$lver"
 
 	# Set the correct Lua version.
-	sed -i "s/env lua/env lua${lver}/" \
+	sed -i "s/env lua/env lua$lver/" \
 		"$subpkgdir"/usr/bin/luarocks-$lver \
 		"$subpkgdir"/usr/bin/luarocks-admin-$lver
 
@@ -80,6 +73,8 @@ _subpackage() {
 	install -D -m 644 "$srcdir"/config.lua "$subpkgdir"/etc/$pkgname/config-$lver.lua
 }
 
-sha512sums="cbc6a54aa5077e656dcb4fed915fe8b66cad4ad04f28700e2f67805232a6dc366d4ac03e3a85e27a45b178c362ae8aa905ceab5553252735e049730a28450e19  luarocks-2.4.4.tar.gz
-22ca5efa62c592c8395ca8c9ce3c938b5e41cf7d149f45d3666a5370d27e3e8c01d1712217c456d7b54163e375d9841d5f9213b25f4237b0bf3ab498c02864fb  fix-tree-rocks_dir.patch
-1f75705af3b1ef57386234195a5d496d554c95473e5b0c0a3319e3c0f905519397b92603c5596d363818df7d94f886b898ba12a3880d3e982d1c63b74c50febe  config.lua"
+sha512sums="
+a1182c5f0ba87841014bb8063c170968659e35339d559a56fe8eb007ebfbe0ce356e4c4341bbfe4279986d9ca10f04a38e3fdbc80223251526d2de34b2849cc5  luarocks-3.12.2.tar.gz
+e8ea793df118bd9b871d44706d9b51b95e0ae437dd4262df405c2ac45529f34cf88e06f1ba857abb4ce37b7df0e15777aba104c740709d2485d6579eadf3c032  prefer-curl-to-wget.patch
+5845d5643c3eeb6d4af6d919a588c5253c91e6a0b278116b4cd855437fc48ac64970fd3ef758c135bc0536ddc1aaa16b01c50e33c864f59aeef1ccced0d01d82  config.lua
+"

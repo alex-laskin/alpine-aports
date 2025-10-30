@@ -1,33 +1,30 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=gsm
-pkgver=1.0.17
+pkgver=1.0.23
 pkgrel=0
 _soname=1.0.12
 pkgdesc="Shared libraries for GSM speech compressor"
-url="http://www.quut.com/gsm/"
+url="https://www.quut.com/gsm/"
 arch="all"
-options="!check"  # No test data included in this release.
-license="custom:TU-Berlin-2.0"
-depends=
-depends_dev=
-makedepends="$depends_dev"
-install=""
+license="TU-Berlin-2.0"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-tools"
-source="http://www.quut.com/gsm/gsm-$pkgver.tar.gz
+source="https://www.quut.com/gsm/gsm-$pkgver.tar.gz
 	gsm-64bit.patch
 	gsm-makefile.patch
 	"
 
 builddir="$srcdir"/gsm-${pkgver%.*}-pl${pkgver##*.}
+
 build() {
-	cd "$builddir"
 	export RPM_OPT_FLAGS="$CFLAGS -fPIC"
 	make all
 }
 
+check() {
+	make addtst
+}
+
 package() {
-	cd "$builddir"
 	mkdir -p "$pkgdir"/usr/bin \
 		"$pkgdir"/usr/include/gsm \
 		"$pkgdir"/usr/lib \
@@ -42,7 +39,11 @@ package() {
 	ln -s libgsm.so.$_soname "$pkgdir"/usr/lib/libgsm.so.1
 	ln -s libgsm.so.$_soname "$pkgdir"/usr/lib/libgsm.so
 
-	ln -s gsm/gsm.h "$pkgdir"/usr/include/
+	# the makefile is really broken
+	install -Dm644 inc/gsm.h \
+		-t "$pkgdir"/usr/include/gsm/
+	ln -s gsm/gsm.h "$pkgdir"/usr/include/gsm.h
+
 	rm -f "$pkgdir"/usr/lib/lib*.a
 }
 
@@ -52,6 +53,8 @@ tools() {
 	mv "$pkgdir"/usr/bin "$subpkgdir"/usr
 }
 
-sha512sums="983b442a1ee3f8bce0523f671071823598c4edb222f8d3de1ad7997c85cbeb7bc49ee87130e12f0f815266a29ad2ef58e59672e81bf41cdadc292baf66942026  gsm-1.0.17.tar.gz
+sha512sums="
+96a477f7f4a2ad8319d97c4010e3e2ddb453fa6eda44dac83a62f060a3e6790cc0298d3f402eab52e1a7c0f5c001ab793baefd1fc876ff6432efeb506981bdd8  gsm-1.0.23.tar.gz
 5b01f6d2fd3ee7cd859da70870463e2ccc6614c5fb1bd5efc88a223a0c5477271221557fef13ba46697e70cc5820c13efff738413f8990d5884b95cc89c30152  gsm-64bit.patch
-1d92b7eacf52e5281c9f1a0f08313d10f15c35d22fb2292e5a885ceb3cb766557a5e3a08954db75fb13db59345ef9f6b08939881ba38c9d384e09a1c96b47bc5  gsm-makefile.patch"
+acfb7623a7d66580b704967e335e2c30b9d4ce62226c268f588451d5c8d040846c627fbe77473f4eb0a0c9c144d2dddd75f124e7e91f4ecf0da77039be54b4a9  gsm-makefile.patch
+"

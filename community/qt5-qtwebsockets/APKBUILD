@@ -1,46 +1,61 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
-# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
+# Maintainer: Bart Ribbers <bribbers@disroot.org>
 pkgname=qt5-qtwebsockets
-_pkgname=qtwebsockets-everywhere-src
-pkgver=5.10.1
-_ver=${pkgver/_p/-}
-_ver=${_ver/_/-}
-_ver=${_ver/beta0/beta}
-_ver=${_ver/rc0/rc}
-_V=${_ver/rc/RC}
-pkgrel=1
+pkgver=5.15.10_git20230612
+pkgrel=2
+_module="${pkgname#qt5-}"
+_pkgver=89fbe461e7091ae6a4689b7791293a06c9167776
+_fullname=$_module-$_pkgver
 pkgdesc="Provides WebSocket communication compliant with RFC 6455"
-url="http://qt-project.org/"
+url="https://www.qt.io/developers/"
 arch="all"
-license="GPL-3.0"
-makedepends="qt5-qtbase-dev"
-subpackages="$pkgname-dev"
+license="( LGPL-3.0-or-later OR GPL-3.0-only OR GPL-2.0-or-later ) AND Qt-GPL-exception-1.0"
+makedepends="
+	qt5-qtbase-dev
+	qt5-qtdeclarative-dev
+	"
+subpackages="$pkgname-dev $pkgname-libs"
 replaces="qt5-websockets"
+options="!check" # No tests
 
-case $pkgver in
-*_beta*|*_rc*) _rel=development_releases;;
-*) _rel=official_releases;;
-esac
-options="!check"
-source="http://download.qt.io/official_releases/qt/${pkgver%.*}/$_ver/submodules/$_pkgname-$_ver.tar.xz"
+source="https://dev.alpinelinux.org/archive/qt/$_fullname.tar.xz"
+builddir="$srcdir/$_fullname"
 
-builddir="$srcdir"/$_pkgname-${_V%-*}
+_disturl="dev.alpinelinux.org:/archive/qt/"
+snapshot() {
+	clean
+	makedepends="git xz rsync tar" deps
+	mkdir -p "$srcdir" && cd "$srcdir"
+	git clone --filter=tree:0 https://invent.kde.org/qt/qt/$_module.git .
+	git archive --format tar --prefix=$_fullname/ $_pkgver > "$SRCDEST"/$_fullname.tar
+	xz -vv -T0 -9 -e "$SRCDEST"/$_fullname.tar
+	rsync --progress -La "$SRCDEST"/$_fullname.tar.xz $_disturl
+}
 
 prepare() {
 	default_prepare
-	cd "$builddir"
-	mkdir -p build
+
+	# We need to make the build system think we're running in a git repository
+	# so it correctly symlinks during the build
+	mkdir .git
 }
 
 build() {
-	cd "$builddir"/build
-	qmake-qt5 ..
+	qmake-qt5
 	make
 }
 
 package() {
-	cd "$builddir"/build
 	make INSTALL_ROOT="$pkgdir" install
+
+	# Drop QMAKE_PRL_BUILD_DIR because reference the build dir
+	find "$pkgdir/usr/lib" -type f -name '*.prl' \
+		-exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
+
+	install -d "$pkgdir"/usr/share/licenses
+		ln -s qt5-base "$pkgdir"/usr/share/licenses/$pkgname
 }
 
-sha512sums="c5ab093ec4e93a94f646adff1ff6ef3eeb70fe302be04ddb694a5f7781c5d68777d75a3e831128a23d852522a6a0ca4e54a6bc67d10fb6e395632df4e7e71596  qtwebsockets-everywhere-src-5.10.1.tar.xz"
+sha512sums="
+22a17728ad26d742de799e7935d46661f4f87fe361931367add50ebbc669061173bc8304904326c76441b1c69626a780771c5905ac64911a3c97f9aff17d0de6  qtwebsockets-89fbe461e7091ae6a4689b7791293a06c9167776.tar.xz
+"

@@ -1,19 +1,25 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=ykpers
-pkgver=1.18.1
-pkgrel=0
+pkgver=1.20.0
+pkgrel=1
 pkgdesc="YubiKey Personalization library and tool"
 url="https://developers.yubico.com/yubikey-personalization/"
 arch="all"
 license="BSD-2-Clause"
 makedepends="libusb-dev yubico-c-dev"
 subpackages="$pkgname-dev $pkgname-doc"
-source="https://developers.yubico.com/yubikey-personalization/Releases/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://developers.yubico.com/yubikey-personalization/Releases/$pkgname-$pkgver.tar.gz
+	gcc-10.patch
+	"
+
+prepare() {
+	default_prepare
+	update_config_guess
+	update_config_sub
+}
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,13 +33,12 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check CFLAGS="$CFLAGS -D__GLIBC__"
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="8bed7b3089ac64f8be19717e29a237d40ed17eb5d119630405efd1e269d1b967394c45a349d3290056504a71bf30e2f4e56a0e71d0cd611bd3152080173b652c  ykpers-1.18.1.tar.gz"
+sha512sums="96edc7225bbd71ca255d3915321d4a613603c321c8502a5b97f23598f1439b231fcfc323f4f3737293da59efae2837370a0b64fdbd9465f0e2c05822d604df9f  ykpers-1.20.0.tar.gz
+c70c3f8bcc46f312a3c7736bfbf8990ec87ebb838c19c750bde0d73e117075a71529f2a84301886b85fd3f3b0c5e7885057224b9c61485ce768bb9cd690b50de  gcc-10.patch"

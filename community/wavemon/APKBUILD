@@ -1,31 +1,26 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
-# Contributor: Francesco Colista <francesco.colista@gmail.com>
-# Maintainer: Fabian Affolter <fabian@affolter-engineering.ch>
+# Contributor: Francesco Colista <fcolista@alpinelinux.org>
+# Contributor: Fabian Affolter <fabian@affolter-engineering.ch>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=wavemon
-pkgver=0.8.2
-pkgrel=0
+pkgver=0.9.6
+pkgrel=1
 pkgdesc="Ncurses-based monitoring application for wireless network devices"
 url="https://github.com/uoaerg/wavemon"
 arch="all"
 license="GPL-2.0-or-later"
-makedepends="ncurses-dev libcap-dev libnl3-dev autoconf automake"
+makedepends="ncurses-dev libcap-dev libnl3-dev"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/uoaerg/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver-1.tar.gz::https://github.com/uoaerg/wavemon/archive/v$pkgver.tar.gz"
+options="!check" # FIXME: run tests if possible!
 
 prepare() {
 	default_prepare
-
-	cd "$builddir"
 	update_config_sub
-
-	sed -i '/^CFLAGS/d' configure.ac
-	autoreconf -fi
 }
 
 build() {
-	cd "$builddir"
-
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -37,12 +32,12 @@ build() {
 }
 
 package() {
-	cd "$builddir"
-
 	make DESTDIR="$pkgdir" install
 
 	mkdir -p "$pkgdir"/usr/share/doc
 	mv "$pkgdir"/usr/share/$pkgname "$pkgdir"/usr/share/doc/
 }
 
-sha512sums="383e8444602f1262015e5706ad76ae0cfd5ff9560cf8037edc92242bd89c1f8d4044a83d24009cac2c25b5bf3bda3ef52f0302d2ff0f21959c51ffdebe76ef25  wavemon-0.8.2.tar.gz"
+sha512sums="
+1a96c8283678daf5c09cc60b5e264047c8f1075b1f43d95376550ccb016b75b2abaf00cd9b67873833d5834e0f86fa59e23186eaf9cda6040c66ebb913f8a729  wavemon-0.9.6-1.tar.gz
+"

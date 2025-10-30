@@ -1,0 +1,41 @@
+# Contributor: Meng Zhuo <mengzhuo@iscas.ac.cn>
+# Maintainer: Meng Zhuo <mengzhuo@iscas.ac.cn>
+pkgname=act
+pkgver=0.2.82
+pkgrel=0
+pkgdesc="Run your GitHub Actions locally"
+url="https://github.com/nektos/act"
+arch="all"
+license="MIT"
+depends="npm docker"
+makedepends="go"
+options="net" # go build requires
+subpackages="$pkgname-doc"
+
+source="$pkgname-$pkgver.tar.gz::https://github.com/nektos/act/archive/refs/tags/v$pkgver.tar.gz"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir/go-tmp"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go-mod"}"
+
+default_prepare() {
+	mkdir -p $GOTMPDIR
+	go fmt ./...
+}
+
+build() {
+	go build -ldflags "-X main.version=$pkgver" -o act main.go
+}
+
+check() {
+	./act --version
+}
+
+package() {
+	install -Dm755 ./act -t "$pkgdir"/usr/bin/
+	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+}
+
+sha512sums="
+83260eede2d85cea2188001c8190d03999f37b16117b804329b143c6d25f41a157274b77566132b527896fb34488c19ce7f67a29a0223422df217f9295a0b68e  act-0.2.82.tar.gz
+"

@@ -2,24 +2,25 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=java-jna
 _pkgname=${pkgname#java-}
-pkgver=4.5.1
+pkgver=5.15.0
 pkgrel=0
 pkgdesc="JNA provides Java programs easy access to native shared libraries."
 url="https://github.com/java-native-access/jna"
-arch="all"
+# riscv64: blocked by java-jre-headless
+arch="all !riscv64"
 license="Apache-2.0 LGPL-2.1"
-depends="openjdk8-jre-base"
-makedepends="apache-ant autoconf automake libffi-dev>=3.2 libtool openjdk8"
+depends="java-jre-headless"
+makedepends="apache-ant autoconf automake libffi-dev>=3.2 libtool"
 subpackages="$pkgname-native"
 source="$pkgname-$pkgver.tar.gz::https://github.com/java-native-access/$_pkgname/archive/$pkgver.tar.gz
 	0001-jar-without-natives.patch
+	nosys-default-false.patch
+	no-Werror.patch
 	"
 builddir="$srcdir/$_pkgname-$pkgver"
 
 prepare() {
 	default_prepare
-
-	cd "$builddir"
 
 	# Disable Java AWT support (requires some X libs).
 	sed -i -E "s/^(CDEFINES=.*)$/\1 -DNO_JAWT/g" native/Makefile
@@ -33,8 +34,6 @@ prepare() {
 }
 
 build() {
-	cd "$builddir"
-
 	ant clean
 
 	# Parallel build doesn't work here!
@@ -44,7 +43,7 @@ build() {
 }
 
 package() {
-	depends="$depends $pkgname-native"
+	depends="$depends $pkgname-native=$pkgver-r$pkgrel"
 
 	install -m644 -D "$builddir"/build/jna.jar \
 		"$pkgdir"/usr/share/java/$_pkgname-$pkgver.jar
@@ -64,5 +63,9 @@ native() {
 	ln -sf $soname.$sover "$subpkgdir"/usr/lib/$soname
 }
 
-sha512sums="057e185011dc492fef3e9273f8df8dc9971752337bb39b6fa1d53d305bb2ff52e8408b96bddc288cbbd2ae08c126904fa278276dd79d93801bcac361adda8300  java-jna-4.5.1.tar.gz
-dacfa03e1a957172502dd10007445e844df67288fde07f7ada80a5cbfe3186511aa7a866c8c757a0a94c894829fead9c67ad0993f2105d2fef1f18d22ee01cdb  0001-jar-without-natives.patch"
+sha512sums="
+b3329138bbdb5040da7a6b305af37e46ffd02948551f5c9fc2815eb7a66946807c3b9152797808b5a171735d6a1a241f25dc0ef95ecacf897926135727d1d533  java-jna-5.15.0.tar.gz
+903e7c1be55a5b5172a52cd70dd6e599ebfdd7b5d0edf8c490721830c6661c85acaf5d1f57fd1f1dd0c547d9475a857417780638609c4ee8244ec65e7ce06976  0001-jar-without-natives.patch
+98181302672cc99d6bc06ea9e8c3c43d16c9c999bb34c08942f1df131607b68b09c1da0a3205bcef9b7f6ee947cc7c85070276cc3f67b28d2a25ef6596b0b790  nosys-default-false.patch
+5d78bdbc8e5dff96af6c33a16a84c92ccfe050e8a8bd9c8e57f13c2f02f91e89c694690143b41ce02ae0fb284a788708c209c334c1e606aae076d0d138507a8d  no-Werror.patch
+"

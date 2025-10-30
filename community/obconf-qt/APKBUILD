@@ -1,0 +1,44 @@
+# Contributor: Zachary Lee Andrews <zcrayfish@gmail.com>
+maintainer="Antoni Aloy <aaloytorrens@gmail.com>"
+pkgname=obconf-qt
+pkgver=0.16.5
+pkgrel=0
+pkgdesc="Qt port of obconf, the Openbox configuration tool"
+url="https://github.com/lxqt/obconf-qt"
+# armhf: blocked by liblxqt
+arch="all !armhf"
+license="LGPL-2.0-or-later"
+depends="gtk-update-icon-cache hicolor-icon-theme openbox"
+makedepends="
+	cmake samurai lxqt-build-tools qt6-qttools-dev liblxqt-dev
+	openbox-dev perl
+	"
+options="!check" # No testsuite
+subpackages="$pkgname-lang"
+source="https://github.com/lxqt/obconf-qt/releases/download/$pkgver/obconf-qt-$pkgver.tar.xz"
+
+build() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True \
+		$CMAKE_CROSSOPTS .
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --build build --target install
+}
+
+lang() {
+	install_if="lang $pkgname=$pkgver-r$pkgrel"
+	amove usr/share/$pkgname/translations
+}
+
+sha512sums="
+50f3ac70ad3e31239eedfc498fac0bbc14371c13f270a52b2a90295655fa17024d2f081f56e1b9e5ca4f172835348a4813691f19ff41ab81648a7a74a2f19398  obconf-qt-0.16.5.tar.xz
+"

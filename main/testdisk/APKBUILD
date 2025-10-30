@@ -1,18 +1,17 @@
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=testdisk
-pkgver=7.0
-pkgrel=4
+pkgver=7.2
+pkgrel=1
 pkgdesc="A data recovery suite"
-url="http://www.cgsecurity.org/wiki/TestDisk"
+url="https://www.cgsecurity.org/wiki/TestDisk"
 arch="all"
-license="GPL"
+license="GPL-2.0-or-later"
 makedepends="e2fsprogs-dev ntfs-3g-dev ncurses-dev zlib-dev libjpeg-turbo-dev"
 subpackages="$pkgname-doc"
-source="http://www.cgsecurity.org/$pkgname-$pkgver.tar.bz2"
-builddir="$srcdir"/$pkgname-$pkgver
+source="https://www.cgsecurity.org/testdisk-$pkgver.tar.bz2
+	implicit-basename-declaration.patch"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -24,13 +23,14 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="b1ebe1d2fca453660a17623b70c06e0195cb5f07056fb7bc683d575c034fb71dfb793582c804dcff0ca57789a6de84bbf13b1a554353811660996e42199102e2  testdisk-7.0.tar.bz2"
+sha512sums="
+f99dd1c8f547c3d06e5459ba072438192a49d76c569de7915994beb269645092522d8136a212999382f88ca1d29c50f6482306d47197dc0994d168bcd4141f26  testdisk-7.2.tar.bz2
+2d446e5eaf43aefda334b16e0f1fec4f77e4dd44ddb14f3db0e94485b28da827215a813f36946eed768881abcc616c3aca6c767a95c596fcbcc8143f51f94237  implicit-basename-declaration.patch
+"

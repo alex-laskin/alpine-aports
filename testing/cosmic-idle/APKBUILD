@@ -1,0 +1,44 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-idle
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Idle daemon for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-idle"
+arch="all"
+license="GPL-3.0-only"
+depends="
+	cosmic-icons
+"
+makedepends="
+	cargo
+	just
+	libxkbcommon-dev
+	wayland-dev
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-idle/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	just build-release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+5756a11dbf371b2af2345f873a6474f3101a0dd334856b55ba13cff831dea1cccc7092ceee45f2a2952ee85962c9d700393b97e776bb3b07536cb46186a3e86f  cosmic-idle-1.0.0_beta4.tar.gz
+"

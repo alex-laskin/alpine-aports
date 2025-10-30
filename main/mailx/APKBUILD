@@ -1,55 +1,54 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Michael Mason <ms13sp@gmail.com>
 pkgname=mailx
-pkgver=8.1.1
+# tracks debians cvs checkouts
+_date=20220412
+_version=8.1.2
+pkgver=${_version}_git$_date
 pkgrel=1
-pkgdesc="A commandline utility for sending email"
+pkgdesc="commandline utility for sending email"
 url="http://www.opengroup.org/onlinepubs/007908799/xcu/mailx.html"
 arch="all"
-license="BSD"
-depends=
-depends_dev=
-makedepends="$depends_dev bsd-compat-headers"
-install=""
-options="suid"
+license="BSD-4-Clause-UC"
+makedepends="libbsd-dev liblockfile-dev"
 subpackages="$pkgname-doc"
-source="https://sources.archlinux.org/other/mailx/$pkgname-$pkgver-fixed.tar.gz
-	mailx-8.1.1.patch
-	musl-fix.patch
-	mailx-gcc4.patch"
-
-_builddir="$srcdir/$pkgname-$pkgver-fixed"
+source="http://deb.debian.org/debian/pool/main/b/bsd-mailx/bsd-mailx_$_version-0.${_date}cvs.orig.tar.xz
+	http://deb.debian.org/debian/pool/main/b/bsd-mailx/bsd-mailx_$_version-0.${_date}cvs-1.debian.tar.xz
+	00-Makefiles.patch
+	02-Base-fixes-1.patch
+	CCEQ.patch
+	"
+builddir="$srcdir/bsd-mailx-$_version-0.${_date}cvs.orig"
+options="suid !check" # No testsuite
 
 prepare() {
-	local i
-	cd "$_builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-	sed -i 's#/man/#/share/man/#' Makefile
+	default_prepare
+	# debian keeps their patchset in their own folder
+	while read -r patch; do
+		# put these top level to modify them
+		echo "$patch" | grep -q 00-Makefiles && continue
+		echo "$patch" | grep -q 02-Base-fixes-1 && continue
+
+		patch -Np1 < "$srcdir"/debian/patches/"$patch"
+	done < "$srcdir"/debian/patches/series
 }
 
 build() {
-	cd "$_builddir"
-	make || return 1
+	make PROG=mail
 }
 
 package() {
-	cd "$_builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	mkdir -p "$pkgdir"/usr/bin
+	mkdir -p "$pkgdir"/usr/share/man/man1
+	mkdir -p "$pkgdir"/usr/share/misc
+	mkdir -p "$pkgdir"/etc
+	make DESTDIR="$pkgdir" install
 }
 
-md5sums="63cad526ac64b57bcba2c0daaa1f3048  mailx-8.1.1-fixed.tar.gz
-117ea0424ca1cfeb85b1e7f9bf945f6a  mailx-8.1.1.patch
-bf07d61361ca99fe41b3197f930d6359  musl-fix.patch
-ea6d343c73cc62f8d5e83ec357aaf72f  mailx-gcc4.patch"
-sha256sums="bb6b481bd2af066e5b2f96267f5b0a886a4fbd11bb2c9b316b113c667abf893f  mailx-8.1.1-fixed.tar.gz
-7b1c21bc41af2de1f1ffc96431793c2c05321d8a7cae41f9adb619cb3feda274  mailx-8.1.1.patch
-2a19d3217933983971ebbe20faab538e11f814598818c4110dd16570c166a1ee  musl-fix.patch
-cab097de50b169cfeb3d71bf2ef68074e215af5f24c16704ed15766551d0377c  mailx-gcc4.patch"
-sha512sums="adfb1ae796505f2706d03e34ae9b89f45dd878d55014ae8fab91fbf4b53f1bd97e0ac78ce1af5999adf62e99230f91d9539605ae388cf6c16e8334c14c0cce10  mailx-8.1.1-fixed.tar.gz
-05c4185ef54601c9bae6b6505201a9b357f69d9d22c4b992a9ba52f4022b8dec2d0e5b97654fff7c9f303bdcc87ab8bb279a7293fdd538d4291dcd99f6eae1d4  mailx-8.1.1.patch
-de633d557552c38e221cd48c0cf6cefe108f22332eab5e155183463b0209a08b1ae6754508a12bf9f261a345b2feb1a4e607167d51b7a16e60d47c3c02d0218f  musl-fix.patch
-e3fa1016da2cd1583e1ba2f6cd05566385607e144da2766101e4bf8c8dc089c4b956d1d90ccc040e5faf31c98d0855a0bc909bf0d6538df34925e798bba1a074  mailx-gcc4.patch"
+sha512sums="
+acee80e49fbac85dfaa48d885dd310a056a1418c6e3b02ee9f30441a34c104b134fb7c47cac91a1b2359d3d3cba0cf026d9cdf51f659b8c172100d7f98156203  bsd-mailx_8.1.2-0.20220412cvs.orig.tar.xz
+8794d8a41ec86012f4e74509f489afa8dcb624a17a6bc779024b2bb6eed8a7a86826785601bd295147641cd26f4288ec73aa8c3a2451b35b41fbc682f91c157f  bsd-mailx_8.1.2-0.20220412cvs-1.debian.tar.xz
+030ba8fe900d42c0a780109a0b21d2eb040d182dd1febed0e079e1291f0cb3d65472e00ef557f5ea8a96122eef68b17ec00645aaf9b07355bbd44e5ee1139b81  00-Makefiles.patch
+a8c975196468015e2e57b2848c17c0a827c18db9d04b019d3912d3f0a40d379f7f115d6b1db32f129f4faf171e99eb746dcfbbc157329ad11fde1a1b8415175e  02-Base-fixes-1.patch
+c285c25620bfe5ca07fc1d068c40dea1f1a980cce1c4dcd7dd4f6de0d492e9fe8f968ef818c630aa1d95beed269e9b9464a53a5ff1af54cdaf3e0bab92a76d3f  CCEQ.patch
+"

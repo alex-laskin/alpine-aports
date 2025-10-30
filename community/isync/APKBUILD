@@ -1,22 +1,26 @@
 # Contributor: Stuart Cardall <developer@it-offshore.co.uk>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=isync
-pkgver=1.3.0
-pkgrel=2
+pkgver=1.5.1
+pkgrel=1
 pkgdesc="IMAP and MailDir mailbox synchronizer"
-url="http://isync.sourceforge.net"
+url="https://isync.sourceforge.io"
 arch="all"
-license="GPL-2.0"
-depends=""
-makedepends="$depends_dev libressl-dev cyrus-sasl-dev zlib-dev db-dev perl-dev"
+license="GPL-3.0-or-later"
+makedepends="openssl-dev cyrus-sasl-dev zlib-dev perl-dev db-dev"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::http://downloads.sourceforge.net/sourceforge/isync/$pkgname-$pkgver.tar.gz
-	libressl-compat.patch
-	"
-builddir="$srcdir"/$pkgname-$pkgver
+source="$pkgname-$pkgver.tar.gz::https://downloads.sourceforge.net/sourceforge/isync/isync-$pkgver.tar.gz"
+
+# secfixes:
+#   1.4.4-r0:
+#     - CVE-2021-3657
+#     - CVE-2021-44143
+#   1.4.2-r0:
+#     - CVE-2021-3578
+#   1.4.1-r0:
+#     - CVE-2021-20247
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,14 +31,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="b5186f2afe97cab58ce55d3ec19ae7371676ae614448614a9e3e02d09662c34b74e559f0926661fa0300ab22dab9e2e9089b78ee38b94141ff3f8b4d75578ffa  isync-1.3.0.tar.gz
-2c13b7881a1031a618ba467f3a7dcebfc6074bdea833957feeefe7906f8b435dc4733d31c47a0de0441975804afea5677c6754d10979320133808fbe45587266  libressl-compat.patch"
+sha512sums="
+3ccc37b9f902841e244acb16d574991062090770b5d8efb0079cee507f4352752e248f28cb6da63d21987f5c616e36d0dc6b8a7b20a89bcf805cd37429473d02  isync-1.5.1.tar.gz
+"

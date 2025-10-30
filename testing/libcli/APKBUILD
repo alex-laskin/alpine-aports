@@ -1,26 +1,30 @@
 # Contributor: arch3y <arch3y@riseup.net>
 # Maintainer: arch3y <arch3y@riseup.net>
 pkgname=libcli
-pkgver=1.9.7
-pkgrel=2
-pkgdesc="A library for including a Cisco-like command-line interface"
+pkgver=1.10.7
+pkgrel=0
+pkgdesc="library for including a Cisco-like command-line interface"
 url="https://github.com/dparrish/libcli"
 arch="all"
 options="!check"
 license="LGPL-2.0-or-later"
-source="$pkgname-$pkgver.tar.gz::https://github.com/dparrish/libcli/archive/v$pkgver.tar.gz
-	gcc-5.2-fix.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver.tar.gz::https://github.com/dparrish/libcli/archive/V$pkgver.tar.gz
+	gcc14.patch
+	"
 
 build() {
-	cd "$builddir"
-	make
+	make DYNAMIC_LIB=1 STATIC_LIB=0 TESTS=1
+}
+
+check() {
+	./clitest
 }
 
 package() {
-	cd "$builddir"
-	make PREFIX=/usr DESTDIR="$pkgdir" install
+	make PREFIX=/usr DESTDIR="$pkgdir" STATIC_LIB=0 install
 }
 
-sha512sums="b2dacfd40bc068ddcc0dc3d60576ef2f7d7e2af80b93c6e7ae899d654afca6f0f8d2df2b33c9c8e760bdbea9aa2eaf757029d46032dcf307341f78f1a8f4f66f  libcli-1.9.7.tar.gz
-4e8a3741e79f764a006bf6822ae503d6e8ff6a67a984f03e2006ed393f78b259846c64640288ee5f59074eb1730e41ec1af3b7f5307885c8e671b1096a9bea15  gcc-5.2-fix.patch"
+sha512sums="
+4c341260e554d7e7a4181bbc85fd2e4cd57cb3fd4304cd423af63a407950f394a318ea69588e12b1ffc845e14d836409dc087cd737b29861c62bf2e14c702a63  libcli-1.10.7.tar.gz
+24abc6eeebd36c211fcd8ce468bc04b041f98633ec377bde0239669464c06abb64aacbb8f45773db7b850310e2c45fe7dcdd86174724c77dc3bd16204ee0a7a2  gcc14.patch
+"

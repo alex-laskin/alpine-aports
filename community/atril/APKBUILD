@@ -1,43 +1,60 @@
 # Contributor: Alan Lacerda <alacerda@alpinelinux.org>
 # Maintainer: Alan Lacerda <alacerda@alpinelinux.org>
 pkgname=atril
-pkgver=1.20.0
-pkgrel=0
+pkgver=1.28.0
+pkgrel=1
 pkgdesc="A document viewer for MATE"
 url="https://github.com/mate-desktop/atril"
-arch="all"
-license="GPL-2.0"
+# s390x blocked by texlive
+arch="all !s390x"
+license="GPL-2.0-or-later"
 depends="mate-icon-theme"
-# make check is broken: https://github.com/mate-desktop/atril/issues/167
+# tests require missing package py3-dogtail
 options="!check"
-makedepends="intltool glib-dev gtk+3.0-dev  mate-desktop-dev
-	dconf-dev libsm-dev libsecret-dev caja-extensions-dev caja-dev
-	poppler-dev tiff-dev itstool libxml2-utils libxml2-dev python2-dev"
+makedepends="
+	caja-dev
+	caja-extensions-dev
+	dconf-dev
+	djvulibre-dev
+	glib-dev
+	gtk+3.0-dev
+	intltool
+	itstool
+	libarchive-dev
+	libsecret-dev
+	libsm-dev
+	libspectre-dev
+	libxml2-dev
+	libxml2-utils
+	mate-desktop-dev
+	poppler-dev
+	python3-dev
+	texlive-dev
+	tiff-dev
+	webkit2gtk-4.1-dev
+	"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="http://pub.mate-desktop.org/releases/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://pub.mate-desktop.org/releases/${pkgver%.*}/atril-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--sysconfdir=/etc \
 		--enable-static=no \
-		--with-gtk=3.0 \
+		--enable-xps=no \
 		--prefix=/usr
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="c81ea0f948ce33bfe962dbcb10be507ede6bb7557096b105f408d356853c8a823f8d95d6e5c6bf1f3b312268c4637e0f726d24bcd4e2100fefd7eb6dd2177baf  atril-1.20.0.tar.xz"
+sha512sums="
+dd5f77b3ba2033a3591e0f58742d75eefdd0bfdcdec80a6aa6148a1cf37e4508776733013f946103bdf0412f35dee0b283cc254fa0033fc14966df323bb371a8  atril-1.28.0.tar.xz
+"

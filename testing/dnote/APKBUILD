@@ -1,0 +1,56 @@
+# Contributor: qaqland <qaq@qaq.land>
+# Maintainer: qaqland <qaq@qaq.land>
+pkgname=dnote
+pkgver=0.15.4
+pkgrel=0
+pkgdesc="A simple command line notebook for programmers (cli)"
+url="https://www.getdnote.com/"
+arch="all !armhf !armv7 !x86" # no 32 support
+license="GPL-3.0-or-later"
+makedepends="go"
+checkdepends="bash"
+options="net"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/dnote/dnote/archive/refs/tags/cli-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-cli-v$pkgver"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+export GOOS=linux
+export CGO_ENABLED=1
+
+# upstream's makefile is made for github release, only need build here
+build() {
+	local ldflags="-X main.apiEndpoint=https://api.getdnote.com \
+		-X main.versionTag=$pkgver"
+	go build \
+		-ldflags "$ldflags" \
+		-tags "fts5" \
+		-o build/cli \
+		./pkg/cli
+}
+
+check() {
+	make test-cli
+}
+
+package() {
+	install -Dm755 build/cli "$pkgdir"/usr/bin/dnote
+
+	install -Dm644 README.md LICENSE licenses/GPLv3.txt \
+		-t "$pkgdir"/usr/share/doc/dnote/
+
+	install -Dm644 pkg/cli/dnote-completion.bash \
+		"$pkgdir"/usr/share/bash-completion/completions/dnote
+	install -Dm644 pkg/cli/dnote-completion.zsh \
+		"$pkgdir"/usr/share/zsh/site-functions/_dnote
+}
+
+sha512sums="
+58ed63ebc3f5c494afd11e644c22d2bb6b35f475fe1b7b265aa5e0931d22137d6ae8314b3be0aa48df5660d8f82fcddc8d49de65e5efc5a469e3e7453e3ff291  dnote-0.15.4.tar.gz
+"

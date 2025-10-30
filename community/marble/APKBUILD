@@ -1,0 +1,68 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=marble
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="A Virtual Globe and World Atlas that you can use to learn more about Earth"
+# armhf blocked by qt6-qtdeclarative
+# x86, ppc64le, s390x and riscv64 blocked by qt6-qtwebengine
+arch="all !armhf !x86 !ppc64le !s390x !riscv64"
+url='https://marble.kde.org'
+license="LGPL-2.1-or-later AND GPL-3.0-or-later"
+depends_dev="
+	gpsd-dev
+	kcoreaddons-dev
+	kcrash-dev
+	kdoctools-dev
+	ki18n-dev
+	kio-dev
+	knewstuff-dev
+	kparts-dev
+	krunner-dev
+	kwallet-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-dev
+	qt6-qtlocation-dev
+	qt6-qtserialport-dev
+	qt6-qtsvg-dev
+	qt6-qttools-dev
+	qt6-qtwebengine-dev
+	shared-mime-info
+	"
+makedepends="$depends_dev
+	extra-cmake-modules
+	qt6-qtdeclarative-private-dev
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/education/marble.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/marble-$pkgver.tar.xz"
+options="!check" # Requires itself to be installed
+
+build() {
+	local _build_type=RelWithDebInfo
+	case $CARCH in
+		armv7) _build_type=Release;;
+	esac
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=$_build_type \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_INSTALL_SYSCONFDIR=/etc \
+		-DMOBILE=ON \
+		-DBUILD_MARBLE_APPS=YES
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+cd0de19dec7c5333f883fa03cf16dada88da6c1e957f10ce42d6e2b69a97658f7743fccadfcca6d7000562589d05bc78eb7e29137e76337556a03f5f718ce157  marble-25.08.1.tar.xz
+"

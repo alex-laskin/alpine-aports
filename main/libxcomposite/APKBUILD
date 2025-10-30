@@ -1,29 +1,20 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libxcomposite
-pkgver=0.4.4
-pkgrel=1
+pkgver=0.4.6
+pkgrel=5
 pkgdesc="X11 Composite extension library"
-url="http://xorg.freedesktop.org/"
+url="https://xorg.freedesktop.org/"
 arch="all"
-license="custom"
+license="MIT"
 options="!check"  # No test suite.
 subpackages="$pkgname-dev $pkgname-doc"
-depends=
 depends_dev="libxext-dev"
-makedepends="libx11-dev libxext-dev libxfixes-dev compositeproto util-macros xproto"
-source="http://www.x.org/releases/individual/lib/libXcomposite-$pkgver.tar.bz2"
-
+makedepends="xorgproto libx11-dev libxext-dev libxfixes-dev util-macros"
+source="https://www.x.org/releases/individual/lib/libXcomposite-$pkgver.tar.xz"
 builddir="$srcdir"/libXcomposite-$pkgver
 
-prepare() {
-	cd "$builddir"
-	chmod u+w config.sub
-	update_config_sub
-	default_prepare
-}
-
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -33,9 +24,10 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	install -D -m644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
 }
 
-sha512sums="b15f8fdbe4cb7488bdad161d73ef8e59ef603c5af92d7b573110ba136d7d4ce3749aac45972bce87662b0310b67e831cffad72c45c15bfff988b5b555d4c884b  libXcomposite-0.4.4.tar.bz2"
+sha512sums="
+f35a0da8f9f22fd788eee01209557fe3a1b1abdc9744f76330ba42b21b6e3af5464ca4451c33415856417c30da5aa5624e3707980c644327249bfeda5a62a59b  libXcomposite-0.4.6.tar.xz
+"

@@ -1,0 +1,59 @@
+# Contributor: Aster Boese <asterboese@mailbox.org>
+# Maintainer: Luca Weiss <luca@lucaweiss.eu>
+pkgname=lomiri-telephony-service
+pkgver=0.6.1
+pkgrel=11
+pkgdesc="Backend dispatcher service for various mobile phone related operations"
+url="https://gitlab.com/ubports/development/core/lomiri-telephony-service"
+# armhf: blocked by lomiri-libusermetrics
+arch="all !armhf"
+license="GPL-3.0-only"
+depends="
+	dconf
+	telepathy-mission-control
+	"
+makedepends="
+	ayatana-indicator-messages-dev
+	cmake
+	libnotify-dev
+	libphonenumber-dev
+	libqtdbustest
+	lomiri-api-dev
+	lomiri-history-service-dev
+	lomiri-libusermetrics-dev
+	lomiri-url-dispatcher-dev
+	pulseaudio-dev
+	qt5-qtbase-dev
+	qt5-qtdeclarative-dev
+	qt5-qtfeedback-dev
+	qt5-qtmultimedia-dev
+	qt5-qtpim-dev
+	telepathy-qt-dev
+	samurai
+	"
+checkdepends="dbus-test-runner xvfb-run"
+source="https://gitlab.com/ubports/development/core/lomiri-telephony-service/-/archive/$pkgver/lomiri-telephony-service-$pkgver.tar.gz"
+subpackages="$pkgname-lang"
+options="!check" # Various tests hang
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_INSTALL_SYSCONFDIR=/etc \
+		-DCMAKE_INSTALL_LOCALSTATEDIR=/var \
+		-DSKIP_QML_TESTS=ON
+	cmake --build build
+}
+
+check() {
+	xvfb-run ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+c3e61f7e9bcb0ac20e2dfc66df9ce5da070085e460c4176fbd6f9dd11bd7fd10b2ee26a9013a9ff70a71d80099bd97137fdbc3972c1e50d215e427d13da459cc  lomiri-telephony-service-0.6.1.tar.gz
+"

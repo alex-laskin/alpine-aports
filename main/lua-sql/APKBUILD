@@ -1,18 +1,17 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
-_luaversions="5.1 5.2 5.3"
+_luaversions="5.1 5.2 5.3 5.4"
 _drivers="mysql postgres sqlite3 odbc"
 
 pkgname=lua-sql
 _pkgname=luasql
-pkgver=2.3.5
-pkgrel=2
+pkgver=2.6.0
+pkgrel=5
 pkgdesc="Lua SQL drivers"
-url="http://keplerproject.github.io/luasql/doc/us/"
+url="http://lunarmodules.github.io/luasql/"
 arch="all"
 license="MIT"
-makedepends="mariadb-connector-c-dev postgresql-dev sqlite-dev unixodbc-dev"
-subpackages=""
+makedepends="mariadb-connector-c-dev libpq-dev sqlite-dev unixodbc-dev"
 for _v in $_luaversions; do
 	makedepends="$makedepends lua$_v-dev"
 	for _d in $_drivers; do
@@ -23,22 +22,16 @@ for _d in $_drivers; do
 	subpackages="$subpackages lua-sql-$_d:_meta_subpackage"
 done
 
-source="$_pkgname-$pkgver.tar.gz::https://github.com/keplerproject/$_pkgname/archive/v$pkgver.tar.gz
-	luasql-mariadb.patch"
+source="$_pkgname-$pkgver.tar.gz::https://github.com/lunarmodules/$_pkgname/archive/$pkgver.tar.gz
+	gcc14.patch"
 builddir="$srcdir/$_pkgname-$pkgver"
+options="!check"
 
 prepare() {
-	default_prepare || return 1
-
-	cd "$builddir"
-
-	# The config has DRIVER_INCS but it seems like its not respected
-	# so we just fix the .c file.
-	sed -i 's:^\#include "mysql.h":\#include <mysql/mysql.h>:' \
-		src/ls_mysql.c || return 1
+	default_prepare
 
 	local lver; for lver in $_luaversions; do
-		cp -r "$builddir" "$builddir-$lver" || return 1
+		cp -r "$builddir" "$builddir-$lver"
 	done
 }
 
@@ -52,16 +45,16 @@ build() {
 		cd "$builddir-$lver"
 
 		make CFLAGS="$cflags" DRIVER_LIBS="-lmysqlclient" \
-			mysql || return 1
+			mysql
 
 		make CFLAGS="$cflags" DRIVER_LIBS="$(pkg-config --libs libpq)" \
-			postgres || return 1
+			postgres
 
 		make CFLAGS="$cflags" DRIVER_LIBS="$(pkg-config --libs sqlite3)" \
-			sqlite3 || return 1
+			sqlite3
 
 		make CFLAGS="$cflags -DUNIXODBC" DRIVER_LIBS="-lodbc" \
-			odbc || return 1
+			odbc
 	done
 }
 
@@ -93,5 +86,7 @@ _subpackage() {
 	echo 'rock_manifest = {}' > "$rockdir"/rock_manifest
 }
 
-sha512sums="28e25998366a2517cdd37933f0f00e0bb4b06bd9b6731209361777d6b755d62d763168dc78177cab5dfeee667deea04ff775912fb148ed145d64cea5407df4e7  luasql-2.3.5.tar.gz
-1c587dd5f8964079e8836a951eaf6f40fdd9482ee08c022e9f51af8b3630b01e404f836689ba35cb9a8e6eb25578fb3d444c89975192509822a62f9d514a6b0e  luasql-mariadb.patch"
+sha512sums="
+051438d4f5a9059c2ecf52143a06279469c220117b8b99363ea4fda434f08780794f0c4d54185ea891845238b3f5a307ba06ee7a1e7f4583a3b393c63eed66e9  luasql-2.6.0.tar.gz
+59b3fc557db504fb2479fc68134bc0fd478ff3ad46f047c0f3429d66fa9b87e045af1331bade96accd895a61f88f5158b5db4b6783147009a9c6445ed4d85e0f  gcc14.patch
+"

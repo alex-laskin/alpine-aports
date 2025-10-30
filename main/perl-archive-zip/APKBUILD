@@ -1,32 +1,39 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
-# Maintainer:  Leonardo Arena <rnalrd@alpinelinux.org>
+# Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=perl-archive-zip
-_realname=Archive-Zip
-pkgver=1.60
-pkgrel=0
+_pkgreal=Archive-Zip
+pkgver=1.68
+pkgrel=3
 pkgdesc="Provide a perl interface to ZIP archive files."
-url="http://search.cpan.org/dist/Archive-Zip/"
+url="https://metacpan.org/release/Archive-Zip"
 arch="noarch"
-license="GPL PerlArtistic"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
 depends="perl"
-makedepends="perl-dev"
-install=
+checkdepends="perl-test-mockmodule perl-super perl-sub-identify perl-test-simple zip"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/P/PH/PHRED/$_realname-$pkgver.tar.gz"
+options="!check"
+source="https://cpan.metacpan.org/authors/id/P/PH/PHRED/Archive-Zip-$pkgver.tar.gz"
+builddir="$srcdir/$_pkgreal-$pkgver"
 
-builddir="$srcdir/$_realname-$pkgver"
+prepare() {
+	default_prepare
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
+	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
+}
+
 build() {
-	cd "$builddir"
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
+	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
+	make
+}
 
-	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor || return 1
-	make || return 1
+check() {
+	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
-	# creates file collision among perl modules
-	find "$pkgdir" -name perllocal.pod -delete
+	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="5af85e1717e7026b5ebe9533b0dd57290b35099d166ee400ca648cb558a37529a3ec290fb9a44679c16cf955a2de9b75328c2fa88d3e87e51c10cac80247852f  Archive-Zip-1.60.tar.gz"
+sha512sums="40c3ba26b1c27a8b15b919934e7fcd531f208bec73de3454e123ac1fb771831e287b8fade421be40e243498beb6dad9b6133ef07d2e5d407afbd1f3d6a30b916  Archive-Zip-1.68.tar.gz"

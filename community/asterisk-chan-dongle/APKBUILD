@@ -1,47 +1,53 @@
 # Contributor: Timo Teräs <timo.teras@iki.fi>
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=asterisk-chan-dongle
-pkgver=1.1.20160925
-_commitid=e3bce3c1d43cec1e4f8e548b4d3880e289747b24
-pkgrel=1
+pkgver=1.1.20211005
+_commitid=3d046f7d6842298c6838b5ce5b51d495d383b158
+pkgrel=3
 pkgdesc="GSM modem dongle channel driver"
-url="https://github.com/oleg-krv/asterisk-chan-dongle/"
+url="https://github.com/wdoekes/asterisk-chan-dongle/"
 arch="all"
-license="GPL-2.0"
+license="GPL-2.0-or-later"
 depends="asterisk"
-depends_dev=""
-makedepends="$depends_dev asterisk-dev automake autoconf"
-install=""
-subpackages=""
+makedepends="asterisk-dev autoconf automake sqlite-dev"
 provides="asterisk-dongle=$pkgver"
-source="$pkgname-$pkgver.tar.gz::https://github.com/oleg-krv/asterisk-chan-dongle/archive/$_commitid.tar.gz
-	asterisk-14.patch
+source="$pkgname-$pkgver.tar.gz::https://github.com/wdoekes/asterisk-chan-dongle/archive/$_commitid.tar.gz
 	fix-autodisc.patch
+	tests.patch
+	big-endian.patch
 	"
-
 builddir="$srcdir/$pkgname-$_commitid"
 
 prepare() {
-	default_prepare || return 1
-	cd "$builddir"
-	# automake will return error due to Makefile.am missing
-	# the project autoconfigury foo is old and ships Makefile.in directly
-	aclocal && autoconf && automake -a || true
+	default_prepare
+	./bootstrap
 }
 
 build() {
-	cd "$builddir"
-	./configure || return 1
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--with-astversion=18 \
+		--prefix=/usr \
+		--mandir=/usr/share/man \
+		--sysconfdir=/etc \
+		--localstatedir=/var
 	make
 }
 
+check() {
+	make check
+}
+
 package() {
-	cd "$builddir"
 	mkdir -p "$pkgdir"/usr/lib/asterisk/modules "$pkgdir"/etc/asterisk
 	install -m644 etc/dongle.conf "$pkgdir"/etc/asterisk/dongle.conf.sample
 	install -m755 chan_dongle.so "$pkgdir"/usr/lib/asterisk/modules
 }
 
-sha512sums="298e7c533794a3ab6e75df37053de832601623ba0e574ee4fbc16bf747f69cd4843b0dee9ee6c4722426eeb33596edf675ad60a640789f1bd8fe13a50ff74e14  asterisk-chan-dongle-1.1.20160925.tar.gz
-de6c453f8482d9a0c4a77c607efbf058d80342d74bb1053f6f3a18d2e3b79c8fc643f7cdedcdfda414227ecc8ecd05b4cee70a260811dc75128a493b9a772c57  asterisk-14.patch
-15b1e7af8f0a4297bb0cb4d88a09a4716860ef0a580bd20511fd0e4c2624846cb9453a47cf9750879719d00b4e3970777a3fa602d368e969c275e8d65ab6aa4a  fix-autodisc.patch"
+sha512sums="
+b0f05a16a12fee210a0e35b8dd538c5a4983fc0a484a39b20cc56636a979081fb9b1c47e4fa6d0d5f2e5c9e58f27591e3f44e8592a4f77548899f06dd99eafa1  asterisk-chan-dongle-1.1.20211005.tar.gz
+84488b208113760f5c7fc8eed3a5206e4d9b175267508fd370e028dbc15dc4f525f9df98c673df059c12f62253c79ae13609e5d6d4e5effa7b3f972b38417b3e  fix-autodisc.patch
+6bd5298dd6d11bf58b2a89940e6af89eaa6ff44fddc0ac8b9a13f6debe9b6f5c9f001af9c8a3611ef744adff0c35d300203661abdb9f0bfcb73817aeb18971f1  tests.patch
+ebd89c185c224c4471cec5a1ef723be572a3c95e019715408a948c5b24acdec82317c3ece580fbaaabd4616a90bf2cb7dd28771bbe1376d877f5a611c1d72905  big-endian.patch
+"

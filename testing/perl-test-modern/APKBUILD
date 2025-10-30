@@ -4,19 +4,17 @@
 pkgname=perl-test-modern
 _pkgreal=Test-Modern
 pkgver=0.013
-pkgrel=0
+pkgrel=3
 pkgdesc="precision testing for modern perl"
-url="http://search.cpan.org/dist/Test-Modern/"
+url="https://metacpan.org/release/Test-Modern/"
 arch="noarch"
 license="GPL PerlArtistic"
-cpandepends="perl-exporter-tiny perl-import-into perl-test-warnings perl-test-fatal perl-try-tiny perl-test-deep perl-test-api perl-module-runtime"
-cpanmakedepends=""
-cpancheckdepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
-checkdepends="$cpancheckdepends"
+depends="
+	perl perl-exporter-tiny perl-import-into perl-test-warnings perl-test-fatal perl-try-tiny
+	perl-test-deep perl-test-api perl-module-runtime
+	"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/T/TO/TOBYINK/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/T/TO/TOBYINK/$_pkgreal-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {

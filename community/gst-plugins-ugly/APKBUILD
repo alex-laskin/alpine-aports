@@ -1,9 +1,9 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+maintainer="Krassy Boykinov <kboykinov@teamcentrixx.com>"
 pkgname=gst-plugins-ugly
-pkgver=1.14.0
-pkgrel=1
-pkgdesc="GStreamer Multimedia Framework Ugly Plugins (gst-plugins-ugly)"
-url="https://gstreamer.freedesktop.org/"
+pkgver=1.26.7
+pkgrel=0
+pkgdesc="GStreamer streaming media framework ugly plug-ins"
+url="https://gstreamer.freedesktop.org"
 arch="all"
 license="GPL-2.0-or-later LGPL-2.0-or-later"
 replaces="gst-plugins-ugly1"
@@ -15,51 +15,56 @@ makedepends="
 	libcdio-dev
 	libdvdread-dev
 	libmpeg2-dev
+	meson
 	orc-dev
 	x264-dev
 	"
-source="https://gstreamer.freedesktop.org/src/gst-plugins-ugly/gst-plugins-ugly-$pkgver.tar.xz"
-subpackages="$pkgname-lang"
+source="
+https://gstreamer.freedesktop.org/src/gst-plugins-ugly/gst-plugins-ugly-$pkgver.tar.xz
+x264_tests.patch
+"
+
+subpackages="$pkgname-dbg $pkgname-lang"
 ldpath="/usr/lib/gstreamer-1.0"
 
 # secfixes:
+#   1.22.5-r0:
+#     - CVE-2023-38104
+#     - CVE-2023-38103
 #   1.10.4-r0:
 #     - CVE-2017-5846
 #     - CVE-2017-5847
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--localstatedir=/var \
-		--disable-static \
-		--enable-experimental \
-		--enable-a52dec \
-		--enable-cdio \
-		--enable-dvdread \
-		--enable-mpeg2dec \
-		--enable-x264 \
-		--disable-fatal-warnings \
-		--with-package-name="GStreamer Ugly Plugins (Alpine Linux)" \
-		--with-package-origin="http://alpinelinux.org/"
-	make
-}
-
-check() {
-	cd "$builddir"
-	make check
+	CFLAGS="$CFLAGS -O2" \
+	CXXFLAGS="$CXXFLAGS -O2" \
+	CPPFLAGS="$CPPFLAGS -O2" \
+	abuild-meson \
+		-Db_lto=true \
+		-Dpackage-origin="https://alpinelinux.org" \
+		-Dpackage-name="GStreamer ugly plug-ins (Alpine Linux)" \
+		-Dgpl=enabled \
+		-Dcdio=disabled \
+		-Ddvdread=disabled \
+		-Dmpeg2dec=disabled \
+		. output
+	meson compile -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+check() {
+	meson test -C output --print-errorlogs
 }
 
 doc() {
 	default_doc
 	replaces="${pkgname}1-doc"
 }
-sha512sums="f3a12318536c41fe77efb63ab3d2feba9e586ea3f0da9d4f48b1710236a5932b191fb1e14734be82f7c3855574036baafd3e48fa7ac37091f05a47c37103eefb  gst-plugins-ugly-1.14.0.tar.xz"
+
+sha512sums="
+03f8d4eb98a70d7dfdad5a15c5515f011df3a436c88480b53d27e10e4709a67734ba7628a0e1a57ad993e69f8fc977020befa5ba75f75be349c21128f4a62a55  gst-plugins-ugly-1.26.7.tar.xz
+730a88a20534f77d10ed1543f6e7fcc8825e75c4bba007de02017fc89569f9e5dfd3d383d3479448f687825bb27b19335c0957c360846e5e3e33735b7a7d3bf6  x264_tests.patch
+"

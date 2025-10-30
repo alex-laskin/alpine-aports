@@ -1,0 +1,87 @@
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=udisks2
+pkgver=2.10.2
+pkgrel=0
+pkgdesc="daemon, tools and libraries to manipulate disks"
+options="!check"
+url="https://www.freedesktop.org/wiki/Software/udisks/"
+arch="all"
+license="GPL-2.0-or-later"
+depends="dbus"
+depends_dev="
+	acl-dev
+	gobject-introspection-dev
+	libatasmart-dev
+	libgudev-dev
+	lvm2-dev
+	polkit-dev
+	"
+makedepends="$depends_dev
+	bash
+	btrfs-progs-dev
+	coreutils
+	glib-dev
+	gtk-doc
+	intltool
+	libblockdev-dev
+	linux-headers
+	"
+subpackages="
+	$pkgname-dev
+	$pkgname-gtk-doc:gtkdoc:noarch
+	$pkgname-doc
+	$pkgname-lang
+	$pkgname-libs
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	$pkgname-openrc
+	"
+source="https://github.com/storaged-project/udisks/releases/download/udisks-$pkgver/udisks-$pkgver.tar.bz2
+	udisks2.initd
+	"
+	# O_CLOEXEC.patch
+builddir="$srcdir"/udisks-$pkgver
+
+build() {
+	CFLAGS="$CFLAGS -flto=auto" \
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--infodir=/usr/share/info \
+		--localstatedir=/var \
+		--enable-lvm2 \
+		--enable-lvmcache \
+		--enable-btrfs \
+		--disable-static \
+		--disable-zram
+	make
+}
+
+check() {
+	make check
+}
+
+gtkdoc() {
+	amove usr/share/gtk-doc
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+	install -Dm 755 "$srcdir/udisks2.initd" "$pkgdir/etc/init.d/udisks2"
+	rm -f "$pkgdir"/usr/lib/*.a
+}
+
+libs() {
+	pkgdesc="Dynamic library to access the udisks daemon"
+	default_libs
+	amove usr/lib/girepository*
+}
+
+sha512sums="
+8b2fb6d5a9b5c040f315073d0890cde2cad67f06684e607a31636012a515ec798c2129c3dbc8fcd6655d72b7b4a9485172e5e85795a0aeb4ff20a5ea76e690a8  udisks-2.10.2.tar.bz2
+beac2a8c5afe8ea7659dad967265875f443c1bffdb823b4a31fac35a8f7b40f9a1c95cceaae7971e28a703a9f1b8ffe00f49a28c84cf457980e9e8176e7ecc93  udisks2.initd
+"

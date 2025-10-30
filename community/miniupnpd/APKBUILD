@@ -1,65 +1,96 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
+# Contributor: Ariadne Conill <ariadne@ariadne.space>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=miniupnpd
-pkgver=2.0.20171212
-pkgrel=0
-pkgdesc="Lightweight UPnP IGD daemon"
-url="http://miniupnp.free.fr"
+pkgver=2.3.9
+pkgrel=1
+pkgdesc="Lightweight UPnP IGD & PCP/NAT-PMP daemon"
+url="https://miniupnp.tuxfamily.org/"
 arch="all"
-license="BSD"
-depends=""
-depends_dev="libnfnetlink-dev iptables-dev"
-makedepends="$depends_dev bsd-compat-headers"
-install=""
-subpackages="$pkgname-doc"
+license="BSD-3-Clause"
+install="$pkgname.post-install"
+depends="uuidgen"
+makedepends="bsd-compat-headers iptables-dev libnfnetlink-dev libmnl-dev libnftnl-dev openssl-dev>3"
+checkdepends="util-linux-dev"
+subpackages="$pkgname-doc $pkgname-openrc
+	$pkgname-iptables:_fwscripts:noarch
+	$pkgname-ip6tables:_fwscripts:noarch
+	$pkgname-nftables
+	"
 source="http://miniupnp.free.fr/files/miniupnpd-$pkgver.tar.gz
 	$pkgname.initd
-	$pkgname.confd"
+"
+# tests require a physical network device
+options="!check"
 
-_builddir="$srcdir"/miniupnpd-$pkgver
+# secfixes:
+#   2.2.2-r0:
+#     - CVE-2019-12107
+#     - CVE-2019-12108
+#     - CVE-2019-12109
+#     - CVE-2019-12110
+#     - CVE-2019-12111
+
 prepare() {
-	local i
-	cd "$_builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-	mv Makefile.linux Makefile
-	sed -i \
-		-e "s#^CFLAGS = .*-D#CPPFLAGS += -I/usr/include -D#" \
-		-e '/^CFLAGS :=/s/CFLAGS/CPPFLAGS/g' \
-		-e "s/CFLAGS += -ansi/#CFLAGS += -ansi/g" \
-		-e "s/LIBS = -liptc/LIBS = -lip4tc/g" \
-		-e 's/genuuid||//' \
-		-e "s/--mode=/-m /g" \
-		Makefile || die
-	sed -i \
-		-e 's/\(strncpy(\([->a-z.]\+\), "[a-zA-Z]\+", \)IPT_FUNCTION_MAXNAMELEN);/\1sizeof(\2));/' \
-		netfilter/iptcrdr.c || die
+	default_prepare
+	mv "$builddir" "${builddir}-iptables"
+	cp -al "${builddir}-iptables" "${builddir}-nftables"
+}
 
-	make config.h
-
-	sed -i \
-		-e 's/\/\*#define ENABLE_LEASEFILE\*\//#define ENABLE_LEASEFILE/g' \
-		config.h || die
+build_variant() {
+	cd "${srcdir}/${pkgname}-${pkgver}-$1"
+	./configure \
+		--firewall="$1" \
+		--vendorcfg \
+		--leasefile \
+		--ipv6 \
+		--igd2
+	make ISGITREPO=""
 }
 
 build() {
-	cd "$_builddir"
-	make || return 1
+	build_variant iptables
+	build_variant nftables
+}
+
+check_variant() {
+	cd "${srcdir}/${pkgname}-${pkgver}-$1"
+	make check ISGITREPO=""
+}
+
+check() {
+	check_variant iptables
+	check_variant nftables
 }
 
 package() {
-	cd "$_builddir"
-	make PREFIX="$pkgdir/" install || return 1
+	cd "${srcdir}/${pkgname}-${pkgver}-iptables"
+	make PREFIX="$pkgdir/" ISGITREPO="" install
 	install -m755 -D "$srcdir"/$pkgname.initd \
-		"$pkgdir"/etc/init.d/$pkgname || return 1
-	install -m644 -D "$srcdir"/$pkgname.confd \
-		"$pkgdir"/etc/conf.d/$pkgname || return 1
-
+		"$pkgdir"/etc/init.d/$pkgname
 }
 
-sha512sums="3ab81c840953736c662bcb6f074421052a846c7827768acd7a961a23906b9e3d3389f5b593fb6f8011c8e717dae6cd3907b6d34e7904d560378671a7fc1dd3b2  miniupnpd-2.0.20171212.tar.gz
-a25b2a444cde623fbdbe6fb26c544614cceb2cc1262a0409f40286f4c69b70ba1c05e55815552a12b0624b16ddd48d3e424dad18b278ff9da04bac335feb1d45  miniupnpd.initd
-81aa2dac0643bbd1331549427c438900319adce91928b6bad6f7d470492f6f48e04e4d1af89f961db53fc132a7ff89ea52625441f051afd5a1b48680917f4ff7  miniupnpd.confd"
+nftables() {
+	provides="${pkgname}=${pkgver}-r${pkgrel}"
+	cd "${srcdir}/${pkgname}-${pkgver}-nftables"
+	make PREFIX="$subpkgdir/" ISGITREPO="" install
+
+	rm -rf "$subpkgdir"/etc/init.d
+	rm -rf "$subpkgdir"/usr/share
+
+	install -D -m755 "${srcdir}/${pkgname}-${pkgver}-nftables/netfilter_nft/scripts/miniupnpd_functions.sh" "$subpkgdir"/etc/miniupnpd
+}
+
+_fwscripts() {
+	depends=
+	local _tables=${subpkgname#$pkgname-}
+	pkgdesc="$_tables scripts for $pkgname"
+	install_if="$pkgname=$pkgver-r$pkgrel $_tables"
+	amove	etc/miniupnpd/${_tables}_init.sh \
+		etc/miniupnpd/${_tables}_removeall.sh
+}
+
+sha512sums="
+a2352ebe107003d1f87b6590a9f72bd89606a03ada51a9e2b2bd7c0bb4f57ee9da45d4bd23c1aaaead58eb5b4e4405dcb98c49ef145ba40ddb2d031c6f73e334  miniupnpd-2.3.9.tar.gz
+3619d66b5d27369e9ae368f189fc4f4e25a803b460a954f47fd749195755bda8e828fbaa4e04ffc980aa72078f790d41a313c2ab7d0de7d4c284251a577b7a90  miniupnpd.initd
+"

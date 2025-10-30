@@ -1,30 +1,41 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=dnsrecon
-pkgver=0.8.13
+pkgver=1.4.0
 pkgrel=0
 pkgdesc="DNS Enumeration Script"
 url="https://github.com/darkoperator/dnsrecon"
 arch="noarch"
-license="GPL-2.0"
-depends="python2 py2-dnspython py2-netaddr"
-source="$pkgname-$pkgver.tar.gz::https://github.com/darkoperator/$pkgname/archive/$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+license="GPL-2.0-only"
+depends="py3-dnspython py3-loguru py3-lxml py3-netaddr py3-requests py3-setuptools"
+makedepends="
+	py3-gpep517
+	py3-installer
+	py3-setuptools
+	py3-wheel
+	"
+checkdepends="py3-pytest"
+options="!check"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/darkoperator/dnsrecon/archive/$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	return 0
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest
 }
 
 package() {
-	cd "$builddir"
-	for dir in lib tools msf_plugin; do
-		mkdir -p "$pkgdir"/usr/share/dnsrecon/$dir
-		cp $dir/* "$pkgdir"/usr/share/dnsrecon/$dir
-	done
-	install -D -m 0755 dnsrecon.py "$pkgdir"/usr/share/dnsrecon/dnsrecon.py
-	mkdir -p "$pkgdir"/usr/bin
-	ln -sf /usr/share/dnsrecon/dnsrecon.py "$pkgdir"/usr/bin/dnsrecon.py
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
 }
 
-sha512sums="228aa0166d46268ab5a7b0f54d1663fbb0d825b528955813a7c54a76bb693ddc167f6311ac4c88d4d158371218bf7f03e48e4f502d2c92d608eff66cad7f54ad  dnsrecon-0.8.13.tar.gz"
+sha512sums="
+edb2455d76edf0dad27c3735ae466cec92f25ca8cc9decf53088fd2aeabec82748d61eb2c3466cb273c07ff7718501ef64b4c515efa8593d8d20028f891a909d  dnsrecon-1.4.0.tar.gz
+"

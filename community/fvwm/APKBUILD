@@ -1,40 +1,59 @@
 # Contributor: ScrumpyJack <scrumpyjack@st.ilet.to>
 # Maintainer: ScrumpyJack <scrumpyjack@st.ilet.to>
 pkgname=fvwm
-pkgver=2.6.8
-pkgrel=0
-pkgdesc="FVWM is a powerful desktop window manager for the X  Window system"
+pkgver=2.7.0
+pkgrel=3
+pkgdesc="FVWM is a powerful desktop window manager for the X Window system"
 url="http://fvwm.org"
 arch="all"
-license="GPL-2.0"
-depends=""
-depends_dev=""
-makedepends="perl libxslt libxcursor-dev libx11-dev freetype-dev fontconfig-dev
-	gettext-dev libxft-dev libxt-dev libxext-dev libpng-dev libxpm-dev"
-install=""
-subpackages="$pkgname-doc $pkgname-lang"
-source="https://github.com/fvwmorg/fvwm/releases/download/$pkgver/$pkgname-$pkgver.tar.gz"
+license="GPL-2.0-or-later"
+makedepends="
+	fontconfig-dev
+	freetype-dev
+	gettext-dev
+	libpng-dev
+	librsvg-dev
+	libx11-dev
+	libxcursor-dev
+	libxext-dev
+	libxft-dev
+	libxinerama-dev
+	libxpm-dev
+	libxslt
+	libxt-dev
+	perl
+	readline-dev
+	automake
+	autoconf
+	"
+subpackages="$pkgname-doc"
+source="https://github.com/fvwmorg/fvwm/releases/download/$pkgver/fvwm-$pkgver.tar.gz
+	gcc14.patch
+	"
 
-builddir=$srcdir/${pkgname}-${pkgver}
+prepare() {
+	default_prepare
+
+	autoreconf -ivf
+}
 
 build() {
-	cd "$builddir"
-	./configure --prefix=/usr \
+	./configure \
+		--prefix=/usr \
 		--disable-perllib \
-		--disable-bidi \
-		--disable-rsvg \
-		--disable-xinerama
+		--disable-bidi
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-        make DESTDIR="$pkgdir" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="12e0def0a1d565c1c44356b48b4e516b7be4f51f13f91d9f8b89364ae106f6d7773e12fd17c71b6f0569c64fb3a5374c036c118cb76f739a63b1e17b5dfba287  fvwm-2.6.8.tar.gz"
+sha512sums="
+fc9076c3f07f36b0b2c7c4d2bdf7bb1a711000e39316e327173548bc99dc2b8a29b591e3644e1492f87603b576cd4a3f58ecbdd84a4384d294417b3c56c81808  fvwm-2.7.0.tar.gz
+1576add86910496d802244c217e90338c881761ba7e1aad1987490fed986b20d0145463bc353924e0de9c760bfb85b08fa9f48edfebafa3f84759069c655a863  gcc14.patch
+"

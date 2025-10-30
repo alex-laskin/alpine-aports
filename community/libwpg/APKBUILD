@@ -1,26 +1,19 @@
 # Contributor: Timo Teräs <timo.teras@iki.fi>
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=libwpg
-pkgver=0.3.2
-pkgrel=1
+pkgver=0.3.4
+pkgrel=0
 pkgdesc="Import filter and tools for WordPerfect Graphics"
 url="https://sourceforge.net/projects/libwpg/"
 arch="all"
 options="!check"  # No test suite.
-license="MPL-2.0"
-depends=""
+license="MPL-2.0 LGPL-2.1-or-later"
 makedepends="doxygen librevenge-dev libwpd-dev"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-tools"
-source="http://downloads.sourceforge.net/project/libwpg/libwpg/libwpg-$pkgver/libwpg-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$builddir"
-	update_config_sub
-	default_prepare
-}
+source="https://downloads.sourceforge.net/project/libwpg/libwpg/libwpg-$pkgver/libwpg-$pkgver.tar.bz2"
 
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -33,13 +26,13 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
 tools() {
-	mkdir -p "$subpkgdir"/usr
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr
+	amove usr/bin
 }
 
-sha512sums="af9bf007c1cd380cc6da543024e6f068c0eb49514ff0027b1e82170927c8496e69d6c7a2a502380f25c54fea1fc33865c70c7d24d4b38e4fbf1d064bf1f1e192  libwpg-0.3.2.tar.bz2"
+sha512sums="
+3d300388624933006fa84e86cc2800e4565179c638c26ed652ca04553366a4291c4a396809111de5f0139d26baaf7dc09b66259d7b17275268603e3582731ecb  libwpg-0.3.4.tar.bz2
+"

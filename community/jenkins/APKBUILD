@@ -1,31 +1,68 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=jenkins
-pkgver=2.121.1
+pkgver=2.516.1
 pkgrel=0
-pkgdesc="Extendable continuous integration server (stable version)"
-url="https://jenkins.io"
-arch="noarch"
+pkgdesc="Extendable continuous integration server (LTS version)"
+url="https://jenkins.io/"
+# blocked by openjdk21
+arch="all !x86 !armhf !armv7"
 license="MIT"
-depends="openjdk8 openjdk8-jre openjdk8-jre-base
-	freetype ttf-dejavu xvfb fontconfig"
+depends="java-jre-headless freetype font-dejavu xvfb fontconfig"
 install="$pkgname.pre-install"
 options="!check"
 pkgusers="$pkgname"
 pkggroups="$pkgname"
-source="jenkins-$pkgver.war::http://mirrors.jenkins.io/war-stable/$pkgver/$pkgname.war
+subpackages="$pkgname-openrc"
+source="$pkgname-$pkgver.war::https://get.jenkins.io/war-stable/$pkgver/jenkins.war
 	$pkgname.logrotate
 	$pkgname.initd
 	$pkgname.confd"
 builddir="$srcdir/"
 
-build() {
-	cd "$builddir"
-	return 0
-}
+# secfixes:
+#   2.361.2-r0:
+#     - CVE-2022-2048
+#     - CVE-2022-22970
+#     - CVE-2022-22971
+#   2.346.2-r0:
+#     - CVE-2022-34174
+#     - CVE-2022-34173
+#     - CVE-2022-34172
+#     - CVE-2022-34171
+#     - CVE-2022-34170
+#   2.332.1-r0:
+#     - CVE-2022-20612
+#   2.319.3-r0:
+#     - CVE-2022-0538
+#   2.319.2-r0:
+#     - CVE-2022-20612
+#   2.287-r0:
+#     - CVE-2021-21639
+#     - CVE-2021-21640
+#   2.275-r0:
+#     - CVE-2021-21602
+#     - CVE-2021-21603
+#     - CVE-2021-21604
+#     - CVE-2021-21605
+#     - CVE-2021-21606
+#     - CVE-2021-21607
+#     - CVE-2021-21608
+#     - CVE-2021-21609
+#     - CVE-2021-21610
+#     - CVE-2021-21611
+#   2.245-r0:
+#     - CVE-2020-2220
+#     - CVE-2020-2221
+#     - CVE-2020-2222
+#     - CVE-2020-2223
+#   2.228-r0:
+#     - CVE-2020-2160
+#     - CVE-2020-2161
+#     - CVE-2020-2162
+#     - CVE-2020-2163
 
 package() {
-	cd "$builddir"
 	install -Dm755 "$srcdir"/$pkgname.initd \
 		"$pkgdir"/etc/init.d/$pkgname
 	install -Dm644 "$srcdir"/$pkgname.confd \
@@ -38,7 +75,9 @@ package() {
 	chown -R $pkgusers:$pkggroups "$pkgdir"/var/log/jenkins
 }
 
-sha512sums="b87c8458a5db9e8a1b1a67cc8e36d224719d8460987a8b95f563619c5d662e6af8a3fc276d420f5520e541a0bee7211d2fe414caf11b4116c57ba214c687faa8  jenkins-2.121.1.war
-74423d3c66e2312eb3a1590e0582ccd82fc01b410d3bfc0627bef56fe6f4e7f4ea01a7a2d92a7a0c4870a1a1c48e911fe7eab3073e14db4910b52158182e5856  jenkins.logrotate
-43686a537248c7a0a8fe53c3ca9577c8ffb50a141248de028d398d0fd3b3be8562b6cb2c63b44b3b0ac58d6431e8907790553791b2e125d1bfc2e3263ffaa83e  jenkins.initd
-7247750a13fc2537dc1e405f6d8221ccdc80cfbaf40c47327ee04c206afa8607ada52e7b895c8eb3489dd9f6a94b42b8b38110b3120948a35dc4f197fe4c08ed  jenkins.confd"
+sha512sums="
+fb643b4d7b484162080089dd5e48f749b0e51518c96710ec6e9033ca7d50ab4eae371dc5f1ebb238f694b5d88b990059a9d1f74526792f56c2c3ddf2cfe619cb  jenkins-2.516.1.war
+ee2e80d93b390b2c5dead3111e07d6226cbd87393740fd630975e4d177acc033392ebbdb99f8ea3c6daeceac184399b38b0fa3ae7d96b5cb28f65d473b916244  jenkins.logrotate
+1e165145234f0a81412b59e9539a6757ae8038c6bf87515b545232052fc2e8595d58bb60bc88bd44fa6199d9d187f6e1077705add1cfe08504f89ba91a5136fe  jenkins.initd
+8dafeee082497ef03a866ebc1ea6fbacc1bc2fccf84cf497134a69fc65aa4bceca20f4a605c8b3d420cbed26464ea76daf385c3de88054e706b139f8c2e15704  jenkins.confd
+"

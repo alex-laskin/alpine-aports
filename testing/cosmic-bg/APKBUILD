@@ -1,0 +1,44 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-bg
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="COSMIC session service which applies backgrounds to displays"
+url="https://github.com/pop-os/cosmic-bg"
+# loongarch64: https://github.com/bytecodealliance/rustix/issues/1496
+arch="all !loongarch64"
+license="MPL-2.0"
+depends="
+	cosmic-icons
+"
+makedepends="
+	cargo
+	just
+	libxkbcommon-dev
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-bg/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	just build-release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+2a0f8747640131e4bffdf2eeca5c198580a163cc0d2f162e1c8a49cc48dc31fb8509963086d558922787d8f81dc7e497689b965760bebc5b63465b27edcf9c27  cosmic-bg-1.0.0_beta4.tar.gz
+"

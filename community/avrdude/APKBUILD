@@ -1,38 +1,47 @@
 # Contributor: Stefan Wagner <stw@bit-strickerei.de>
-# Maintainer: Stefan Wagner <stw@bit-strickerei.de>
+# Maintainer: Marian Buschsieweke <marian.buschsieweke@posteo.net>
 pkgname=avrdude
-pkgver=6.3
-pkgrel=1
+pkgver=8.1
+pkgrel=0
 pkgdesc="Download/upload/manipulate the ROM and EEPROM contents of AVR microcontrollers"
-url="http://www.nongnu.org/avrdude/"
+url="https://github.com/avrdudes/avrdude"
 arch="all"
-license="GPL"
-makedepends="linux-headers bash flex byacc libftdi1-dev libusb-compat-dev libelf-dev"
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://download.savannah.gnu.org/releases/avrdude/${pkgname}-${pkgver}.tar.gz"
-
-builddir="$srcdir/${pkgname}-${pkgver}"
-
-prepare() {
-	default_prepare || return 1
-	update_config_guess || return 1
-}
+license="GPL-2.0-or-later"
+makedepends="
+	byacc
+	cmake
+	elfutils-dev
+	flex
+	hidapi-dev
+	libftdi1-dev
+	libgpiod-dev
+	libusb-dev
+	linux-headers
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-libs $pkgname-doc"
+source="
+	$pkgname-$pkgver.tar.gz::https://github.com/avrdudes/avrdude/archive/refs/tags/v$pkgver.tar.gz
+	"
+options="!check" # no tests
 
 build() {
-	cd "$builddir"
-	./configure \
-		--mandir=/usr/share/man \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--enable-linuxgpio || return 1
-	make
+	CFLAGS="$CFLAGS -flto=auto" \
+	cmake -B build -G Ninja -Wno-dev \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_INSTALL_SYSCONFDIR=/etc \
+		-DHAVE_LINUXGPIO=ON \
+		-DHAVE_LINUXSPI=ON \
+		-DBUILD_SHARED_LIBS=ON
+	cmake --build build
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-md5sums="58bb42049122cf80fe4f4d0ce36d92ee  avrdude-6.3.tar.gz"
-sha256sums="0f9f731b6394ca7795b88359689a7fa1fba818c6e1d962513eb28da670e0a196  avrdude-6.3.tar.gz"
-sha512sums="b671008388d6a552e71066fec46429bc7f6639e8eac41113bcbba5a56212b78be31fcf04956b31e11c6b14888b0f6e825f7458395b9ff4fc28406074c7ded2b2  avrdude-6.3.tar.gz"
+sha512sums="
+8dd2a5e4ff92ae405efb01a6787ca2e55e584f5a22f1162be296406797751d26611e276806971f923fb8eca84c425ff0d5ec2a220a22999a9f9eda314ce93e53  avrdude-8.1.tar.gz
+"

@@ -1,29 +1,28 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=gtk-doc
-pkgver=1.26
-pkgrel=2
+pkgver=1.35.0
+pkgrel=0
 pkgdesc="Documentation tool for public library API"
-url="https://www.gtk.org/gtk-doc/"
+url="https://gitlab.gnome.org/GNOME/gtk-doc"
 arch="noarch"
-license="GFDL"
-depends="docbook-xsl gnome-doc-utils perl python2 py2-six pkgconf glib-dev highlight"
-makedepends="rarian-dev py-libxml2 gettext itstool autoconf automake libtool"
+license="GPL-2.0-or-later AND GFDL-1.1-or-later"
+depends="docbook-xsl python3 pkgconf glib-dev py3-pygments"
+makedepends="rarian-dev gettext autoconf automake libtool"
 checkdepends="bc"
-source="https://download.gnome.org/sources/$pkgname/$pkgver/$pkgname-$pkgver.tar.xz
-	0001-tests-Label-parts-with-decimals-not-roman-numerals.patch
-	"
+# https://discourse.gnome.org/t/new-way-of-releasing-gtk-doc/31754
+#source="https://download.gnome.org/sources/gtk-doc/${pkgver%.*}/gtk-doc-$pkgver.tar.xz"
+source="https://gitlab.gnome.org/GNOME/gtk-doc/-/archive/$pkgver/gtk-doc-$pkgver.tar.gz"
+
 # it does not seem to be possible to disable tests of pdf which requires dblatex or fop
 # disable checks for now
 options="!check"
-builddir="$srcdir/$pkgname-$pkgver"
 
 prepare() {
-	cd "$builddir"
+	default_prepare
 	autoreconf -vif
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -33,14 +32,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="91f0e0e51d9f77794c0ab57bad5c2da242252f029ab2d4252f8740ccf8b18fed49a7f010f654f5ba60ebed74f7b65a5ef1f762c8661eebfcacfe15dc3bc3c52c  gtk-doc-1.26.tar.xz
-a86438a9cbbf1bb60d2aea93f10a473f3fe7814cdbf0a454ff42bea88e79f21f9e748e063335aa6332878fa8f8a1c00ef288a44631b510471cc6bb806851b391  0001-tests-Label-parts-with-decimals-not-roman-numerals.patch"
+sha512sums="
+30fa5ad0e5049bed6ff39f79864ccda46f53a113dde951739bfe804a2440deb5737e7561977f0cc6efeda2e8104ab1de2c5f1c025080a44ea1aed69feff75556  gtk-doc-1.35.0.tar.gz
+"

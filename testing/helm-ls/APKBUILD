@@ -1,0 +1,46 @@
+# Contributor: Galen Abell <galen@galenabell.com>
+# Maintainer: Galen Abell <galen@galenabell.com>
+pkgname=helm-ls
+_testdata_sha=3b84d7dc269f76064e18ba4e21937cc78e77deda
+pkgver=0.5.3
+pkgrel=0
+pkgdesc="Language server for Helm"
+url="https://github.com/mrjosh/helm-ls"
+arch="all"
+license="MIT"
+makedepends="go"
+options="chmod-clean net"
+subpackages="$pkgname-doc"
+source="
+	$pkgname-$pkgver.tar.gz::https://github.com/mrjosh/helm-ls/archive/refs/tags/v$pkgver.tar.gz
+	charts-$_testdata_sha.tar.gz::https://github.com/qvalentin/charts/archive/$_testdata_sha.tar.gz
+	"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+prepare() {
+	default_prepare
+
+	rmdir testdata/charts
+	cp -r "$srcdir/charts-$_testdata_sha" testdata/charts
+}
+
+build() {
+	go build -ldflags="-buildid= -X main.Version=$pkgver"
+}
+
+check() {
+	go test ./...
+}
+
+package() {
+	install -Dm755 "$pkgname" "$pkgdir"/usr/bin/helm_ls
+	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+}
+
+sha512sums="
+127f22a72828ad99cdb5f3d087878ac3a2c5d6288e5b36d7b1af8520fa40fc82577dbcb8267aa0619230941024f0b297f0d815b8dab76fc095e4943b93b0cdd7  helm-ls-0.5.3.tar.gz
+91d27e694d9f166dcb623cd97fcf9a70e0bcb61f2ee03c50094a629c05a76ef45cb4b1eab174f0e3453f07e86ef01ef0da636ab505a1c5fb88256da3e4887845  charts-3b84d7dc269f76064e18ba4e21937cc78e77deda.tar.gz
+"

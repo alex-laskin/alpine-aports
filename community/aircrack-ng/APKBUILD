@@ -1,30 +1,27 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=aircrack-ng
-pkgver=1.2
-_pkgver=${pkgver/_/-}
-pkgrel=0
+pkgver=1.7
+pkgrel=3
 pkgdesc="Key cracker for the 802.11 WEP and WPA-PSK protocols"
 url="http://www.aircrack-ng.org"
-arch="all"
+arch="all !s390x" # tests fails on big-endian
 license="GPL-2.0-or-later"
-depends="ethtool wireless-tools iw sqlite grep pciutils"
-makedepends="autoconf automake libnl3-dev libpcap-dev libressl-dev libtool
+depends="ethtool wireless-tools iw sqlite grep"
+makedepends="autoconf automake libnl3-dev libpcap-dev openssl-dev>3 libtool
 	linux-headers pcre-dev python3-dev sqlite-dev zlib-dev"
 checkdepends="coreutils"
 subpackages="$pkgname-doc"
-source="http://download.aircrack-ng.org/$pkgname-$_pkgver.tar.gz
+source="$pkgname-$pkgver.tar.gz::https://github.com/aircrack-ng/aircrack-ng/archive/$pkgver.tar.gz
 	make-check-fix.patch"
-builddir="$srcdir"/$pkgname-$_pkgver
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 	autoreconf -fiv
 }
 
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -fcommon"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -34,14 +31,14 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="efc8cd17994fd74dcdd60e4ff26f81dc4f090a368668c2b1d62e204d2a9c001f2614a9d2ad0e4ae0ae38fb71e1957e0342f8216d757e38db105b1e467de82bd9  aircrack-ng-1.2.tar.gz
-aed00d62d211c4fcfdeaee72a76dc81b108ad4ec13025ebaad9628aa04a491f042d86efedadb6554e7099d0b3a0e960540eda353522944eee5056b8097df56d3  make-check-fix.patch"
+sha512sums="
+3e6433cba1d6b122701245e8904480de9957dad033c1642cc45b30339e9391ffa21b39b2cc712bcba79bc2c2e26f2964be8f28a27081dc4bb323792cb7df2478  aircrack-ng-1.7.tar.gz
+f57a8a78f164e06176600d8637e00350747aae21e91f261de9639255ea83594782c9d94474e901dac71c68e916a8951a22fc9ac2607eec65cb23954fe3656c07  make-check-fix.patch
+"

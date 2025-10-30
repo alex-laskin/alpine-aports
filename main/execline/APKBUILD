@@ -1,38 +1,35 @@
 # Maintainer: Laurent Bercot <ska-devel@skarnet.org>
-# Contributor: John Regan <john@jrjrtech.com>
 pkgname=execline
-pkgver=2.5.0.0
+pkgver=2.9.7.0
 pkgrel=0
 pkgdesc="A small scripting language, to be used in place of a shell in non-interactive scripts."
-url="http://skarnet.org/software/$pkgname/"
+url=https://skarnet.org/software/execline/
 arch="all"
 license="ISC"
 options="!check"
-makedepends="skalibs-dev"
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://skarnet.org/software/$pkgname/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+_skalibs_version=2.14.4
+makedepends="skalibs-dev>=$_skalibs_version"
+subpackages="$pkgname-static $pkgname-libs $pkgname-dev $pkgname-doc"
+source="https://skarnet.org/software/execline/execline-$pkgver.tar.gz"
+install="execline.post-install execline.post-upgrade execline.pre-deinstall"
 
 build() {
-	cd "$builddir"
 	./configure \
+		--prefix=/usr \
 		--enable-shared \
-		--enable-static \
 		--disable-allstatic \
-		--libdir=/usr/lib \
-		--with-dynlib=/lib
+		--enable-pkgconfig \
+		--with-pkgconfig \
+		--enable-multicall
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
+	mkdir -p "$pkgdir/usr/share/doc"
+	cp -a "$builddir/doc" "$pkgdir/usr/share/doc/$pkgname"
 }
 
-doc() {
-	default_doc
-	mkdir -p "$subpkgdir/usr/share/doc"
-	cp -a "$builddir/doc" "$subpkgdir/usr/share/doc/$pkgname"
-}
-
-sha512sums="ac0e42da202bf9b46caeecd344a2de43d8825b0857159614a937c0f711f084b55378a80738346306e202aafcce78f38fce0aa020d4a67ee104d901c679e1574b  execline-2.5.0.0.tar.gz"
+sha512sums="
+c46aa4954a560610074a5a4f8cecc1512bab05b40739c4dddc74881edb30468f248fc08ca1a461ec66279fa43fa25d130b339790995fb1eeb1612a13dc479ac1  execline-2.9.7.0.tar.gz
+"

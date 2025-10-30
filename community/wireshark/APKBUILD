@@ -3,23 +3,193 @@
 # Contributor: Jeremy Thomerson <jeremy@thomersonfamily.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=wireshark
-pkgver=2.4.7
+# check if these are stable first.
+pkgver=4.4.9
 pkgrel=0
-pkgdesc="A network protocol analyzer - GTK version"
-url="http://www.wireshark.org"
-arch="all"
+pkgdesc="Network protocol analyzer"
+url="https://www.wireshark.org/"
+arch="all !armhf" # blocked by qt5-qtdeclarative
 license="GPL-2.0-or-later"
-depends=""
-makedepends="bison flex perl-dev glib glib-dev libpcap-dev libcap-dev
-	gtk+3.0-dev c-ares-dev pcre-dev gnutls-dev libgcrypt-dev libressl-dev
-	libnl3-dev qt5-qtbase-dev qt5-qttools-dev lua5.2-dev bash portaudio-dev"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-gtk $pkgname-common tshark"
-source="http://www.wireshark.org/download/src/$pkgname-$pkgver.tar.xz
-	fix-udpdump.patch
-        "
-builddir="$srcdir"/$pkgname-$pkgver
+pkggroups="wireshark"
+makedepends="
+	asciidoctor
+	bison
+	c-ares-dev
+	cmake
+	doxygen
+	flex
+	glib
+	glib-dev
+	gnutls-dev
+	krb5-dev
+	libcap-dev
+	libcap-utils
+	libgcrypt-dev
+	libmaxminddb-dev
+	libnl3-dev
+	libpcap-dev
+	libsmi-dev
+	libssh-dev
+	libxml2-dev
+	lua5.4-dev
+	lz4-dev
+	nghttp2-dev
+	pcre2-dev
+	perl-dev
+	portaudio-dev
+	qt6-qt5compat-dev
+	qt6-qtbase-dev
+	qt6-qtmultimedia-dev
+	qt6-qtsvg-dev
+	qt6-qttools-dev
+	samurai
+	speexdsp-dev
+	zlib-dev
+	zstd-dev
+	"
+checkdepends="py3-pytest py3-pytest-xdist"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-common tshark"
+options="setcap"
+install="$pkgname-common.pre-install $pkgname-common.pre-upgrade $pkgname-common.post-install"
+source="https://www.wireshark.org/download/src/all-versions/wireshark-$pkgver.tar.xz"
 
 # secfixes:
+#   4.4.7-r0:
+#     - CVE-2025-5601
+#   4.2.5-r0:
+#     - CVE-2024-4853
+#     - CVE-2024-4854
+#     - CVE-2024-4855
+#   4.2.4-r0:
+#     - CVE-2024-2955
+#   4.0.12-r0:
+#     - CVE-2024-0208
+#     - CVE-2024-0209
+#   4.0.11-r0:
+#     - CVE-2023-6174
+#     - CVE-2023-6175
+#   4.0.10-r0:
+#     - CVE-2023-5371
+#   4.0.4-r0:
+#     - CVE-2023-1161
+#   3.6.8-r0:
+#     - CVE-2022-3190
+#   3.4.13-r0:
+#     - CVE-2022-0581
+#     - CVE-2022-0582
+#     - CVE-2022-0583
+#     - CVE-2022-0585
+#     - CVE-2022-0586
+#   3.4.11-r0:
+#     - CVE-2021-39920
+#     - CVE-2021-39921
+#     - CVE-2021-39922
+#     - CVE-2021-39924
+#     - CVE-2021-39925
+#     - CVE-2021-39926
+#     - CVE-2021-39928
+#     - CVE-2021-39929
+#     - CVE-2021-4181
+#     - CVE-2021-4182
+#     - CVE-2021-4184
+#     - CVE-2021-4185
+#     - CVE-2021-4186
+#   3.4.7-r0:
+#     - CVE-2021-22235
+#   3.4.6-r0:
+#     - CVE-2021-22222
+#   3.4.5-r0:
+#     - CVE-2021-22207
+#   3.4.4-r0:
+#     - CVE-2021-22191
+#   3.4.3-r0:
+#     - CVE-2021-22173
+#     - CVE-2021-22174
+#   3.4.2-r0:
+#     - CVE-2020-26422
+#   3.4.1-r0:
+#     - CVE-2020-26418
+#     - CVE-2020-26419
+#     - CVE-2020-26420
+#     - CVE-2020-26421
+#   3.4.0-r0:
+#     - CVE-2020-26575
+#     - CVE-2020-28030
+#   3.2.7-r0:
+#     - CVE-2020-25863
+#     - CVE-2020-25862
+#     - CVE-2020-25866
+#   3.2.6-r0:
+#     - CVE-2020-17498
+#   3.2.5-r0:
+#     - CVE-2020-15466
+#   3.2.4-r0:
+#     - CVE-2020-13164
+#   3.2.3-r0:
+#     - CVE-2020-11647
+#   3.2.2-r0:
+#     - CVE-2020-9428
+#     - CVE-2020-9430
+#     - CVE-2020-9431
+#   3.0.8-r0:
+#     - CVE-2020-7045
+#   3.0.7-r0:
+#     - CVE-2019-19553
+#   3.0.4-r0:
+#     - CVE-2019-16319
+#   3.0.3-r0:
+#     - CVE-2019-13619
+#   3.0.2-r0:
+#     - CVE-2019-12295
+#   3.0.1-r0:
+#     - CVE-2019-10897
+#     - CVE-2019-10898
+#     - CVE-2019-10900
+#     - CVE-2019-10902
+#   2.6.8-r0:
+#     - CVE-2019-10894
+#     - CVE-2019-10895
+#     - CVE-2019-10896
+#     - CVE-2019-10899
+#     - CVE-2019-10901
+#     - CVE-2019-10903
+#   2.6.7-r0:
+#     - CVE-2019-9208
+#     - CVE-2019-9209
+#     - CVE-2019-9214
+#   2.6.6-r0:
+#     - CVE-2019-5717
+#     - CVE-2019-5718
+#     - CVE-2019-5719
+#     - CVE-2019-5721
+#   2.6.5-r0:
+#     - CVE-2018-19622
+#     - CVE-2018-19623
+#     - CVE-2018-19624
+#     - CVE-2018-19625
+#     - CVE-2018-19626
+#     - CVE-2018-19627
+#     - CVE-2018-19628
+#   2.6.4-r0:
+#     - CVE-2018-12086
+#     - CVE-2018-18225
+#     - CVE-2018-18226
+#     - CVE-2018-18227
+#   2.6.3-r0:
+#     - CVE-2018-16056
+#     - CVE-2018-16057
+#     - CVE-2018-16058
+#   2.6.2-r0:
+#     - CVE-2018-14339
+#     - CVE-2018-14340
+#     - CVE-2018-14341
+#     - CVE-2018-14342
+#     - CVE-2018-14343
+#     - CVE-2018-14344
+#     - CVE-2018-14367
+#     - CVE-2018-14368
+#     - CVE-2018-14369
+#     - CVE-2018-14370
 #   2.4.7-r0:
 #     - CVE-2018-11356
 #     - CVE-2018-11357
@@ -69,14 +239,6 @@ builddir="$srcdir"/$pkgname-$pkgver
 #     - CVE-2017-17083
 #     - CVE-2017-17084
 #     - CVE-2017-17085
-#   2.4.2-r0:
-#     - CVE-2017-15191
-#     - CVE-2017-15192
-#     - CVE-2017-15193
-#   2.4.1-r0:
-#     - CVE-2017-13765
-#     - CVE-2017-13766
-#     - CVE-2017-13767
 #   2.2.10-r0:
 #     - CVE-2017-15191
 #     - CVE-2017-15192
@@ -131,62 +293,94 @@ builddir="$srcdir"/$pkgname-$pkgver
 #     - CVE-2016-6513
 
 build() {
-	cd "$builddir"
-	# configure script searches for uic and uic-qt4 but not uic-qt5
-	# we set path so it finds 'uic'
-	export PATH="$PATH:/usr/lib/qt5/bin"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--with-ssl \
-		--with-gnutls \
-		--with-qt=5 \
-		--with-gtk=3 \
-		--with-lua
-	make
+	cmake -B build -G Ninja \
+		-DBUILD_dftest="$(want_check && echo ON || echo OFF)" \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DENABLE_GNUTLS=ON \
+		-DENABLE_LTO=ON \
+		-DENABLE_LUA=ON \
+		-DENABLE_DEBUG=OFF \
+		-DENABLE_SMI=ON \
+		-DUSE_qt6=ON
+
+	cmake --build build
+
+	if want_check; then
+		cmake --build build --target test-programs
+	fi
 }
 
 check() {
-	cd "$builddir"
-	make check
+	local _exclude="
+		not test_tls_rsa_pq
+		and not test_tls12_renegotiation
+		and not test_tls_over_tls
+		and not test_tls_rsa_privkeys_uat
+		and not test_dtls_udt
+		and not test_tls_rsa_with_password
+		and not test_tls_rsa
+		and not test_dtls_rsa
+		and not test_sdjournal
+		"
+	case "$CARCH" in
+		s390x) _exclude="$_exclude
+			and not test_80211_wpa2_ft_psk_no_roam
+			and not test_80211_wpa2_ft_psk_roam
+			and not test_80211_wpa2_ft_eap
+			and not test_sharkd_req_download_tls_secrets
+			";;
+	esac
+
+	cd build
+	# shellcheck disable=SC2116
+	# s390x: error collecting suite_io.py
+	case "$CARCH" in
+		s390x) python3 -m pytest -k "$(echo $_exclude)" \
+			--ignore ../test/suite_io.py;;
+		*) python3 -m pytest -k "$(echo $_exclude)";;
+	esac
 }
 
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
+	DESTDIR="$pkgdir" cmake --install build --component Development
+	# Allow users in the wireshark group to capture packages
+	# See: https://wiki.wireshark.org/CaptureSetup/CapturePrivileges#Limiting_capture_permission_to_only_one_group
+	chmod 0750 "$pkgdir"/usr/bin/dumpcap
+	chown root:wireshark "$pkgdir"/usr/bin/dumpcap
+	setcap cap_net_raw,cap_net_admin+eip "$pkgdir"/usr/bin/dumpcap
+
 }
 
 common() {
+	pkgdesc="Network protoccol analyzer (Common files)"
+
+	amove usr/share/wireshark
+	amove usr/lib*/*
+
+	# Move all bins except wireshark
 	local i
-	pkgdesc="network protoccol analyzer - common files"
-	mkdir -p "$subpkgdir"/usr/lib "$subpkgdir"/usr/share \
-		"$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/share/wireshark "$subpkgdir"/usr/share/
-	mv "$pkgdir"/usr/lib/* "$subpkgdir"/usr/lib/
-	# move all bins except wireshark
+	mkdir -p "$subpkgdir"/usr/bin
 	for i in "$pkgdir"/usr/bin/*; do
 		case "$i" in
-			*/tshark|*/wireshark|*-gtk) continue;;
+		*/tshark|*/wireshark)
+			continue
+			;;
+		*)
+			mv "$i" "$subpkgdir"/usr/bin/
+			;;
 		esac
-		mv "$i" "$subpkgdir"/usr/bin/
 	done
 }
 
 tshark() {
-	pkgdesc="network protoccol analyzer - console version"
-	install -d "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/tshark "$subpkgdir"/usr/bin/tshark
+	pkgdesc="Network protocol analyzer (Console version)"
+
+	amove usr/bin/tshark
 }
 
-gtk() {
-	pkgdesc="wireshark - GTK GUI"
-	install -d "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/wireshark-gtk "$subpkgdir"/usr/bin/
-}
-
-sha512sums="bb6a75de86a578947b44c10e7b5f9348059856356872cc7bbb76f5edef797e29137c3a4f2528595eced4fecf7fccab8d4bbbc167da9c65c4ae31131d5a2fb5a4  wireshark-2.4.7.tar.xz
-951677dd125b1e36b351cc87a98e8b8d0391d184c7695594dd4270334d86ada1dff5f14cd960da9c5d5d26fc801c42f0219b2db6269f3c526c841c7940d2f369  fix-udpdump.patch"
+sha512sums="
+a4f13bc0c8b1c08dfed8fe8e88997e5378c0ad1f9eeb972ea07cd85e7c7140b17f63ec9efce286b636abea7b99b9f54a640852a2ec4a36bfab96c6cf08e4772d  wireshark-4.4.9.tar.xz
+"

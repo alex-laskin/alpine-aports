@@ -1,50 +1,54 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Contributor: Andrew Hills <ahills@ednos.net>
-# Contributor: Jean-Louis Fuchs <ganwell@fangorn.ch>
-# Maintainer: Jean-Louis Fuchs <ganwell@fangorn.ch>
+# Contributor: Jean-Louis Fuchs <safe.pen2857@rhizoome.ch>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=girara
-pkgver=0.3.0
-pkgrel=0
-pkgdesc="girara - gtk user interface that focuses on simplicity and minimalism"
+pkgver=0.4.5
+pkgrel=4
+pkgdesc="GTK user interface that focuses on simplicity and minimalism"
 url="https://pwmt.org/projects/girara/"
 arch="all"
-license="zlib"
-# Remove coreutils from checkdepends once this is fixed:
-# https://bugs.busybox.net/show_bug.cgi?id=10526
-checkdepends="dbus coreutils"
-makedepends="gtk+3.0-dev libnotify-dev json-c-dev intltool doxygen check-dev
-	xvfb ncurses meson ninja"
-subpackages="$pkgname-doc $pkgname-dev $pkgname-lang"
-source="https://pwmt.org/projects/girara/download/girara-$pkgver.tar.xz
-	test.sh"
-
-builddir="$srcdir"/$pkgname-$pkgver
+license="Zlib"
+makedepends="
+	check-dev
+	doxygen
+	gtk+3.0-dev
+	json-glib-dev
+	libnotify-dev
+	muon
+	ncurses
+	"
+checkdepends="xvfb-run"
+subpackages="
+	$pkgname-doc
+	$pkgname-dev
+	$pkgname-lang
+	"
+source="https://pwmt.org/projects/girara/download/girara-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	meson build --prefix=/usr
+	abuild-muon \
+		-Ddefault_library=shared \
+		-Ddocs="$(subpackage_types_has doc && echo enabled || echo disabled)" \
+		-Djson=enabled \
+		-Dtests="$(want_check && echo enabled || echo disabled)" \
+		build .
 	ninja -C build
 }
 
-check () {
-	if [ "$CARCH" != "ppc64le" ]; then
-		cd "$builddir"
-		"$srcdir/test.sh"
-	fi
+check() {
+	xvfb-run -a muon -C build test -j "${JOBS:-0}" -R -d dots
 }
 
 package() {
-	cd "$builddir"
-	DESTDIR="$pkgdir" ninja -C build install
+	DESTDIR="$pkgdir" muon -C build install
+
+	local docdir="$pkgdir"/usr/share/doc/$pkgname/
+	mkdir -p "$docdir"
+	cp -r build/doc/html/* "$docdir"
 }
 
-doc() {
-	pkgdesc="girara - gtk user interface that focuses on simplicity and minimalism (documentation)"
-	local _docdir="$subpkgdir"/usr/share/doc/$pkgname/
-	mkdir -p "$_docdir"
-	cp -r "$builddir"/build/doc/html/* "$_docdir"
-}
-
-
-sha512sums="3994cd2707d549f9dd5f05f8e5f6e713b517c84fb40b6333d170bafdc9c9807dc5ef80913f557f549bd08a8679a8e0ad6243872a3231c5164d6b30a7441d94c2  girara-0.3.0.tar.xz
-2190d324753810c8dc5b109274dcf4f644e51edcda876c225ac76369dd569dda0b8db445b01dac1ac2b06178534d18e1074ca37d1a69622bdc58fd77350b4ddd  test.sh"
+sha512sums="
+86cdb87c919e871746e9b1a118867a8af39ac60f42b084c599159aa1c5f59f0d9eb493d22a79d2d4561497c14fc6e5a531aef805f4785050990eaa91b5fd5521  girara-0.4.5.tar.xz
+"

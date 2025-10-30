@@ -1,28 +1,31 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=bitcoin
-pkgver=0.16.0
-_ver=${pkgver/_/}
-pkgrel=2
-pkgdesc="decentralized P2P electronic cash system"
-url="http://www.bitcoin.org/"
-arch="all !armhf"
+pkgver=27.0
+pkgrel=4
+pkgdesc="Decentralized P2P electronic cash system"
+url="https://www.bitcoincore.org/"
+# x86: segfault in check
+arch="all !x86"
 license="MIT"
-makedepends="autoconf automake libtool boost-dev libressl-dev db-dev miniupnpc-dev
-	qt5-qtbase-dev qt5-qttools-dev protobuf-dev libqrencode-dev libevent-dev chrpath"
+makedepends="autoconf automake libtool boost-dev miniupnpc-dev
+	qt5-qtbase-dev qt5-qttools-dev protobuf-dev libqrencode-dev libevent-dev chrpath zeromq-dev db-dev"
 install="$pkgname.post-install $pkgname.post-upgrade $pkgname.pre-install"
 subpackages="$pkgname-dev $pkgname-qt $pkgname-cli $pkgname-tx $pkgname-tests $pkgname-bench
-	$pkgname-doc"
-source="$pkgname-$_ver.tar.gz::https://github.com/bitcoin/bitcoin/archive/v${_ver}.tar.gz
+	$pkgname-doc $pkgname-openrc"
+source="https://bitcoincore.org/bin/bitcoin-core-$pkgver/bitcoin-$pkgver.tar.gz
 	ssize_t.patch
+	use-c-locale.patch
+	miniupnpc.patch
 	$pkgname.initd
 	$pkgname.conf
 	"
-builddir="$srcdir/bitcoin-$_ver"
+
+prepare() {
+	default_prepare
+	./autogen.sh
+}
 
 build() {
-	cd "$builddir"
-	./autogen.sh
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -33,12 +36,16 @@ build() {
 		--with-utils \
 		--disable-ccache \
 		--disable-static \
-		--enable-hardening
+		--enable-hardening \
+		--enable-wallet
 	make
 }
 
+check() {
+	make check
+}
+
 package() {
-	cd "$builddir"
 	make install DESTDIR="$pkgdir"
 	install -m755 -D "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
 	install -m600 -D "$srcdir"/$pkgname.conf "$pkgdir"/etc/$pkgname.conf
@@ -83,12 +90,11 @@ dev() {
 	mv "$pkgdir"/usr/include "$subpkgdir"/usr/
 }
 
-check() {
-	cd "$builddir"
-	make check
-}
-
-sha512sums="a72461029550bd1da5c933e888a313ccbfc855537eb91a555b412a938f88e578f840b5a8bb2c7ec0f9cc970ddfc177189e1d0ef3e81682e69aa8859077a99b8d  bitcoin-0.16.0.tar.gz
-98aa5ad81bdb4ae961b791bc978c39117cdf2d83c2181f92bebbb0db107d9b6e86eda265fb3f93ff8a5ca8a7754d7148818b98095d57201dff9363d60b97e7dd  ssize_t.patch
-71e5f3b5079a22b6ddecfad89363fc642d5ea7da18f1203057f626d214734467f4b933b839c269401be7af2c3dcc01afcb3b98198b7d580c56d8740b34451558  bitcoin.initd
-a31210d8db76c5a9b614a6de756c1678c0344898565ac3e5d6a34ac1bed66aec4964f1dc874294bc978f53b0e961df921655f7309df19b66c90aa6bd40379a09  bitcoin.conf"
+sha512sums="
+47dc917f315b397d850d98a0a2440141b11d59ed7267ec283b7c4fb475ba223f11482d2f5eaca02ebbfd3f09fa1721902f3f97c563a642d0359c3265784d15f6  bitcoin-27.0.tar.gz
+b150ed46dc8ae230acd1ac1930936670f4195bf1bdd3fefaf743919b99a2de3a8ec5d0012df3b1b1280f3f31abf961ab02de461742799bffbeda7bfe5e0adb14  ssize_t.patch
+7868c3cd34ce7c7340d68e8d2bc357f24a8ba82e968a37be949d4edf4f63edf32feff644ad26bf178eaa1eee28b9d43bd2abaf71ff6a9bdea91b57b5e4c80578  use-c-locale.patch
+a34a77a65c4612e26b65b79cdfe5c78204d553ad552e1e770ee484a1d7d13e32aafb070c5aa621dafc276b57da80639544202533b78da782324104a6e8b641a2  miniupnpc.patch
+c88ca4f0c8a3179dbac274db1719983352caa5074b236e59d8fe31ab45ffa99bd90c1a566c4459261a9dcdcc990b826f3466c77aa7a32cf9fb15529a510ac7fd  bitcoin.initd
+a65a81b8c58639f6aaa41b94425f1d5e31ebc25f682a51e0a80865caf96eaa0642ccba485bb9182743d3aabb624e5b4d0dd804172263d82e93bf32554913e2f3  bitcoin.conf
+"

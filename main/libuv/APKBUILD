@@ -1,28 +1,32 @@
 # Contributor: Jose-Luis Rivas <ghostbar@riseup.net>
-# Conttributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
+# Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libuv
-pkgver=1.20.2
+pkgver=1.51.0
 pkgrel=0
 pkgdesc="Cross-platform asychronous I/O"
-url="http://libuv.org"
+url="https://libuv.org/"
 arch="all"
-license="MIT BSD ISC"
-makedepends="automake autoconf libtool linux-headers"
-subpackages="$pkgname-dev $pkgname-dbg"
-source="https://dist.libuv.org/dist/v$pkgver/$pkgname-v$pkgver.tar.gz
-	disable-setuid-test.patch
-	"
+license="MIT"
+makedepends_build="automake autoconf libtool"
+makedepends_host="linux-headers"
+subpackages="$pkgname-dbg $pkgname-static $pkgname-dev"
+source="https://dist.libuv.org/dist/v$pkgver/libuv-v$pkgver.tar.gz"
 builddir="$srcdir/$pkgname-v$pkgver"
+
+# secfixes:
+#   1.48.0-r0:
+#     - CVE-2024-24806
+#   1.39.0-r0:
+#     - CVE-2020-8252
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 	sh autogen.sh
 }
 
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -O2" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -30,20 +34,19 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var
-	make CFLAGS="$CFLAGS -D__USE_MISC" BUILDTYPE=Release
+	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	install -Dm644 LICENSE \
 		"$pkgdir"/usr/share/licenses/$pkgname/LICENSE
 }
 
-sha512sums="e39ba5d2fab83d735a1b3bb3191e1ce970c78d3d8745b9d0aa0d2c32bd82c84ff0899cb5c06a4a8b2734d010a59653807374e38a364835d12d3c1d208c33b754  libuv-v1.20.2.tar.gz
-081b98efa33264d326d998f32600635efd5723de1d9836b99039c60168580c7f56a7ea9fdd138f41bb1aede11da70079cce4aa69ea5b954b7f9e4dcad53ba16a  disable-setuid-test.patch"
+sha512sums="
+99e5c6529fb97019d20d5ce8638be504c35236e7102a7a6b7a2242205928d152d6b535bb6f45961a78506d408eebd0e3300b090969a64fa87dfdf6c8f4291a12  libuv-v1.51.0.tar.gz
+"

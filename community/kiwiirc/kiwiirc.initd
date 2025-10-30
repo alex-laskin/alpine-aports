@@ -8,12 +8,16 @@ command="/usr/bin/kiwi"
 pidfile="/var/run/kiwiirc/kiwiirc.pid"
 
 depend() {
-    use net
+	use net
 	after firewall
 }
 
+start_pre() {
+	checkpath -d -m 0755 -o kiwiirc:kiwiirc -q /run/kiwiirc
+}
+
 start() {
-	if ! [ -f /var/lib/kiwiirc/index.html ]; then
+	if ! [ -f /usr/share/webapps/kiwiirc/index.html ]; then
 		$command build
 	fi
 	$command start

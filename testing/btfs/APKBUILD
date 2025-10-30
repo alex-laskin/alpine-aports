@@ -1,34 +1,38 @@
 # Contributor: dai9ah <dai9ah@protonmail.com>
 # Maintainer: dai9ah <dai9ah@protonmail.com>
 pkgname=btfs
-pkgver=2.18
-pkgrel=1
+pkgver=2.24
+pkgrel=12
 pkgdesc="Bittorrent filesystem based on FUSE"
+options="!check" # No testsuite
 url="https://github.com/johang/btfs"
-arch="all"
+arch="all !armhf" # blocked by libtorrent-rasterbar
 license="GPL-3.0-or-later"
 depends="python3"
-makedepends="autoconf automake curl-dev fuse-dev libtorrent-rasterbar-dev"
+makedepends="autoconf automake curl-dev fuse-dev libtorrent-rasterbar-dev boost-dev"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/johang/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="btfs-$pkgver.tar.gz::https://github.com/johang/btfs/archive/v$pkgver.tar.gz"
 
-build() {
-	cd "$builddir"
+prepare() {
+	default_prepare
 	autoreconf -vfi
-	./configure \
-		--prefix=/usr \
-		--mandir=/usr/share/man
-	make -C src
 }
 
-check() {
-	cd "$builddir/src"
-	./btfs --help > /dev/null
+build() {
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--localstatedir=/var
+	make
 }
 
 package() {
-	make DESTDIR="$pkgdir" -C "$builddir" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="d29f3816527c1eed105b45da559d025d61c8652144358227ed0ca3e516582cd8186fdcdf730b19fde6e7e9db1477690237444d2efe7c740f81f91032f1a12f86  btfs-2.18.tar.gz"
+sha512sums="
+33339d9eefe6836c8c96c4ea0fb6ee99150df5500f4d1dce107c20df72e0d2959152fca0901676cec1eebf1de39a69dc46ea96442aecd234c9fb4e7618337b0c  btfs-2.24.tar.gz
+"

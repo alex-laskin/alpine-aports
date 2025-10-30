@@ -1,31 +1,51 @@
 # Contributor: Bjoern Schilberg <bjoern@intevation.de>
-# Maintainer: Bjoern Schilberg <bjoern@intevation.de>
+# Contributor: Holger Jaekel <holger.jaekel@gmx.de>
+maintainer="Holger Jaekel <holger.jaekel@gmx.de>"
 pkgname=mapserver
-pkgver=7.0.7
+pkgver=8.4.1
 pkgrel=0
-pkgdesc="MapServer is CGI-based platform for publishing spatial data and interactive mapping applications to the web."
-url="http://mapserver.org/"
-arch="x86_64"
+pkgdesc="CGI-based platform for publishing spatial data and interactive mapping applications to the web"
+url="https://mapserver.org/"
+arch="all"
 license="MIT"
-depends="geos gdal proj4 cairo curl fcgi freetype libjpeg libpng libxml2 libpq giflib"
-depends_dev="cmake postgresql-dev geos-dev gdal-dev jpeg-dev giflib-dev libxml2-dev proj4-dev fcgi-dev curl-dev freetype-dev cairo-dev"
-makedepends="$depends_dev"
-install=""
-subpackages="$pkgname-dev"
-source="http://download.osgeo.org/mapserver/$pkgname-$pkgver.tar.gz"
-
-builddir="$srcdir/$pkgname-$pkgver"
+depends_dev="
+	cairo-dev
+	curl-dev
+	exempi-dev
+	fcgi-dev
+	freetype-dev
+	fribidi-dev
+	gdal-dev
+	geos-dev
+	giflib-dev
+	harfbuzz-dev
+	jpeg-dev
+	libpq-dev
+	librsvg-dev
+	libxml2-dev
+	pixman-dev
+	proj-dev
+	protobuf-c-dev
+	"
+makedepends="
+	$depends_dev
+	cmake
+	samurai
+	"
+subpackages="
+	$pkgname-dev
+	"
+source="
+	https://download.osgeo.org/mapserver/mapserver-$pkgver.tar.gz
+	10-musl.patch
+	"
 
 build() {
-	cd "$builddir"
-	mkdir build; cd build
-	cmake .. \
+	CXXFLAGS="$CXXFLAGS -D_GNU_SOURCE" \
+	cmake -B build -G Ninja \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DWITH_GDAL=ON \
+		-DCMAKE_BUILD_TYPE=None \
 		-DWITH_GEOS=ON \
-		-DWITH_OGR=ON \
-		-DWITH_PROJ=ON \
 		-DWITH_POSTGIS=ON \
 		-DWITH_KML=ON \
 		-DWITH_WCS=ON \
@@ -37,19 +57,25 @@ build() {
 		-DWITH_THREAD_SAFETY=OFF \
 		-DWITH_FCGI=ON \
 		-DWITH_CAIRO=ON \
+		-DWITH_RSVG=ON \
 		-DWITH_CURL=ON \
 		-DWITH_MYSQL=OFF \
-		-DWITH_FRIBIDI=OFF \
-		-DWITH_HARFBUZZ=OFF \
-		-DWITH_EXEMPI=OFF
-	make -j1 || return 1
+		-DWITH_FRIBIDI=ON \
+		-DWITH_HARFBUZZ=ON \
+		-DWITH_EXEMPI=ON \
+		-DWITH_PROTOBUFC=ON \
+		-DWITH_PIXMAN=ON
+	cmake --build build
 }
 
 package() {
-	cd "$builddir"/build
-	make DESTDIR="$pkgdir" install || return 1
+	DESTDIR="$pkgdir" cmake --install build
+	# shellcheck disable=2115
 	rm -rf "$pkgdir"/usr/share/
 	chmod -x "$pkgdir"/usr/include/mapserver/*.h
 }
 
-sha512sums="94225dbe64edf6623bb5e92649d505809f70f86c24ca06675f6277ac4a161c40c369fd1973db649e6c864fa5e2e4a8a93cbd36d1524297a0e47b96ab59c0941c  mapserver-7.0.7.tar.gz"
+sha512sums="
+6e7d7c7f85dff726ef786dd507f3e5534422b67c0b54a7464384a6ad3a65baf955d846699c6701ddf1025d932bacff50633e82e80d42b366180e08fedddf1f55  mapserver-8.4.1.tar.gz
+c63f5f061e3574b077ba9870d6997ca4c4c8896d87f2b371c23afa66d40df3589da301318d316d285a46886509f39e34a629140138694ba8e64aa28a367aa61f  10-musl.patch
+"

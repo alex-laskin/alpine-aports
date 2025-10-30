@@ -1,41 +1,46 @@
 # Contributor: Stuart Cardall <developer@it-offshore.co.uk>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=whois
-pkgver=5.3.1
+pkgver=5.6.4
 pkgrel=0
 pkgdesc="Intelligent WHOIS client by Marco d'Itri"
 url="https://github.com/rfc1036/whois"
 arch="all"
-license="GPL-2.0"
-makedepends="perl libidn-dev gettext-dev"
+license="GPL-2.0-or-later"
+makedepends="perl libidn2-dev gettext-dev"
 options="!check"
-subpackages="$pkgname-doc mkpasswd:_mkpasswd mkpasswd-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/rfc1036/$pkgname/archive/v$pkgver.tar.gz
+subpackages="$pkgname-doc mkpasswd:_mkpasswd"
+source="$pkgname-$pkgver.tar.gz::https://github.com/rfc1036/whois/archive/v$pkgver.tar.gz
 	undefined-libintl.patch
 	enable-sha256-sha512-mkpasswd.patch
 	"
-builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
-	cd "$builddir"
+	export CFLAGS="$CFLAGS -DHAVE_GETOPT_LONG -DHAVE_GETADDRINFO -DHAVE_SHA_CRYPT"
 	make CONFIG_FILE="/etc/whois.conf" HAVE_ICONV=1
+}
+
+package() {
+	make BASEDIR="$pkgdir" install-whois
+	install -D -m644 whois.conf "$pkgdir/etc/whois.conf"
+
+	# Installed files are moved to a subpackage in _mkpasswd()
+	make BASEDIR="$pkgdir" install-mkpasswd
+
+	# Fix conflict with expect-doc
+	rm -f "$pkgdir"/usr/share/man/man1/mkpasswd.1
 }
 
 _mkpasswd() {
 	depends="!expect"
 	pkgdesc="mkpasswd with configurable number of rounds"
-	cd "$builddir"
-	make BASEDIR="$subpkgdir" install-mkpasswd
-	mkdir -p  "$subpkgdir"-doc/usr
-	mv "$subpkgdir"/usr/share "$subpkgdir"-doc/usr
+
+	mkdir -p "$subpkgdir"/usr/bin
+	mv "$pkgdir"/usr/bin/mkpasswd "$subpkgdir"/usr/bin
 }
 
-package() {
-	cd "$builddir"
-	make BASEDIR="$pkgdir" install-whois
-	install -D -m644 whois.conf "$pkgdir/etc/whois.conf"
-}
-
-sha512sums="b5ce3753f045d8a3530b78eadf6d0bc22a6e284540d9cb7867802df563144b65a4607544cd214fef14f40126a1588cb03a26bb970e7340b8e8d9b45ebd7ac7c8  whois-5.3.1.tar.gz
-efa32ec848e3d3e61481567815e8c02757eab32712eb5a431adb13b59fd359f735eb684fbdf8a5b8334410d17052dc93d65bdda27a328617e2b6772b23717487  undefined-libintl.patch
-ef455fd21403995524a3de6039db41261b6549181f3dd234c6a28a10a65d09a6e86c71b6ddb752aa15f0e4ff2232887ff65bd72ed9a977b8da2ed40ea11519f1  enable-sha256-sha512-mkpasswd.patch"
+sha512sums="
+9b4730c8d59ae9c8d66102aa6905a1b4906a9abba677ba3896c7c1fd3436d06761adc20684d56780901f4b5558fa3587ac98d1d2f930c3771ee7f6a247f7d378  whois-5.6.4.tar.gz
+7b066a41db4bb1b3753f9f390de05df6bbde27a0436c53ea2de47d87dbaf1182ce3dfc41459b49b3dc079b37ab1a21ea19118a283bd6b062a48ab3f6e2bfbbed  undefined-libintl.patch
+71aaa2cb719fb76514263758b4e731bb6d9213b3174b1e5f1b17a531ececfb9d14acd5e8a2dfc2d776bb15b5cec2b67d9a1bae1c0009a91e8a2149d5b4f5012b  enable-sha256-sha512-mkpasswd.patch
+"

@@ -1,57 +1,176 @@
-# Maintainer: Kaarle Ritvanen <kaarle.ritvanen@datakunkku.fi>
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
+# Maintainer: Kaarle Ritvanen <kunkku@alpinelinux.org>
 pkgname=apache2
 _pkgreal=httpd
-pkgver=2.4.33
-pkgrel=1
+pkgver=2.4.65
+pkgrel=0
 pkgdesc="A high performance Unix-based HTTP server"
-url="http://httpd.apache.org/"
+url="https://httpd.apache.org/"
 arch="all"
 license="Apache-2.0"
-depends=""
-install="$pkgname.pre-install $pkgname.pre-upgrade"
+install="$pkgname.pre-install $pkgname.pre-upgrade apache2-ssl.post-install"
 pkgusers="apache"
 pkggroups="apache"
-makedepends="apr-dev apr-util-dev autoconf automake libxml2-dev lua-dev
-             nghttp2-dev libressl-dev pcre-dev sed zlib-dev"
+makedepends="
+	apr-dev
+	apr-util-dev
+	autoconf
+	automake
+	brotli-dev
+	libxml2-dev~2.13
+	lua-dev
+	nghttp2-dev
+	openssl-dev
+	pcre2-dev
+	sed
+	zlib-dev
+	"
 subpackages="$pkgname-ctl
-             $pkgname-dev
-             $pkgname-doc
-             $pkgname-error:_error:noarch
-             $pkgname-http2
-             $pkgname-icons::noarch
-             $pkgname-ldap
-             $pkgname-lua:_lua
-             $pkgname-proxy-html:proxy_html
-             $pkgname-proxy
-             $pkgname-ssl
-             $pkgname-utils
-             $pkgname-webdav"
-source="http://archive.apache.org/dist/$_pkgreal/$_pkgreal-$pkgver.tar.bz2
+	$pkgname-error:_error:noarch
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-openrc
+	$pkgname-brotli
+	$pkgname-http2
+	$pkgname-icons::noarch
+	$pkgname-ldap
+	$pkgname-lua:_lua
+	$pkgname-proxy-html:proxy_html
+	$pkgname-proxy
+	$pkgname-ssl
+	$pkgname-utils
+	$pkgname-webdav"
+source="https://archive.apache.org/dist/$_pkgreal/$_pkgreal-$pkgver.tar.bz2
 	apache2.confd
 	apache2.logrotate
 	apache2.initd
 	alpine.layout
-	libressl-2.7.patch
-	conf/0001-httpd.conf-ServerRoot.patch
-	conf/0002-httpd.conf-ServerTokens.patch
-	conf/0003-httpd.conf-ServerSignature.patch
-	conf/0004-httpd.conf-User-Group.patch
-	conf/0005-httpd.conf-ErrorLog-CustomLog-TransferLog.patch
-	conf/0006-httpd-dav.conf-DavLockDB.patch
-	conf/0007-httpd-ssl.conf-SSLSessionCache.patch
-	conf/0008-httpd-ssl.conf-SSLRandomSeed.patch
-	conf/0009-httpd-ssl.conf-SSL-File.patch
-	conf/0010-httpd-ssl.conf-SSL-CipherSuite.patch
-	conf/0011-httpd.conf-IncludeOptional.patch
-	conf/0012-httpd.conf-MIMEMagicFile.patch
-	conf/0013-httpd-.conf-IfModule.patch
-	conf/0014-httpd-.conf-LoadModule.patch
+	0001-httpd.conf-ServerRoot.patch
+	0002-httpd.conf-ServerTokens.patch
+	0003-httpd.conf-ServerSignature.patch
+	0004-httpd.conf-User-Group.patch
+	0005-httpd.conf-ErrorLog-CustomLog-TransferLog.patch
+	0006-httpd-dav.conf-DavLockDB.patch
+	0007-httpd-ssl.conf-SSLSessionCache.patch
+	0008-httpd-ssl.conf-SSLRandomSeed.patch
+	0009-httpd-ssl.conf-SSL-File.patch
+	0010-httpd-ssl.conf-SSL-CipherSuite.patch
+	0011-httpd.conf-IncludeOptional.patch
+	0012-httpd.conf-MIMEMagicFile.patch
+	0013-httpd-.conf-IfModule.patch
+	0014-httpd-.conf-LoadModule.patch
+	fix-unknown-xmlChar-error.patch
 	"
-options="suid"
+options="suid !check"
 builddir="$srcdir"/$_pkgreal-$pkgver
 
 # secfixes:
+#   2.4.65-r0:
+#     - CVE-2025-54090
+#   2.4.64-r0:
+#     - CVE-2025-53020
+#     - CVE-2025-49812
+#     - CVE-2025-49630
+#     - CVE-2025-23048
+#     - CVE-2024-47252
+#     - CVE-2024-43394
+#     - CVE-2024-43204
+#     - CVE-2024-42516
+#   2.4.62-r0:
+#     - CVE-2024-40725
+#     - CVE-2024-40898
+#   2.4.61-r0:
+#     - CVE-2024-39884
+#   2.4.60-r0:
+#     - CVE-2024-36387
+#     - CVE-2024-38472
+#     - CVE-2024-38473
+#     - CVE-2024-38474
+#     - CVE-2024-38475
+#     - CVE-2024-38476
+#     - CVE-2024-38477
+#     - CVE-2024-39573
+#   2.4.59-r0:
+#     - CVE-2023-38709
+#     - CVE-2024-24795
+#     - CVE-2024-27316
+#   2.4.58-r0:
+#     - CVE-2023-45802
+#     - CVE-2023-43622
+#     - CVE-2023-31122
+#   2.4.56-r0:
+#     - CVE-2023-25690
+#     - CVE-2023-27522
+#   2.4.55-r0:
+#     - CVE-2022-36760
+#     - CVE-2022-37436
+#   2.4.54-r0:
+#     - CVE-2022-26377
+#     - CVE-2022-28330
+#     - CVE-2022-28614
+#     - CVE-2022-28615
+#     - CVE-2022-29404
+#     - CVE-2022-30522
+#     - CVE-2022-30556
+#     - CVE-2022-31813
+#   2.4.53-r0:
+#     - CVE-2022-22719
+#     - CVE-2022-22720
+#     - CVE-2022-22721
+#     - CVE-2022-23943
+#   2.4.52-r0:
+#     - CVE-2021-44224
+#     - CVE-2021-44790
+#   2.4.51-r0:
+#     - CVE-2021-42013
+#   2.4.50-r0:
+#     - CVE-2021-41524
+#     - CVE-2021-41773
+#   2.4.49-r0:
+#     - CVE-2021-40438
+#     - CVE-2021-39275
+#     - CVE-2021-36160
+#     - CVE-2021-34798
+#     - CVE-2021-33193
+#   2.4.48-r0:
+#     - CVE-2019-17657
+#     - CVE-2020-13938
+#     - CVE-2020-13950
+#     - CVE-2020-35452
+#     - CVE-2021-26690
+#     - CVE-2021-26691
+#     - CVE-2021-30641
+#     - CVE-2021-31618
+#   2.4.46-r0:
+#     - CVE-2020-9490
+#     - CVE-2020-11984
+#     - CVE-2020-11993
+#   2.4.43-r0:
+#     - CVE-2020-1927
+#     - CVE-2020-1934
+#   2.4.41-r0:
+#     - CVE-2019-9517
+#     - CVE-2019-10081
+#     - CVE-2019-10082
+#     - CVE-2019-10092
+#     - CVE-2019-10097
+#     - CVE-2019-10098
+#   2.4.39-r0:
+#     - CVE-2019-0196
+#     - CVE-2019-0197
+#     - CVE-2019-0211
+#     - CVE-2019-0215
+#     - CVE-2019-0217
+#     - CVE-2019-0220
+#   2.4.38-r0:
+#     - CVE-2018-17189
+#     - CVE-2018-17199
+#     - CVE-2019-0190
+#   2.4.35-r0:
+#     - CVE-2018-11763
+#   2.4.34-r0:
+#     - CVE-2018-1333
+#     - CVE-2018-8011
 #   2.4.33-r0:
 #     - CVE-2017-15710
 #     - CVE-2017-15715
@@ -70,19 +189,12 @@ builddir="$srcdir"/$_pkgreal-$pkgver
 #     - CVE-2017-7679
 
 prepare() {
-	cd "$builddir"
-
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$(basename $i) || return 1;;
-		esac
-	done
+	default_prepare
 
 	cat "$srcdir/alpine.layout" >> config.layout
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
 		--enable-layout=Alpine \
@@ -122,23 +234,20 @@ build() {
 		--enable-exception-hook \
 		--enable-dav \
 		--enable-dav-fs \
-		--enable-dav-lock \
-		|| return 1
-	make || return 1
+		--enable-dav-lock
+	make
 }
 
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir" install || return 1
+	make -j1 DESTDIR="$pkgdir" install
 
 	# config
 	rm -r "$pkgdir"/etc/apache2/extra/httpd-vhosts.conf \
-		"$pkgdir"/etc/apache2/original || return 1
-	mv "$pkgdir"/etc/apache2/extra "$pkgdir"/etc/apache2/conf.d || return 1
+		"$pkgdir"/etc/apache2/original
+	mv "$pkgdir"/etc/apache2/extra "$pkgdir"/etc/apache2/conf.d
 	for file in "$pkgdir"/etc/apache2/conf.d/httpd-*; do
 		mv "$file" \
-			"$(dirname $file)/${file#$pkgdir/etc/apache2/conf.d/httpd-}" || \
-			return 1
+			"$(dirname $file)/${file#"$pkgdir"/etc/apache2/conf.d/httpd-}"
 	done
 	sed -Ei \
 		's:^(\t?#?LoadModule .+ )lib/apache2/:\1modules/:;ta;b;:a;s/^#?LoadModule (dav.*|lbmethod_.+|.*ldap|lua|proxy.*|ssl|xml2enc)_module //;tb;b;:b;d' \
@@ -146,14 +255,14 @@ package() {
 
 	# init scripts and logrotate
 	install -D -m755 "$srcdir"/apache2.initd \
-		"$pkgdir"/etc/init.d/apache2 || return 1
+		"$pkgdir"/etc/init.d/apache2
 	install -D -m644 "$srcdir"/apache2.logrotate \
-		"$pkgdir"/etc/logrotate.d/apache2 || return 1
+		"$pkgdir"/etc/logrotate.d/apache2
 	install -D -m644 "$srcdir"/apache2.confd \
-		"$pkgdir"/etc/conf.d/apache2 || return 1
+		"$pkgdir"/etc/conf.d/apache2
 
-	install -d "$pkgdir"/var/www || return 1
-	install -d -m 2750 -g wheel "$pkgdir"/var/log/apache2 || return 1
+	install -d "$pkgdir"/var/www
+	install -d -m 2750 -g wheel "$pkgdir"/var/log/apache2
 	ln -fs /var/log/apache2 "$pkgdir"/var/www/logs
 	ln -fs /run/apache2 "$pkgdir"/var/www/run
 	ln -fs /usr/lib/apache2 "$pkgdir"/var/www/modules
@@ -164,9 +273,12 @@ package() {
 	for i in prefork event worker; do
 		if ! [ -e "$pkgdir"/usr/lib/apache2/mod_mpm_$i.so ]; then
 			error "$i MPM was not built"
-			return 1
 		fi
 	done
+
+	# create the run directory
+	# ref #9982
+	mkdir -p "$pkgdir"/run/apache2
 }
 
 _make_conf_dir() {
@@ -181,7 +293,7 @@ _mv_conf() {
 _load_mod() {
 	_make_conf_dir
 	echo "LoadModule $1_module modules/mod_$1.so" >> \
-		"$_conf_dir"/${subpkgname#$pkgname-}.conf
+		"$_conf_dir"/${subpkgname#"$pkgname"-}.conf
 }
 
 _load_mods() {
@@ -202,12 +314,11 @@ dev() {
 	# install apxs utility
 	install -d "$subpkgdir"/usr/bin
 	mv "$pkgdir"/usr/bin/apxs \
-		"$subpkgdir"/usr/bin/apxs || return 1
-
+		"$subpkgdir"/usr/bin/apxs
 
 	install -d "$subpkgdir"/usr/share/apache2
 	mv "$pkgdir"/usr/share/apache2/build \
-		"$subpkgdir"/usr/share/apache2/ || return 1
+		"$subpkgdir"/usr/share/apache2/
 }
 
 doc() {
@@ -218,15 +329,25 @@ _error() {
 	pkgdesc="Apache Multi Language Custom Error Documents"
 	install -d "$subpkgdir"/usr/share/apache2
 	mv "$pkgdir"/usr/share/apache2/error \
-		"$subpkgdir"/usr/share/apache2/ || return 1
+		"$subpkgdir"/usr/share/apache2/
 	_mv_conf multilang-errordoc
+}
+
+brotli() {
+	pkgdesc="Brotli content compression for the Apache HTTP Server"
+	depends="apache2"
+	install -d "$subpkgdir"/usr/lib/apache2
+	mv "$pkgdir"/usr/lib/apache2/mod_brotli.so \
+		"$subpkgdir"/usr/lib/apache2
+	_load_mods
 }
 
 http2() {
 	pkgdesc="HTTP/2 transport layer for the Apache HTTP Server"
+	depends="apache2"
 	install -d "$subpkgdir"/usr/lib/apache2
 	mv "$pkgdir"/usr/lib/apache2/mod_http2.so \
-		"$subpkgdir"/usr/lib/apache2 || return 1
+		"$subpkgdir"/usr/lib/apache2
 	_load_mods
 }
 
@@ -234,7 +355,7 @@ icons() {
 	pkgdesc="Apache Public Domain Icons"
 	install -d "$subpkgdir"/usr/share/apache2
 	mv "$pkgdir"/usr/share/apache2/icons \
-		"$subpkgdir"/usr/share/apache2/ || return 1
+		"$subpkgdir"/usr/share/apache2/
 	_mv_conf autoindex
 }
 
@@ -258,24 +379,23 @@ ctl() {
 
 ssl() {
 	pkgdesc="SSL/TLS module for the Apache HTTP Server"
-	install="apache2-ssl.post-install"
-	depends="apache2 libressl"
+	depends="apache2 openssl>3"
 
-	install -d "$subpkgdir"/usr/lib/apache2 || return 1
+	install -d "$subpkgdir"/usr/lib/apache2
 	mv "$pkgdir"/usr/lib/apache2/mod_ssl.so \
-		"$subpkgdir"/usr/lib/apache2/mod_ssl.so || return 1
-	_mv_conf ssl || return 1
-	install -d "$subpkgdir"/etc/ssl/apache2 || return 1
+		"$subpkgdir"/usr/lib/apache2/mod_ssl.so
+	_mv_conf ssl
+	install -d "$subpkgdir"/etc/ssl/apache2
 }
 
 ldap() {
 	pkgdesc="LDAP authentication/authorization module for the Apache HTTP Server"
-	url="http://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html"
+	url="https://httpd.apache.org/docs/2.4/mod/mod_authnz_ldap.html"
 	depends="apache2 apr-util-ldap"
 
-	install -d "$subpkgdir"/usr/lib/apache2 || return 1
+	install -d "$subpkgdir"/usr/lib/apache2
 	mv "$pkgdir"/usr/lib/apache2/mod_*ldap.so \
-		"$subpkgdir"/usr/lib/apache2/ || return 1
+		"$subpkgdir"/usr/lib/apache2/
 	_load_mods
 }
 
@@ -284,30 +404,31 @@ webdav() {
 	depends="apache2"
 	replaces="apache2"
 
-	install -d "$subpkgdir"/usr/lib/apache2 || return 1
+	install -d "$subpkgdir"/usr/lib/apache2
 	mv "$pkgdir"/usr/lib/apache2/mod_dav*.so \
-		"$subpkgdir"/usr/lib/apache2/ || return 1
+		"$subpkgdir"/usr/lib/apache2/
 	_mv_conf dav
 }
 
 proxy_html() {
 	pkgdesc="HTML and XML content filters for the Apache HTTP Server"
 	depends="apache2"
-	install -d "$subpkgdir"/usr/lib/apache2 || return 1
+	install -d "$subpkgdir"/usr/lib/apache2
 	mv "$pkgdir"/usr/lib/apache2/mod_proxy_html.so \
 		"$pkgdir"/usr/lib/apache2/mod_xml2enc.so \
-		"$subpkgdir"/usr/lib/apache2/ || return 1
+		"$subpkgdir"/usr/lib/apache2/
 	_mv_conf proxy-html
 }
 
 proxy() {
 	pkgdesc="Proxy modules for the Apache HTTP Server"
 	depends="apache2"
-	install -d "$subpkgdir"/usr/lib/apache2 || return 1
+	install -d "$subpkgdir"/usr/lib/apache2
 	mv "$pkgdir"/usr/lib/apache2/mod_proxy*.so \
 		"$pkgdir"/usr/lib/apache2/mod_lbmethod_*.so \
-		"$subpkgdir"/usr/lib/apache2/ || return 1
+		"$subpkgdir"/usr/lib/apache2/
 
+	_load_mod slotmem_shm
 	_load_mod watchdog
 	_load_mods
 }
@@ -315,17 +436,18 @@ proxy() {
 _lua() {
 	pkgdesc="Lua support for the Apache HTTP server"
 	depends="apache2"
-	install -d "$subpkgdir"/usr/lib/apache2 || return 1
+	install -d "$subpkgdir"/usr/lib/apache2
 	mv "$pkgdir"/usr/lib/apache2/mod_lua.so \
-		"$subpkgdir"/usr/lib/apache2/ || return 1
+		"$subpkgdir"/usr/lib/apache2/
 	_load_mods
 }
-sha512sums="e74b2b3346d67be45a8bc8a7cbb8eabf5c403a5cfe5797a976f94a539529843fbcdf03b9ca0548816b2cf37f4ce0eb301f8d5af25b1270fdf8dd9f5bf0585269  httpd-2.4.33.tar.bz2
+
+sha512sums="
+202f8bfe2aafcfbcd7315191d466e9c10b9a8c0abafb7864510b6e1abe4cb660aaacc2456aa77d43e48ef7a49e591d0b54170d3daf67abc3e06c3da1c63fdffc  httpd-2.4.65.tar.bz2
 8e62b101f90c67babe864bcb74f711656180b011df3fd4b541dc766b980b72aa409e86debf3559a55be359471c1cad81b8779ef3a55add8d368229fc7e9544fc  apache2.confd
 18e8859c7d99c4483792a5fd20127873aad8fa396cafbdb6f2c4253451ffe7a1093a3859ce719375e0769739c93704c88897bd087c63e1ef585e26dcc1f5dd9b  apache2.logrotate
 81a2d2a297d8049ba1b021b879ec863767149e056d9bdb2ac8acf63572b254935ec96c2e1580eba86639ea56433eec5c41341e4f1501f9072745dccdb3602701  apache2.initd
 177c58d049fc4476fd9b9b36b67725145777c84cf81948105c9314cb09312dff6c1931fe21aaa243597abaefded6c6dfd80d83839e45a23950b50de615d73b06  alpine.layout
-166e123e149162b3140b96435927a985697b2507646f3d696578eae726e8c9d259469889527d7d4259791b130fe4b1b87f8be56574f3ea1272c27516beb06ae9  libressl-2.7.patch
 361e0a74f6f8f5734f074dc2f2001ff64896ecc81f88ea384b6db7db33b7738eb92b4e16163b356259581a8e7dd86adeac971d36d2584abb781e8f9b8fae6356  0001-httpd.conf-ServerRoot.patch
 40f3b7579c403952ba1efcb8dfd6ffd91c2695a06a2e5530ab5a583946558790fbfa16cad259d273ac1aa7a6335dd79636aa82fd844dc3a60a34c34d90db5e17  0002-httpd.conf-ServerTokens.patch
 ad0c1711bc240f99cd0256d0984ad0142e03c384d30378ccca3e47cdd2596307e64bb19fbd810a56c0e4c0716577d3160bad2ae39783b1358412588bc729c113  0003-httpd.conf-ServerSignature.patch
@@ -339,4 +461,6 @@ a3936713f8ffcbf2bb633035873249b94fa8ace9fdb758405264f075f755fbcfec4d08794f79e469
 eb09b3bcbab70f6a48d5efe8fc4bd62cc2b3f46def97c09d8454b846a065c02d18bd846313c421897c8d13be728e4b2ca790e2a5c5c6add3821d9e572bacfab2  0011-httpd.conf-IncludeOptional.patch
 695742f569720d7bad9306acc40456de3a12ff2ff3a108499afc3fed2e8b13883027c6e14a3fac3efe387a70386b958605b5bbfd0147ec06bb87fad30f3b66fa  0012-httpd.conf-MIMEMagicFile.patch
 efbba3c3475bebe5c63ce8d6eaf153cf2c46188e282a65830571c8b7dbc1e657ab9ce160dc82e331097ac483fe632f5201fde6f3f5de32fe5c52dcc7dee66216  0013-httpd-.conf-IfModule.patch
-56e7bb9743d153416b15c32bb5435e4cf85d84204a02f28767c8dcba08eec1ac302521d57ce74154d3e9f7a3644ab3f8a9318150e21f8559eb67e387087a0821  0014-httpd-.conf-LoadModule.patch"
+223b0c3f141977fa4e249bcf09b3b2449d6cc9ebbad50621a6b2bd5d3b661fcf0369ece4e2055792bbcddac68f323a19f0f9dc893237676a244e03dc4260958e  0014-httpd-.conf-LoadModule.patch
+ca3165e5802a25c271cbc15569b3dcda71b141cce6d91b803d23ba08d99e957d6bd0782d40dfbc913ef714aefff1263ad420663bf2dc693b15e73c6ee8e70575  fix-unknown-xmlChar-error.patch
+"

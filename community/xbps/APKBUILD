@@ -1,67 +1,46 @@
 # Contributor: André Klitzing <aklitzing@gmail.com>
 # Maintainer: André Klitzing <aklitzing@gmail.com>
 pkgname=xbps
-pkgver=0.52
-pkgrel=1
+pkgver=0.60.5
+pkgrel=0
 pkgdesc="The X Binary Package System"
 arch="all"
-url="https://github.com/voidlinux/xbps"
-license="BSD"
+url="https://github.com/void-linux/xbps"
+license="BSD-2-Clause AND (BSD-3-Clause AND ISC AND BSD-2-Clause-NetBSD)"
 depends="ca-certificates"
-makedepends="zlib-dev libarchive-dev libressl-dev"
-subpackages="$pkgname-dev $pkgname-doc
-	$pkgname-bash-completion:bashcomp:noarch
-	$pkgname-zsh-completion:zshcomp:noarch"
-options="!check"
-source="$pkgname-$pkgver.tar.gz::https://github.com/voidlinux/$pkgname/archive/$pkgver.tar.gz
-	moving-_unused-macro-to-_unused_attr.patch
-	disable-Werror.patch
+makedepends="zlib-dev libarchive-dev openssl-dev>3"
+subpackages="
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+options="!check"
+source="$pkgname-$pkgver.tar.gz::https://github.com/void-linux/xbps/archive/$pkgver.tar.gz
+	no-werror.patch
+	"
+
+# secfixes:
+#   0.58-r0:
+#     - CVE-2020-7450
 
 build() {
-	cd "$builddir"
-
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
 		--bindir=/usr/bin \
-		--localstatedir=/var/lib/xbps
+		--localstatedir=/var/lib/xbps \
+		--enable-lto
+	sed 's|-O2|-Os|g' config.mk
 	make
 }
 
 package() {
-	cd "$builddir"
-
 	make DESTDIR="$pkgdir/" install
-
-	install -D -m 644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
-	install -D -m 644 COPYING.3RDPARTY \
-		"$pkgdir/usr/share/licenses/$pkgname/COPYING.3RDPARTY"
+	rm -f "$pkgdir"/usr/lib/*.a
 }
 
-bashcomp() {
-	pkgdesc="Bash completions for $pkgname"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
-
-	_submv usr/share/bash-completion/completions
-}
-
-zshcomp() {
-	pkgdesc="ZSH completions for $pkgname"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel zsh"
-
-	_submv usr/share/zsh/site-functions
-}
-
-_submv() {
-	local path="$1"
-	mkdir -p "$subpkgdir"/${path%/*}
-	mv "$pkgdir"/$path "$subpkgdir"/${path%/*}/
-}
-
-sha512sums="99a86abac4e8c3a7e4d6bb72c78a1c1b72592022ab0f90f794227d8fa6194a04e0411fcedc4fffb6809dcf146aa6e7f9b12e3a9854e024458f1b9c4573b7379d  xbps-0.52.tar.gz
-71441115a258efff44a0768a7fb731f4f3730c4ff75279650ac93c051d49ae3153d8bdeaa534cb09681d4b2d1dfba5b9a79b0cdd30a254d84558fd8ac40d2414  moving-_unused-macro-to-_unused_attr.patch
-a761edd8fd358b500337fcef79f6163ef642fc387f97d952fec0838baa786d585f21e34cd066cba1918f474bccd7decbad2587b91f125b75e308b2dfe8f4721a  disable-Werror.patch"
+sha512sums="
+a820dc74d0a25490a917eecc087c88fb8c9d1245c16e6e7be508ac8b650e19d8e3265684f1171a824c284f3c1febba8c5cabd471c3722883c533c908db7e92bb  xbps-0.60.5.tar.gz
+15db17c464732aa1da1970a9b7349321680feed2f8c17dff7dfc485d3d82696b66cee64056a51bfe6211e90fcf9b0abd6d6ae765f94670ba15d24419b5ea906f  no-werror.patch
+"

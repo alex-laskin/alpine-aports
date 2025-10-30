@@ -1,38 +1,38 @@
-# Contributor: ScrumpyJack <scrumpyjack@st.ilet.to>
-# Maintainer: ScrumpyJack <scrumpyjack@st.ilet.to>
+# Contributor: Jordan Christiansen <xordspar0@gmail.com>
+# Maintainer: Jordan Christiansen <xordspar0@gmail.com>
 pkgname=acme-client
-pkgver=0.1.16
-_ver=${pkgver//./_}
-pkgrel=6
-pkgdesc="An ACME client for Let's Encrypt written in C"
-url="https://github.com/kristapsdz/acme-client-portable"
+pkgver=1.3.5
+pkgrel=0
+pkgdesc="Client for issuing certificates from ACME-complaint servers"
+url="https://git.wolfsden.cz/acme-client-portable"
 arch="all"
-license="ISC"
-options="!check" # no test suite
-depends="ca-certificates"
-makedepends="bsd-compat-headers libressl-dev"
+license="GPL-2.0-only"
+makedepends="openssl-dev>3 byacc automake autoconf"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/kristapsdz/acme-client-portable/archive/VERSION_$_ver.tar.gz
-	default-ca.patch
-	license_update.patch
-	"
-builddir="$srcdir/acme-client-portable-VERSION_$_ver"
+source="$pkgname-$pkgver-1.tar.gz::https://fuck:the-AI-fuckers@git.wolfsden.cz/acme-client-portable/snapshot/acme-client-portable-$pkgver.tar.gz"
+options="!check" # Tests require modifying /etc/hosts
+builddir="$srcdir/acme-client-portable-$pkgver"
+
+prepare() {
+	default_prepare
+	autoreconf -fvi
+}
 
 build() {
-	cd "$builddir"
-	make PREFIX=/usr
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--localstatedir=/var
+	make
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR=$pkgdir \
-		PREFIX=/usr \
-		MAN1DIR=/usr/share/man/man1 \
-		install
-	install -d "$pkgdir"/var/www/acme "$pkgdir"/etc/ssl/acme
-	install -dm0700 "$pkgdir"/etc/ssl/acme/private "$pkgdir"/etc/acme
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="7d8dcf0d9dd0eb8f978a0c069266935f59196760ff8e1e774b253310568b2b7595a82944d6276f8493b21608540900d79bdf20bc1220c14116005cc7c448c392  acme-client-0.1.16.tar.gz
-ff416bad782a60675e0c42c8f611902403f3bdb3daf4e006434cf07837d4c7998e90eef0701f789672495f7cde2d158953f9365055e834619c2ccf52328598ed  default-ca.patch
-07ba2de537bd20b11817c1ca695faa784065e141ab9503cad9f8f2f01ef5bb3e2a9f290cde9e3fd1df6408b5ba41158d164f2356fb81eb273e2d6f3b7ace2d5a  license_update.patch"
+sha512sums="
+38e501528d8a04da935b6295cfa868663cc75bca1b10eec4250cba1bd41896d3560de91d5573ea1e54b770fd687f9b141a7d1ba6d5b490e5be12a2df7d81ff9b  acme-client-1.3.5-1.tar.gz
+"

@@ -1,30 +1,36 @@
 # Contributor: Tycho Andersen <tycho@docker.com>
 # Maintainer: Tycho Andersen <tycho@docker.com>
 pkgname=libsemanage
-pkgver=2.6
-pkgrel=0
+pkgver=3.6
+pkgrel=1
 pkgdesc="SELinux binary policy manipulation library"
 url="https://github.com/SELinuxProject/selinux/wiki"
 arch="all"
 license="LGPL-2.0-or-later"
-depends=""
-depends_dev=""
-makedepends="$depends_dev libselinux-dev libsepol-dev bzip2-dev ustr-dev bison flex audit-dev"
-install=""
+makedepends="
+	libselinux-dev
+	libsepol-dev
+	bzip2-dev
+	audit-dev
+
+	bison
+	flex
+	python3
+	"
 subpackages="$pkgname-dev $pkgname-doc"
-source="https://raw.githubusercontent.com/wiki/SELinuxProject/selinux/files/releases/20161014/libsemanage-$pkgver.tar.gz
-	0001-libsemanage-remove-use-of-getpwent_r.patch"
-builddir="$srcdir/libsemanage-$pkgver"
+source="https://github.com/SELinuxProject/selinux/releases/download/$pkgver/libsemanage-$pkgver.tar.gz
+	basename.patch
+	"
 
 build() {
-	cd "$builddir"
-	make || return 1
+	make PYTHON=python3
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="38741d6e6f7a2669bfeee362e42d6bfd720cceeaf61331e329b2210fdc070444e529656ce86dd82e94aa248eafcfaea4c5d013d9cce76c1039be6fc6a6b2c790  libsemanage-2.6.tar.gz
-ef5040bc015673266fc46284a8dc84b3316d6dd7bcc3a2c4ba4dd6e2d35a0d0c6984e72648c60739e4d97570941b7da07a6a2c98959c3b446bc0cae706d23441  0001-libsemanage-remove-use-of-getpwent_r.patch"
+sha512sums="
+8998b6a1b254a9673b99ae4d70a1edc769bb728a44f573cdf62e0a9c9392b77644ee2d70e1936a2f8a9a7f8b063ce98a981f4b8b7060f5b82791889330d69364  libsemanage-3.6.tar.gz
+6fa6d11621f6363c7ce3c461c838ae354a44a113389cf13b4b636ec4877519f2d621eb604562884f19266018cad436b005e9c33db1b47752dbc1472f59fac059  basename.patch
+"

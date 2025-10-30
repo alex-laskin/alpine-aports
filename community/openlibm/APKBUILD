@@ -1,35 +1,30 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=openlibm
-pkgver=0.5.5
+pkgver=0.8.4
 pkgrel=0
 pkgdesc="High quality system independent, portable, open source libm implementation"
-url="http://www.openlibm.org"
+url="https://openlibm.org/"
 arch="all !s390x"
-license="MIT BSD Public-Domain"
-depends=""
-makedepends=""
+license="MIT AND BSD-2-Clause AND ISC AND LGPL-2.1-or-later"
 subpackages="$pkgname-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/JuliaLang/$pkgname/archive/v$pkgver.tar.gz
-	aarch64_fixes.patch
+source="openlibm-$pkgver.tar.gz::https://github.com/JuliaLang/openlibm/archive/v$pkgver.tar.gz
 	powerpc_fixes.patch"
-builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
-	cd "$builddir"
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make VERSION=$pkgver DESTDIR="$pkgdir" prefix=/usr install
+	rm -f "$pkgdir"/usr/lib/*.a
 }
 
-sha512sums="d9e441f177bc7af087c179e9cd1e6bcd98054f19b68e701cf5f6e4518523ed9a69c54ca7c77903031432c13c6e302439c5b74040e9ffa29b52c47978fa5ca662  openlibm-0.5.5.tar.gz
-dd34aef4a1e260305f9e42443b3c1e3fa046c1174346ad449f99deebef3ded6530b03d3b7a210e0acde5a33bb95a0541a0e13cd26c9d82127e05824b811acfc1  aarch64_fixes.patch
-76ee57a281275b2bd382f0485e4ca383566af47f3d89981b75ad764c629d82f7f0260fb41cc9eb50f0f175c88b64699aabcc732add321f4d730f38ba7a48238d  powerpc_fixes.patch"
+sha512sums="
+935afff324aa9766847dd12cd71bb672152a79bd538b466509e6758f0ad76215924c71d94f9fb72f2356b864b667e3d16f58dccbf0a1120cdd66b1ee6497c17f  openlibm-0.8.4.tar.gz
+76ee57a281275b2bd382f0485e4ca383566af47f3d89981b75ad764c629d82f7f0260fb41cc9eb50f0f175c88b64699aabcc732add321f4d730f38ba7a48238d  powerpc_fixes.patch
+"

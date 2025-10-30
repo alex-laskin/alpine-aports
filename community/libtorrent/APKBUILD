@@ -1,39 +1,48 @@
 # Contributor: Peter Bui <pnutzh4x0r@gmail.com>
 # Contributor: Bartłomiej Piotrowski <nospam@bpiotrowski.pl>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
-
 pkgname=libtorrent
-pkgver=0.13.7
+pkgver=0.15.4
 pkgrel=0
 pkgdesc="BitTorrent library written in C++"
-url="http://rakshasa.github.io/rtorrent/"
+url="https://rakshasa.github.io/rtorrent"
 arch="all"
-license="GPL"
-makedepends="zlib-dev libsigc++-dev libressl-dev automake autoconf libtool linux-headers"
+license="GPL-2.0-or-later"
+makedepends="
+	autoconf
+	automake
+	libsigc++3-dev
+	libtool
+	linux-headers
+	openssl-dev>3
+	zlib-dev
+	"
+checkdepends="cppunit-dev"
 subpackages="$pkgname-dev"
-source="http://rtorrent.net/downloads/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://github.com/rakshasa/libtorrent/archive/v$pkgver/libtorrent-$pkgver.tar.gz"
 
 prepare() {
 	default_prepare
-	cd "$builddir"
-	./autogen.sh
+	autoreconf -iv
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
-		--disable-debug \
-		--disable-instrumentation
+		--disable-debug
 	make
 }
 
+check() {
+	make check
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="7bf3e87dbd19eb4e6806dff8a01c3ec61ea960bbd809d4bcbee96a46e169f97d0baf0fc85ab4a1efbbab07850e9b1060bae46c453ea6c42f5c23f8d921295efb  libtorrent-0.13.7.tar.gz"
+sha512sums="
+a910e675d265ffa63137de513fc02cd4dd59e9509397f3a4f1a4dc2677bf00343f51aca0b8c6e4eb95b2b129befdead8b35ea577a0612a9ae37c743cf7872fc1  libtorrent-0.15.4.tar.gz
+"

@@ -3,45 +3,43 @@
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=perl-starman
 _pkgreal=Starman
-pkgver=0.4014
+pkgver=0.4017
 pkgrel=0
 pkgdesc="High-performance preforking PSGI/Plack web server"
-url="http://search.cpan.org/dist/Starman/"
+url="https://metacpan.org/release/Starman"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends="perl-http-message perl-data-dump perl-http-parser-xs perl-test-tcp perl-net-server perl-http-date perl-plack"
-cpanmakedepends=""
-cpancheckdepends="perl-libwww perl-test-requires"
-depends="$cpandepends"
-makedepends="perl-dev perl-module-build-tiny $cpanmakedepends"
-checkdepends="$cpancheckdepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="
+	perl perl-http-message perl-data-dump perl-http-parser-xs perl-test-tcp perl-net-server
+	perl-http-date perl-plack
+	"
+makedepends="perl-module-build-tiny"
+checkdepends="perl-libwww perl-test-requires"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/M/MI/MIYAGAWA/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/M/MI/MIYAGAWA/Starman-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
-	default_prepare || return 1
+	default_prepare
 
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
-	perl Build.PL installdirs=vendor || return 1
+	perl Build.PL installdirs=vendor
 }
 
 build() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	./Build
 }
 
 package() {
-	cd "$builddir"
-	./Build install --destdir="$pkgdir" --prefix=/usr --installdirs=vendor || return 1
+	./Build install --destdir="$pkgdir" --prefix=/usr --installdirs=vendor
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
 check() {
-	cd "$builddir"
 	./Build test
 }
 
-sha512sums="27e5735a1bd2c29944c469f19a6e05cae038da0f678ca6a12bdae87dd075e4e433e3f4126507f90284a71aa5baf1b8babd120603d265d8b1f3b7b1a6528e0c9f  Starman-0.4014.tar.gz"
+sha512sums="
+04d40d5f4346cd2425516ffd414dc2eca86d241bdc75e9f6cfd3091dab38f3636aebe8e49cc2b8811d06a2332883330f0d85320668ceddd0f9d15d832d609e07  Starman-0.4017.tar.gz
+"

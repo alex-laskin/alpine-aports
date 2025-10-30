@@ -1,0 +1,69 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=debian-devscripts
+pkgver=2.25.20
+pkgrel=0
+pkgdesc="Debian developer scripts"
+url="https://tracker.debian.org/pkg/devscripts"
+arch="noarch"
+license="GPL-2.0-or-later"
+checkdepends="perl"
+# checkbashisms is the common accepted name, but prefix for rest
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	checkbashisms
+	$pkgname-hardening-check:harden
+	"
+source="$pkgname-$pkgver.tar.gz::https://salsa.debian.org/debian/devscripts/-/archive/v$pkgver/devscripts-v$pkgver.tar.gz"
+builddir="$srcdir/devscripts-v$pkgver/scripts"
+
+prepare() {
+	default_prepare
+
+	sed -i "s/###VERSION###/$pkgver/" checkbashisms.pl
+
+	mv checkbashisms.pl checkbashisms
+	mv hardening-check.pl hardening-check
+}
+
+check() {
+	printf '#!/bin/sh\necho "hello world"\n' > ./testfile
+	perl ./checkbashisms --version
+	perl ./checkbashisms ./testfile
+}
+
+package() {
+	depends="
+		checkbashisms=$pkgver-r$pkgrel
+		$pkgname-hardening-check=$pkgver-r$pkgrel
+		"
+
+	# only these useful for now
+	install -Dm755 -t "$pkgdir"/usr/bin/ \
+		checkbashisms \
+		hardening-check
+
+	install -Dm644 checkbashisms.1 \
+		-t "$pkgdir"/usr/share/man/man1/
+	install -Dm644 checkbashisms.bash_completion \
+		"$pkgdir"/usr/share/bash-completion/completions/checkbashisms
+}
+
+checkbashisms() {
+	pkgdesc="$pkgdesc (checkbashisms)"
+	depends="perl"
+
+	amove usr/bin/checkbashisms
+}
+
+harden() {
+	pkgdesc="$pkgdesc (hardening-check)"
+	depends="perl"
+
+	amove usr/bin/hardening-check
+}
+
+sha512sums="
+bb7e2413af57de656fcb923c4fd8465fae7e2b948920bff00b1fcf3dd80163077851331561fec529f8458c8f07fe9087afc55b442b530f1514131699db84a2c1  debian-devscripts-2.25.20.tar.gz
+"

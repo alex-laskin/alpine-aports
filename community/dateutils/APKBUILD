@@ -1,20 +1,20 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=dateutils
-pkgver=0.4.3
-pkgrel=1
+pkgver=0.4.11
+pkgrel=0
 pkgdesc="Utilities for fast date-time calculations and conversion"
-url="http://hroptatyr.github.com/dateutils/"
+url="https://www.fresse.org/dateutils/"
 arch="all"
 license="BSD-3-Clause"
 makedepends="m4 texinfo automake autoconf linux-headers"
+checkdepends="diffutils tzdata"
 subpackages="$pkgname-doc"
-source="https://bitbucket.org/hroptatyr/$pkgname/downloads/$pkgname-${pkgver}.tar.xz
-	remove-sysctl-include.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://bitbucket.org/hroptatyr/dateutils/downloads/dateutils-$pkgver.tar.xz
+	tests.patch
+	"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -26,10 +26,18 @@ build() {
 	make
 }
 
+check() {
+	make check || {
+		cat test/test-suite.log
+		return 1
+	}
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="0210ad1f47aec77b8b87a520da9155430b52068e53733ef7bb26dfa10e8651f2190171537d4317adf888733e9377f961d5ed070efacd8ca18139225fa8c185ca  dateutils-0.4.3.tar.xz
-a31647222867996e23fa8066d13cfe19a4aac7d9ec86b0f998665ba60883454a1843edabd9f49af4a313a582b33cb043b8dead66cbdb4b72bd4918fac435543d  remove-sysctl-include.patch"
+sha512sums="
+601fa8197acdb68fe0688aed3fa2ba2fcf66b9a8ad23a0c7cb816a2cba9c645854ec8715a2127e02294cc068f63b09d0596eee60e151a8ad0edff22f54ec9d7a  dateutils-0.4.11.tar.xz
+f389d7f87a4d0a27e1eeee84928bacece1fd8a677db42953bb52a21285f2aacac236abd8d07b5955d2a2b1856072eabb02429916efc60b69049cb056f486f330  tests.patch
+"

@@ -1,54 +1,95 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=biber
-# This version should be compatible with Biblatex in testing
-pkgver=2.11
-pkgrel=0
+pkgver=2.21
+pkgrel=1
 pkgdesc="Backend processor for BibLaTeX"
 url="https://github.com/plk/biber"
-arch="noarch"
-license="GPL-2.0"
-depends="perl perl-module-build perl-config-autoconf
-	perl-extutils-libbuilder perl-test-differences perl-file-which
-	perl-class-accessor perl-data-compare perl-data-dump perl-data-uniqid
-	perl-ipc-run3 perl-xml-writer perl-xml-libxml perl-xml-libxslt
-	perl-lwp-protocol-https perl-log-log4perl perl-list-allutils perl-list-moreutils
-	perl-mozilla-ca perl-regexp-common perl-file-slurp perl-encode-hanextra
-	perl-date-simple perl-xml-libxml-simple perl-autovivification perl-unicode-normalize
-	perl-unicode-linebreak perl-unicode-collate perl-text-roman perl-text-bibtex
-	perl-lingua-translit perl-encode-jis2k perl-encode-eucjpascii
-	perl-business-isbn perl-business-ismn perl-business-issn
-	perl-datetime-calendar-julian perl-datetime-format-builder perl-sort-key
-	perl-text-csv perl-text-csv_xs perl-list-moreutils-xs perl-perlio-utf8_strict perl-file-slurper"
-makedepends="perl-dev"
+arch="noarch !s390x" # biblatex
+license="Artistic-2.0"
+# This version should be compatible with biblatex, e.g. 2.20 need biblatex~3.20
+# See Section "2.3 Compatibility Matrix" in
+# https://markov.htwsaar.de/tex-archive/biblio/biber/base/documentation/biber.pdf
+depends="
+	biblatex~3.20
+	perl
+	perl-autovivification
+	perl-business-isbn
+	perl-business-ismn
+	perl-business-issn
+	perl-class-accessor
+	perl-data-compare
+	perl-data-dump
+	perl-data-uniqid
+	perl-date-simple
+	perl-datetime-calendar-julian
+	perl-datetime-format-builder
+	perl-encode-eucjpascii
+	perl-encode-hanextra
+	perl-encode-jis2k
+	perl-file-slurp
+	perl-file-slurper
+	perl-io-string
+	perl-ipc-run3
+	perl-lingua-translit
+	perl-list-allutils
+	perl-list-moreutils
+	perl-list-moreutils-xs
+	perl-log-log4perl
+	perl-lwp-protocol-https
+	perl-mime-charset
+	perl-mozilla-ca
+	perl-namespace-autoclean
+	perl-parse-recdescent
+	perl-perlio-utf8_strict
+	perl-regexp-common
+	perl-sort-key
+	perl-text-bibtex
+	perl-text-csv
+	perl-text-csv_xs
+	perl-text-roman
+	perl-unicode-collate
+	perl-unicode-linebreak
+	perl-xml-libxml
+	perl-xml-libxml-simple
+	perl-xml-libxslt
+	perl-xml-writer
+	"
+ makedepends="
+	perl-config-autoconf
+	perl-extutils-libbuilder
+	perl-module-build
+	"
+checkdepends="
+	perl-file-which
+	perl-test-differences
+	"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/plk/biber/archive/v${pkgver}.tar.gz "
-builddir="$srcdir/$pkgname-$pkgver"
-
-prepare() {
-    cd "$builddir"
-	# Disable long year tests on 32 bit
-	if [ $CARCH = "x86" ] || [ $CARCH = "armhf" ]; then
-		sed -i '/17000002/ s+.*+eq_or_diff("dummy", "dummy", "skip 32 bit");+' t/dateformats.t
-	fi
-    perl Build.PL installdirs=vendor
-}
+source="$pkgname-$pkgver.tar.gz::https://github.com/plk/biber/archive/v$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-    export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
-    ./Build
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
+
+	perl Build.PL \
+		--installdirs=vendor \
+		--create_packlist=0
+	./Build
 }
 
 check() {
-	cd "$builddir"
-    ./Build test
+	case "$CARCH" in
+	arm*|x86)
+		# dateformat tests fail on 32 bit systems
+		rm -f t/dateformats.t
+		;;
+	esac
+	./Build test
 }
 
 package() {
-	cd "$builddir"
-    ./Build install destdir="$pkgdir"
-    find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
+	./Build install --destdir="$pkgdir"
 }
 
-sha512sums="669f69349bb88728b6b03a11e9acb8c47031de16f26d360b3ed18c5f9fe535241362ec46eecc3f259e76ef5a186c1daf51a6b7a501c2216b48ea4d31945ced5a  biber-2.11.tar.gz"
+sha512sums="
+6826328b8df11454a26c1856164f070079613b92d8200790a020b4fcc417bb74fefc16f7118afe3b45400dba58fb891e618bdca6658e3eb86510341ed48f2e0e  biber-2.21.tar.gz
+"

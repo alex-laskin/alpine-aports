@@ -1,7 +1,34 @@
 #!/sbin/openrc-run
-# Copyright 1999-2006 Gentoo Foundation
-# Distributed under the terms of the GNU General Public License v2
-# $Header: $
+
+name="pgpool-II"
+
+: ${command_user:="postgres:postgres"}
+: ${config_file:="/etc/pgpool/pgpool.conf"}
+: ${hba_file:="/etc/pgpool/pool_hba.conf"}
+: ${key_file:="/etc/pgpool/pool_key"}
+: ${pcp_file:="/etc/pgpool/pcp.conf"}
+: ${logfile="/var/log/pgpool/pgpool.log"}
+: ${start_wait:=2}
+
+command="/usr/bin/pgpool"
+command_args="
+	--dont-detach
+	--config-file $config_file
+	--hba-file $hba_file
+	--key-file $key_file
+	--pcp-file $pcp_file
+	$command_args
+	"
+command_background="yes"
+
+pidfile="/run/$RC_SVCNAME.pid"
+error_log="$logfile"
+start_stop_daemon_args="--wait $start_wait"
+# The leading space is to avoid fallback to $start_stop_daemon_args when this
+# is empty (supervise-daemon doesn't support --wait).
+supervise_daemon_args=" $supervise_daemon_args"
+
+required_files="$config_file"
 
 depend() {
 	need net
@@ -9,17 +36,7 @@ depend() {
 	use postgresql
 }
 
-start() {
-	ebegin "Starting pgpool-II"
-	start-stop-daemon --start --quiet --exec /usr/bin/pgpool --f /etc/pgpool.conf -F /etc/pcp.conf
-	result=$?
-	eend $result
+start_pre() {
+	# pgpool creates /run/pgpool/pgpool.pid file even with --dont-detach. >_<
+	checkpath -d -m 0750 -o "$command_user" /run/pgpool
 }
-
-stop() {
-	ebegin "Stopping pgpool-II"
-	start-stop-daemon --stop --quiet --pidfile /var/run/pgpool.pid
-	result=$?
-	eend $result
-}
-

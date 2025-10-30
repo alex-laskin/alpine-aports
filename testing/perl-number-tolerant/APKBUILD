@@ -3,20 +3,15 @@
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=perl-number-tolerant
 _pkgreal=Number-Tolerant
-pkgver=1.708
+pkgver=1.710
 pkgrel=0
 pkgdesc="tolerance ranges for inexact numbers"
-url="http://search.cpan.org/dist/Number-Tolerant/"
+url="https://metacpan.org/release/Number-Tolerant/"
 arch="noarch"
 license="GPL PerlArtistic"
-cpandepends="perl-sub-exporter"
-cpanmakedepends=""
-cpancheckdepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
-checkdepends="$cpancheckdepends"
+depends="perl perl-sub-exporter"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/R/RJ/RJBS/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/R/RJ/RJBS/$_pkgreal-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
@@ -45,4 +40,6 @@ check() {
 	make test
 }
 
-sha512sums="9a8b878d65e5c6cb9600bd743d5b74a639e4be4c07cca5a954fe0042d5ea749ac656e9b480d8e8a2573259ad85639e110ff531d61259e83ebb66d913fe37374a  Number-Tolerant-1.708.tar.gz"
+sha512sums="
+358478a1f699a231d74391219b94bd20f41298e164279bee7f0ca793442c4ab273498daa5ac247486753644c592769239070c46a03e568e435aa626fec12dc9f  Number-Tolerant-1.710.tar.gz
+"

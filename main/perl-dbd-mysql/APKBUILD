@@ -2,21 +2,19 @@
 # Contributor: Jeff Bilyk <jbilyk at gmail>
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=perl-dbd-mysql
-_pkgname=DBD-mysql
-pkgver=4.046
-pkgrel=2
+_pkgreal=DBD-mysql
+pkgver=4.054
+pkgrel=0
 pkgdesc="Perl CPAN DBD::Mysql module"
-url="http://search.cpan.org/~capttofu/DBD-mysql/"
+url="https://metacpan.org/dist/DBD-mysql"
 arch="all"
-license="GPL PerlArtistic"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
 depends="perl perl-dbi"
-makedepends="perl perl-dev mariadb-connector-c-dev zlib-dev perl-devel-checklib"
-source="https://cpan.metacpan.org/authors/id/C/CA/CAPTTOFU/DBD-mysql-$pkgver.tar.gz
-	DBD-mysql-4.043-Fix-build-failures-for-MariaDB-10.2.patch
-	"
+makedepends="perl-dev mariadb-connector-c-dev zlib-dev perl-devel-checklib"
+source="https://cpan.metacpan.org/authors/id/D/DV/DVEEDEN/DBD-mysql-$pkgver.tar.gz"
 subpackages="$pkgname-doc"
 options="!check" # requires a running dbms
-builddir="$srcdir"/${_pkgname}-$pkgver
+builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
 	default_prepare
@@ -25,21 +23,19 @@ prepare() {
 }
 
 build() {
-	cd "$builddir"
 	make
 }
 
-package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	find "$pkgdir" -name perllocal.pod -delete
-}
-
 check() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make test
 }
 
-sha512sums="57b3243a724ac21a11b6eea10aa1cfc821f295cb5bf44f9eaabeb979d3f8e1f7f5e00d40b144a16688d0a358c82c2bb00f630e925e176f29a9ca84b8ee7fb9cc  DBD-mysql-4.046.tar.gz
-66916fbe21d16f2064c95d4081d183eec554804d018dd43a0a02ba8e702f86820d4ee4997536c774f4f61e53929f83abcd4642db488bdc632d25eea94c8eac0f  DBD-mysql-4.043-Fix-build-failures-for-MariaDB-10.2.patch"
+package() {
+	make DESTDIR="$pkgdir" install
+	find "$pkgdir" -name perllocal.pod -delete
+}
+
+sha512sums="
+aadfabbf36c2b96e726f0a6ccbabda8b38a469785ac98d985e4f2167f5b0a548e4f14ede6c4d5f42fcd76f017d66b54c5e548a66b136acbbf2b61f8edcbde3ec  DBD-mysql-4.054.tar.gz
+"

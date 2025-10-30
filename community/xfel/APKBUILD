@@ -1,0 +1,31 @@
+# Contributor: Will Sinatra <wpsinatra@gmail.com>
+# Maintainer: Will Sinatra <wpsinatra@gmail.com>
+maintainer="Will Sinatra <wpsinatra@gmail.com>"
+pkgname=xfel
+pkgver=1.3.3
+pkgrel=1
+pkgdesc="Tiny FEL tools for allwinner SOC, support RISC-V D1 chip."
+url="https://github.com/xboot/xfel"
+license="MIT"
+arch="all !s390x"
+depends="libusb-dev"
+subpackages="$pkgname-doc $pkgname-udev-rules:udev_rules:noarch"
+source="xfel-$pkgver.tar.gz::https://github.com/xboot/xfel/archive/refs/tags/v$pkgver.tar.gz"
+options="!check" # No tests defined
+
+build() {
+	make
+}
+
+package() {
+	install -Dm0755 "$builddir"/xfel "$pkgdir/usr/bin/xfel"
+	install -Dm0644 "$builddir"/LICENSE "$pkgdir/usr/share/licenses/xfel/LICENSE"
+}
+
+udev_rules() {
+	pkgdesc="udev rules for xfel"
+	install -Dm0644 "$builddir"/99-xfel.rules "$subpkgdir/usr/lib/udev/rules.d/99-xfel.rules"
+}
+sha512sums="
+8ae2d47e9c178e46a9d9b7899a4a75221c41c9c4483a87583d578b7f7cfdf2167d9dd558fb16eca815569e9e19a0cfeed21c49f1bd5f161f4467d9cceed06b0c  xfel-1.3.3.tar.gz
+"

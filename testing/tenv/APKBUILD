@@ -1,0 +1,51 @@
+# Contributor: Alexander Sharov <kvendingoldo@gmail.com>
+# Maintainer: Alexander Sharov <kvendingoldo@gmail.com>
+pkgname=tenv
+pkgver=4.7.6
+pkgrel=4
+pkgdesc="OpenTofu, Terraform, Terragrunt, and Atmos version manager"
+license="Apache-2.0"
+arch="all"
+url="https://github.com/tofuutils/tenv"
+source="tenv-$pkgver.tar.gz::https://github.com/tofuutils/tenv/archive/v$pkgver.tar.gz"
+options="net"
+depends="cosign !terraform !tofu !terragrunt !atmos"
+makedepends="go cosign"
+
+subpackages="
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+build() {
+	local i
+	mkdir build
+	for i in tenv terraform terragrunt tf tofu atmos; do
+		go build -ldflags "-s -w -X main.version=v$pkgver" -o build/$i ./cmd/$i
+	done
+
+	for i in bash fish zsh; do
+		./build/tenv completion $i > ./tenv.$i
+	done
+}
+
+check() {
+	make test
+}
+
+package() {
+	install -Dm755 -t "$pkgdir"/usr/bin build/*
+
+	install -Dm644 ./tenv.bash $pkgdir/usr/share/bash-completion/completions/tenv
+	install -Dm644 ./tenv.fish $pkgdir/usr/share/fish/vendor_completions.d/tenv.fish
+	install -Dm644 ./tenv.zsh $pkgdir/usr/share/zsh/site-functions/tenv
+}
+
+sha512sums="
+395d7f2438f3c6638388febfa77c94f3cb0bacc92365225d644250bcce6fd5313410c9294ef3f1dec330ef99ad0db1f35fb161302a794c7c051475e4a081d11d tenv-4.7.6.tar.gz
+"

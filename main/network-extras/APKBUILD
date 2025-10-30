@@ -1,30 +1,19 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=network-extras
-pkgver=1.2
+pkgver=2.1
 pkgrel=0
 pkgdesc="Meta package to pull in ppp, vlan, bonding, bridge and wifi support"
-url="http://alpinelinux.org"
+url="https://alpinelinux.org/"
 arch="noarch"
-license="GPL"
-depends="bridge bonding vlan wpa_supplicant wireless-tools ppp-atm ppp-chat
-	ppp-daemon ppp-l2tp ppp-minconn ppp-passprompt ppp-passwordfd ppp-pppoe
-	ppp-radius ppp-winbind usb-modeswitch"
-
-makedepends=""
-install=""
-subpackages=""
-source=""
-
-prepare() {
-	return 0
-}
-
-build() {
-	return 0
-}
+license="GPL-2.0-only"
+options="!check"
 
 package() {
+	# vlan conflicts with ifupdown-ng, which is installed on the builders
+	depends="bridge bonding vlan wpa_supplicant iw ppp-atm ppp-chat
+		ppp-daemon ppp-l2tp ppp-minconn ppp-passwordfd ppp-pppoe
+		ppp-radius ppp-winbind usb-modeswitch"
+
 	mkdir -p "$pkgdir"
 }
 

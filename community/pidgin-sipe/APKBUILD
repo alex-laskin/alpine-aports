@@ -1,40 +1,62 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=pidgin-sipe
-pkgver=1.23.2
-pkgrel=1
+pkgver=1.25.0
+pkgrel=2
 pkgdesc="Pidgin protocol plugin to connect to MS Office Communicator"
-url="http://sipe.sourceforge.net/"
+url="https://sipe.sourceforge.net/"
 arch="all"
 license="GPL-2.0-or-later"
-makedepends="zlib-dev pidgin-dev e2fsprogs-dev intltool
-	heimdal-dev libxml2-dev glib-dev nss-dev libnice-dev gstreamer0.10-dev
-	gmime-dev"
+makedepends="
+	e2fsprogs-dev
+	gettext-dev
+	glib-dev
+	gmime-dev
+	gstreamer-dev
+	heimdal-dev
+	libnice-dev
+	libxml2-dev
+	nss-dev
+	pidgin-dev
+	zlib-dev
+	"
+checkdepends="appstream"
 subpackages="$pkgname-lang"
-source="http://downloads.sourceforge.net/project/sipe/sipe/pidgin-sipe-$pkgver/pidgin-sipe-$pkgver.tar.bz2"
+source="https://downloads.sourceforge.net/project/sipe/sipe/pidgin-sipe-$pkgver/pidgin-sipe-$pkgver.tar.bz2
+	asc.patch
+	gcc14-update-for-libxml2.patch
+	"
 
-builddir="$srcdir/$pkgname-$pkgver"
+prepare() {
+	default_prepare
+	update_config_sub
+}
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--enable-purple \
+		--disable-quality-check \
 		--disable-telepathy \
+		--without-dbus \
 		--without-vv
 	make
 }
 
 check() {
-	cd "$builddir"
-	make check
+	make check || {
+		cat src/purple/test-suite.log
+		return 1
+	}
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="ff63b4f71f3179ebf7f1071c0ee2659ca8e6eaaf2d6380b19175b028742eb4e6680e033ba6905448c91a9ba72057e60ea4c91fcf6dc2aa5e09dc7d17bac165c3  pidgin-sipe-1.23.2.tar.bz2"
+sha512sums="
+37992bc133eadb05c3f187e97cd82cf8d8bf344d176a73827e78ff9521dbd66b3d0a8ff5d3b27bc1b7eb2797d3484b289390821634d11a7545c0cd2da38953b3  pidgin-sipe-1.25.0.tar.bz2
+644cc4719dc0ee3a431ec1b9232137a06bd27e48693f2232478035cce8e503bbe2109fc232032cd2d91a316addbc895e44a0f40028839b753e710c6149dca356  asc.patch
+8709fafc1375b3876d2f02623a08f46e01a45e3157155e35417f83d0f9dae2888a4ecdd0674b683f4461207de6abd1d155c4a59867bed7d31902434fbdc86d95  gcc14-update-for-libxml2.patch
+"

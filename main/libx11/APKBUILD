@@ -1,21 +1,34 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libx11
-pkgver=1.6.5
+pkgver=1.8.12
 pkgrel=1
 pkgdesc="X11 client-side library"
-url="http://xorg.freedesktop.org/"
+url="https://xorg.freedesktop.org/"
 arch="all"
-license="custom:XFREE86"
-depends=
-subpackages="$pkgname-dev $pkgname-doc"
-depends_dev="libxcb-dev xextproto xf86bigfontproto-dev xtrans
-	inputproto"
-makedepends="$depends_dev util-macros xproto kbproto xmlto"
-source="http://www.x.org/releases/individual/lib/libX11-$pkgver.tar.bz2"
-
+license="X11"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc $pkgname-dbg"
+depends_dev="libxcb-dev xtrans"
+makedepends="$depends_dev xorgproto util-macros xmlto"
+source="https://www.x.org/releases/individual/lib/libX11-$pkgver.tar.xz"
 builddir="$srcdir"/libX11-$pkgver
+
+# secfixes:
+#   1.8.7-r0:
+#     - CVE-2023-43785
+#     - CVE-2023-43786
+#     - CVE-2023-43787
+#   1.7.1-r0:
+#     - CVE-2021-31535
+#   1.6.12-r0:
+#     - CVE-2020-14363
+#   1.6.10-r0:
+#     - CVE-2020-14344
+#   1.6.6-r0:
+#     - CVE-2018-14598
+#     - CVE-2018-14599
+#     - CVE-2018-14600
+
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -23,19 +36,19 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
-		--with-xcb
+		--disable-xf86bigfont
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
 }
 
-sha512sums="63c40d37c92b8d1ac78541830b0c624c4e936924b26bce769936e0e2523fa8997be364647705057065f803f804897ea8173d1c41ef69a92832f20cc7c0fd40a0  libX11-1.6.5.tar.bz2"
+sha512sums="
+cb7a284d9081a8b67f7d8568d56dc403a4b787e46ac497b07768d236084c01f80f4ea2ebd814f950ac9738adc3baea3912932fc333858195c4f8217744b6f730  libX11-1.8.12.tar.xz
+"

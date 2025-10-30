@@ -1,53 +1,58 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=libtool
-pkgver=2.4.6
-pkgrel=5
-pkgdesc="A generic library support script"
-arch="all"
-license="LGPL-2.0+"
+pkgver=2.5.4
+pkgrel=1
+pkgdesc="Generic library support script"
 url="https://www.gnu.org/software/libtool"
-source="ftp://ftp.gnu.org/pub/gnu/libtool/${pkgname}-${pkgver}.tar.gz
-	libtool-fix-cross-compile.patch
-	"
-depends="bash libltdl"
+arch="all"
+license="LGPL-2.0-or-later AND GPL-2.0-or-later"
+depends="libltdl"
 makedepends="m4 help2man"
-checkdepends="gawk autoconf automake gzip"
-subpackages="libltdl $pkgname-doc"
+checkdepends="
+	autoconf
+	automake
+	gawk
+	gzip
+	"
+subpackages="libltdl-static libltdl $pkgname-doc"
+source="https://ftp.gnu.org/gnu/libtool/libtool-$pkgver.tar.gz"
+options="libtool"
 
-# 1 test presently fails on Alpine (need to investigate):
-#  69: shlibpath_overrides_runpath                     FAILED (shlibpath.at:68)
-options="libtool !check"
+prepare() {
+	default_prepare
 
-builddir="$srcdir"/$pkgname-$pkgver
+	# failing gnulib tests
+	sed -i \
+		-e "s|test-funclib-quote.sh||" \
+		-e "s|test-option-parser.sh||" \
+		gnulib-tests/Makefile.in
+}
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
-		--prefix=/usr \
-		--disable-static
+		--prefix=/usr
 	make
 }
 
 check() {
-	cd "$builddir"
-	# Test 70 and 117 are known to fail
-	# Test 170 repeats the entire test suite with shorter max_cmd_len
-	make check TESTSUITEFLAGS="1-69 71-116 118-169"
+	# Test 69 shlibpath_overrides_runpath fails
+	# Test 169 repeats the entire test suite with shorter max_cmd_len
+	make check TESTSUITEFLAGS="1-68 70-168"
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
 libltdl() {
 	pkgdesc="Runtime libraries for GNU Libtool Dynamic Module Loader"
 	depends=
-	mkdir -p "$subpkgdir/usr/lib"
-	mv "$pkgdir/usr/lib/libltdl.so"* "$subpkgdir/usr/lib/"
+	amove usr/lib/libltdl.so*
 }
 
-sha512sums="3233d81cb2739a54b840a0a82064eebbfaa4fb442fb993a35d6bd41d8395c51f038c90ae048b9252f172d0a5bbfb4b36e2b13d4477001f9ff7d4124237819a18  libtool-2.4.6.tar.gz
-aa14cadd70a633520249fa3a6a4c45b309a980380e62dd5982b3ae842c478a77401ad809297fceebd167c167b0a19f380e6a6c295bc75d1029d56d3bf262b209  libtool-fix-cross-compile.patch"
+sha512sums="
+60599f5c3168a287fe3a35062fd2e32e0b73433fce820bfd18d28b0e3bd7a8fefde6d6f0505fbbc2d664119ab7c539269184993843289932c895847ea1ab9f04  libtool-2.5.4.tar.gz
+"

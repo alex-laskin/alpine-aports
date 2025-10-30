@@ -1,42 +1,37 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-bitstream-75dpi
-pkgver=1.0.3
-pkgrel=0
+pkgver=1.0.4
+pkgrel=2
 pkgdesc="X.Org Bitstream bitmap fonts"
-url="http://xorg.freedesktop.org/"
-arch="all"
-license="custom"
-depends="encodings font-alias mkfontscale mkfontdir fontconfig"
+url="https://xorg.freedesktop.org/"
+arch="noarch"
+license="MIT"
+options="!check"
+depends="encodings font-alias mkfontscale fontconfig"
 makedepends="font-util-dev bdftopcf"
-install=
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$srcdir"/$pkgname-$pkgver
-	update_config_sub || return 1
-}
+source="https://www.x.org/releases/individual/font/font-bitstream-75dpi-$pkgver.tar.xz"
+subpackages="$pkgname-doc"
 
 build() {
-	cd "$srcdir"/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-mapfiles=/usr/share/fonts/util \
-		--with-fontdir=/usr/share/fonts/75dpi \
-		|| return 1
-	make || return 1
+		--with-fontdir=/usr/share/fonts/75dpi
+	make
 }
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-	make -j1 DESTDIR="$pkgdir" \
+	make DESTDIR="$pkgdir" \
 		MKFONTDIR=: \
 		MKFONTSCALE=: \
 		FCCACHE=: \
-		install || return 1
+		install
+
+	install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
 }
 
-md5sums="d7c0588c26fac055c0dd683fdd65ac34  font-bitstream-75dpi-1.0.3.tar.bz2"
-sha256sums="ba3f5e4610c07bd5859881660753ec6d75d179f26fc967aa776dbb3d5d5cf48e  font-bitstream-75dpi-1.0.3.tar.bz2"
-sha512sums="9311a5b0cbe1613aca87fdf7fd9ab263eb1129e3c3eacbce54547f2185e151fb1237128b1b6d39f716f28694a486909564ecc9a0aef061438622d11b5661d650  font-bitstream-75dpi-1.0.3.tar.bz2"
+sha512sums="
+d678c58493696b3a744878991838b329243e5ba7985b1a435b62e9b1a05b5609d0b66d5943d840479ce2c5fc1da1b0633c33f28e3613712d26802fc41ee22c22  font-bitstream-75dpi-1.0.4.tar.xz
+"

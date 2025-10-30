@@ -1,0 +1,39 @@
+From ac9754d0cd9dc2fa13595a9e92c1a6ae6a1276fa Mon Sep 17 00:00:00 2001
+From: Natanael Copa <ncopa@alpinelinux.org>
+Date: Thu, 14 Jul 2022 13:23:51 +0200
+Subject: [PATCH 3/5] kexec: add kexec_load_disabled boot option
+
+Make kexec_load disabled by default and add a boot option to enable it:
+kexec_load_disabled=0
+
+Signed-off-by: Achill Gilgenast <fossdd@pwned.life>
+Signed-off-by: Achill Gilgenast <achill@achill.org>
+---
+ kernel/kexec_core.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/kexec_core.c b/kernel/kexec_core.c
+index 31203f0bacaf..0c86e26367fc 100644
+--- a/kernel/kexec_core.c
++++ b/kernel/kexec_core.c
+@@ -1033,7 +1033,16 @@ static struct kexec_load_limit load_limit_panic = {
+ 
+ struct kimage *kexec_image;
+ struct kimage *kexec_crash_image;
+-static int kexec_load_disabled;
++static int kexec_load_disabled = 1;
++
++static int __init kexec_load_disabled_setup(char *str)
++{
++	unsigned long disabled;
++	if (!kstrtoul(str, 0, &disabled))
++		kexec_load_disabled = disabled ? 1 : 0;
++	return 1;
++}
++__setup("kexec_load_disabled=", kexec_load_disabled_setup);
+ 
+ #ifdef CONFIG_SYSCTL
+ static int kexec_limit_handler(const struct ctl_table *table, int write,
+-- 
+2.51.0
+

@@ -1,0 +1,46 @@
+# Contributor: Henrik Riomar <henrik.riomar@gmail.com>
+# Maintainer: Michał Polański <michal@polanski.me>
+pkgname=swayidle
+pkgver=1.8.0
+pkgrel=2
+pkgdesc="Idle management daemon for Wayland"
+url="https://swaywm.org/"
+license="MIT"
+arch="all"
+makedepends="
+	meson
+	scdoc
+	elogind-dev
+	wayland-dev
+	wayland-protocols
+	"
+subpackages="
+	$pkgname-doc
+	$pkgname-openrc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	"
+source="https://github.com/swaywm/swayidle/archive/$pkgver/swayidle-$pkgver.tar.gz
+	swayidle.initd
+	"
+options="!check" # no test suite
+
+build() {
+	abuild-meson \
+		-Dlogind=enabled \
+		-Dlogind-provider=elogind \
+		. output
+	meson compile -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	install -Dm755 "$srcdir"/swayidle.initd "$pkgdir"/etc/user/init.d/swayidle
+}
+
+sha512sums="
+92b482e24926e645c33e29e7ed88912294a375ec625c0c8d85bc6aeeb6691f9cbfc05e88533465702667e479daeaae915481907526f7c862cb81622745f1ce68  swayidle-1.8.0.tar.gz
+1682867ffdb8fbb61d09b7969e1c71309c8b3e12d5d3b5338111dbaf8668db848dfc80c9f3e213b6bcaa57c8dea40c2e68b208509718c623081b9c16d75de424  swayidle.initd
+"

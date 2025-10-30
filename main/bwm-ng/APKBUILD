@@ -1,28 +1,25 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=bwm-ng
-pkgver=0.6.1
+pkgver=0.6.3
 pkgrel=3
 pkgdesc="A small and simple console-based live bandwidth monitor"
 url="http://www.gropp.org/"
 arch="all"
 license="GPL-2.0-or-later"
 subpackages="$pkgname-doc"
-depends=""
-makedepends="ncurses-dev"
-source="http://www.gropp.org/$pkgname/$pkgname-$pkgver.tar.gz"
+makedepends="ncurses-dev autoconf automake libtool"
+source="$pkgname-$pkgver.tgz::https://github.com/vgropp/bwm-ng/archive/v$pkgver.tar.gz
+	format-security.patch
+	"
+options="!check"
 
-_builddir="$srcdir"/$pkgname-$pkgver
 prepare() {
-	cd "$_builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
+	default_prepare
+	./autogen.sh
 }
 
 build() {
-	cd "$_builddir"
+	CFLAGS="$CFLAGS -std=gnu89" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -30,16 +27,15 @@ build() {
 		--with-libstatgrab \
 		--with-procnetdev \
 		--with-ncurses \
-		--with-partitions \
-		|| return 1
-	make || return 1
+		--with-partitions
+	make
 }
 
 package() {
-	cd "$_builddir"
-	make -j1 DESTDIR="$pkgdir" install || return 1
+	make -j1 DESTDIR="$pkgdir" install
 }
 
-md5sums="ef0c7669508e95f56250ad4f8db98b7f  bwm-ng-0.6.1.tar.gz"
-sha256sums="027cf3c960cd96fc9ffacdf7713df62d0fc55eeef4a1388289f8a62ae5e50df0  bwm-ng-0.6.1.tar.gz"
-sha512sums="3f8d4a10f5cbf743d6aee9c6170f334c4274224a2f1886f04338c9a1bf0cf13af5be4aaea0445c9e5b5d361915cc3a93bbfe7c4abf69a0d24e42bc414d8056cd  bwm-ng-0.6.1.tar.gz"
+sha512sums="
+85ce29e6ffa9643b4e7c1d731f4e928ddca8cfdc71c86b65ec4e55058b951eb8da9ab80139145300518223589d5fece5bdc11ede91a1ea394d569993ccdb0ab8  bwm-ng-0.6.3.tgz
+e377d29ce10f8c8605412427bc05a2aeabe5e4bbb6813a2f9117e9f92b54c8a77e1dc03fe85fd997ae3f17edc146a0982d2e75a7acab2ea2532d9151138a9a37  format-security.patch
+"

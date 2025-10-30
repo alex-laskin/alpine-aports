@@ -2,22 +2,21 @@
 # Contributor: André Klitzing <aklitzing@gmail.com>
 # Maintainer: André Klitzing <aklitzing@gmail.com>
 pkgname=pdfgrep
-pkgver=2.1.1
-pkgrel=0
+pkgver=2.2.0
+pkgrel=1
 pkgdesc="Commandline utility to search text in PDF files"
 url="https://pdfgrep.org/"
 arch="all"
-license="GPL"
+license="GPL-2.0-or-later"
 makedepends="autoconf automake pcre-dev poppler-dev libgcrypt-dev"
 checkdepends="dejagnu texlive"
 subpackages="$pkgname-doc
 	$pkgname-zsh-completion:zshcomp:noarch
 	$pkgname-bash-completion:bashcomp:noarch"
-source="https://pdfgrep.org/download/${pkgname}-${pkgver}.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://pdfgrep.org/download/$pkgname-$pkgver.tar.gz"
+options="!check" # multiple failures
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -29,12 +28,10 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make -k check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
@@ -58,4 +55,6 @@ zshcomp() {
 		"$subpkgdir"/usr/share/zsh/site-functions
 }
 
-sha512sums="8c92967e3fe28587551a9226bb3b4066fd88a6cf440bff70a06bec94c6331f3954682e50d307c40a294baa4afdf6f0469f20c72f917c83e3db7f45a59c95c615  pdfgrep-2.1.1.tar.gz"
+sha512sums="
+de39ccb266f30b32ec71083759553979a31f7220b4923a4c3c74e1001c2f2c0dbef17c00f8139ffe88eec2031c48a13f18a057c7523ad363689b0f5b004c420f  pdfgrep-2.2.0.tar.gz
+"

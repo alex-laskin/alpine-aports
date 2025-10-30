@@ -1,32 +1,29 @@
 # Contributor: 7heo <7heo@mail.com>
-# Maintainer: 7heo <7heo@mail.com>
+# Maintainer: Patrycja Rosa <alpine@ptrcnull.me>
 pkgname=homebank
-pkgver=5.1.8
+pkgver=5.9.5
 pkgrel=0
 pkgdesc="Free personal finance software, money management"
-url="http://homebank.free.fr/"
+url="http://homebank.free.fr"
 arch="all"
-license="GPL"
-makedepends="bash gtk+3.0-dev libsoup-dev libofx-dev"
-install=""
+license="GPL-2.0-or-later"
+makedepends="gtk+3.0-dev libsoup3-dev libofx-dev intltool"
+options="!check" # no test suite
 subpackages="$pkgname-lang"
-source="http://homebank.free.fr/public/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://www.gethomebank.org/public/sources/homebank-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	./configure --prefix=/usr
+	./configure \
+		--host=$CHOST \
+		--build=$CBUILD \
+		--prefix=/usr
 	make
 }
 
-check() {
-	"$builddir"/src/homebank --version | grep -q "^$pkgname $pkgver$"
-}
-
 package() {
-	cd "$builddir"
-	chmod a+x install-sh
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="24c02b30878b920fdf8ee190fd8cfcdead1ecb971495880db8a49ca771f4cd140a2c1ff4eb09f3e6770be694480b84c5ff3b0d49568ce81c86e83b95797dbed4  homebank-5.1.8.tar.gz"
+sha512sums="
+257185f925e0abd24b819eb8733b0162646870f1caf37cc4a19ad4664af8e5e3668baf3d2b660ac699ed61c6c4ec86d7e864213c34affe597ae72d49a0e102f0  homebank-5.9.5.tar.gz
+"

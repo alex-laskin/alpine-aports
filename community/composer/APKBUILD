@@ -1,22 +1,62 @@
 # Contributor: Nathan Johnson <nathan@nathanjohnson.info>
-# Maintainer: Dave Hall <skwashd@gmail.com>
+# Contributor: Dave Hall <skwashd@gmail.com>
+# Maintainer: Paolo Barbolini <paolo.barbolini@m4ss.net>
 pkgname=composer
-pkgver=1.6.5
-pkgrel=0
+pkgver=2.8.12
+pkgrel=1
 pkgdesc="Dependency manager for PHP"
 url="https://getcomposer.org/"
 arch="noarch"
 license="MIT"
-depends="php7 php7-phar php7-json php7-openssl"
-source="$pkgname-$pkgver.phar::https://getcomposer.org/download/$pkgver/$pkgname.phar"
+_php=php84
+depends="$_php
+	$_php-phar
+	$_php-curl
+	$_php-iconv
+	$_php-mbstring
+	$_php-openssl
+	$_php-zip
+	p7zip
+	"
+checkdepends="git"
+options="net"
+source="$pkgname-$pkgver.phar::https://getcomposer.org/download/$pkgver/composer.phar"
+subpackages="$pkgname-bash-completion"
 
-package() {
-	install -m 0755 -D "$srcdir"/$pkgname-$pkgver.phar "$pkgdir"/usr/bin/$pkgname
+# secfixes:
+#   2.7.7-r0:
+#     - CVE-2024-35241
+#     - CVE-2024-35242
+#   2.7.0-r0:
+#     - CVE-2024-24821
+#   2.6.4-r0:
+#     - CVE-2023-43655
+#   2.3.5-r0:
+#     - CVE-2022-24828
+#   2.1.9-r0:
+#     - CVE-2021-41116
+#   2.0.13-r0:
+#     - CVE-2021-29472
+
+build() {
+	$_php "$srcdir"/$pkgname-$pkgver.phar completion bash > "$srcdir"/$pkgname.bash
 }
 
 check() {
 	cd "$srcdir"
-	php7 $pkgname-$pkgver.phar -V
+	$_php $pkgname-$pkgver.phar -Vn
+	$_php $pkgname-$pkgver.phar -n diagnose || true # fails as pub-keys are missing
 }
 
-sha512sums="a94a9497ad45cf5bfb2cd4669c73f8cd3b86d0d97a13828ee3b48e8675972293cec898bfb977e55cddf26c5261c5e039310b821d2d5eb4fa046ec5e9e317b21e  composer-1.6.5.phar"
+package() {
+	install -m 0755 -D "$srcdir"/$pkgname-$pkgver.phar "$pkgdir"/usr/bin/$pkgname.phar
+	printf "#!/bin/sh\n\n/usr/bin/%s /usr/bin/composer.phar \"\$@\"\n" "$_php" \
+		> "$pkgdir"/usr/bin/$pkgname
+	chmod +x "$pkgdir"/usr/bin/$pkgname
+	install -Dm644 "$srcdir"/$pkgname.bash \
+		"$pkgdir"/usr/share/bash-completion/completions/$pkgname
+}
+
+sha512sums="
+9cc94c7dc1932d4ea2ed95dc439fbddcbcae97a0bae01a4d66ab4c3d53ba3ab6120e1640a32d3ef127c1a62c8b31ae40037156b7712d1889ebc15b4c939c2210  composer-2.8.12.phar
+"

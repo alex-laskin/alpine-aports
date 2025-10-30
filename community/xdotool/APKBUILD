@@ -1,29 +1,46 @@
 # Contributor: Stuart Cardall <developer@it-offshore.co.uk>
 # Contributor: Stefan Wagner <stw@bit-strickerei.de>
-# Maintainer: Stefan Wagner <stw@bit-strickerei.de>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=xdotool
-pkgver=3.20160805.1
-pkgrel=0
-pkgdesc="Simulate keyboard/mouse input"
+pkgver=3.20211022.1
+pkgrel=1
+pkgdesc="Simulate X11 keyboard/mouse input events"
 url="https://github.com/jordansissel/xdotool"
 arch="all"
-license="BSD"
-depends_dev="libx11-dev libxtst-dev libxinerama-dev libxkbcommon-dev"
-makedepends="$depends_dev perl"
-source="$pkgname-$pkgver.tar.gz::https://github.com/jordansissel/$pkgname/archive/v$pkgver.tar.gz"
+license="BSD-3-Clause"
+depends_dev="
+	libxinerama-dev
+	libxkbcommon-dev
+	libxtst-dev
+	"
+makedepends="
+	$depends_dev
+	libx11-dev
+	perl
+	"
+checkdepends="
+	bash
+	openbox
+	ruby
+	xvfb
+	"
+options="!check" # tests hang on the CI
 subpackages="$pkgname-dev $pkgname-doc"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver.tar.gz::https://github.com/jordansissel/xdotool/archive/v$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	make WITHOUT_RPATH_FIX=1
 }
 
+check() {
+	make -j1 test
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" PREFIX=/usr INSTALLMAN=/usr/share/man install
 }
 
-md5sums="3b6f31082b18d141f2c3ebaf82141232  xdotool-3.20160805.1.tar.gz"
-sha256sums="ddafca1239075c203769c17a5a184587731e56fbe0438c09d08f8af1704e117a  xdotool-3.20160805.1.tar.gz"
-sha512sums="cf0b1c31e63a43759ff3f081f3b005dd9fe9cabd2f606d7d1238c7ea9c0526681f6ad7883c69ab9194d19a9584c3707f10306be1e826e5953da30838007dd471  xdotool-3.20160805.1.tar.gz"
+sha512sums="
+02e599d25f402759176f200207bd7a78f333e44c4213b9dd266afd47c319e1bbf73b16aac29a31700be9a5cfd37ac0dc52271f26adc4ed46500fb35d7389e182  xdotool-3.20211022.1.tar.gz
+"

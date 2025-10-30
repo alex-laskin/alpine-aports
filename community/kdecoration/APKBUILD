@@ -1,0 +1,50 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-plasma
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kdecoration
+pkgver=6.5.1
+pkgrel=0
+pkgdesc="Plugin based library to create window decorations"
+# armhf blocked by qt6-qtdeclarative -> ki18n
+arch="all !armhf"
+url="https://kde.org/plasma-desktop/"
+license="LGPL-2.1-only OR LGPL-3.0-only"
+depends_dev="
+	kcoreaddons-dev
+	ki18n-dev
+	qt6-qtbase-dev
+	"
+makedepends="$depends_dev
+	extra-cmake-modules
+	samurai
+	"
+checkdepends="xwayland-run"
+
+case "$pkgver" in
+	*.*.9*) _rel=unstable;;
+	*) _rel=stable;;
+esac
+
+subpackages="$pkgname-dev $pkgname-lang"
+_repo_url="https://invent.kde.org/plasma/kdecoration.git"
+source="https://download.kde.org/$_rel/plasma/$pkgver/kdecoration-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	wlheadless-run -- ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+0dee0ed8e48e63c4d80b3319a78c45e9adb7d6974e3e97789b82cb265eb2cdff0281ff579c5bb4fd787f08375805a2dd9d07a77a998b3bdf0b4c3ab67c7e84cd  kdecoration-6.5.1.tar.xz
+"

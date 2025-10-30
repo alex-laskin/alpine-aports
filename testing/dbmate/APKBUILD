@@ -1,0 +1,39 @@
+# Maintainer: Cowington Post <cowingtonpost@gmail.com>
+pkgname=dbmate
+pkgver=2.26.0
+pkgrel=6
+pkgdesc="Lightweight, framework-agnostic database migration tool"
+url="https://github.com/amacneil/dbmate"
+arch="all"
+license="MIT"
+makedepends="go"
+subpackages="$pkgname-doc"
+source="https://github.com/amacneil/dbmate/archive/v$pkgver/dbmate-$pkgver.tar.gz"
+options="net"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+prepare() {
+	default_prepare
+	go mod download
+}
+
+build() {
+	go build -v
+}
+
+check() {
+	go test -v
+}
+
+package() {
+	install -Dm755 dbmate -t "$pkgdir"/usr/bin/
+
+	install -Dm644 LICENSE -t "$pkgdir"/usr/share/licenses/dbmate/
+}
+
+sha512sums="
+a2e68a00b55601cfaffab17b097da33e6f0ed65b53274627ffb6f9fca37e78f260fb3e655cbbc96eac63a72df5ad4ced21743fa3bffe23dec21cc558faf54715  dbmate-2.26.0.tar.gz
+"

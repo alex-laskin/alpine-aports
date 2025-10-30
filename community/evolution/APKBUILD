@@ -1,0 +1,73 @@
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=evolution
+pkgver=3.58.0
+pkgrel=1
+# NOTE: Upgrade only to even-numbered versions (e.g. 1.18.x, 1.20.x)!
+pkgdesc="Evolution mail client"
+url="https://gitlab.gnome.org/GNOME/evolution/-/wikis/home"
+arch="all"
+license="GPL-2.0-or-later"
+depends="highlight gsettings-desktop-schemas"
+depends_dev="evolution=$pkgver-r$pkgrel
+	enchant2-dev
+	gcr-dev
+	itstool
+	libcanberra-dev
+	libgweather4-dev
+	libnotify-dev
+	libxml2-dev
+	openldap-dev
+	"
+makedepends="$depends_dev
+	bison
+	cmake
+	cmark-dev
+	evolution-data-server-dev
+	flex
+	geocode-glib-dev
+	glib-dev
+	gnome-autoar-dev
+	gnome-desktop-dev
+	gperf
+	gsettings-desktop-schemas-dev
+	gspell-dev
+	gtk+3.0-dev
+	gtkspell3-dev
+	libxml2-utils
+	nss-dev
+	samurai
+	webkit2gtk-4.1-dev
+	"
+options="!check" # need to be installed
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+source="https://download.gnome.org/sources/evolution/${pkgver%.*}/evolution-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DSYSCONF_INSTALL_DIR=/etc \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DENABLE_GNOME_DESKTOP=ON \
+		-DSYSCONF_INSTALL_DIR=/etc \
+		-DENABLE_AUTOAR=ON \
+		-DENABLE_YTNEF=OFF \
+		-DENABLE_PST_IMPORT=OFF \
+		-DENABLE_SMIME=ON \
+		-DENABLE_SCHEMAS_COMPILE=OFF
+	cmake --build build
+}
+
+check() {
+	cd build
+	ctest
+
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+7f4c0d77929cacf58256f9897e4ab23c1003721c70e48c7a7f7f176dad8554aef7696a01b056f5519c583c2f2db4cf22d1c295a3b5c12fdd4d987cb92c98f6d6  evolution-3.58.0.tar.xz
+"

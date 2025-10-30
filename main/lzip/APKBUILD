@@ -1,35 +1,34 @@
 # Contributor: ScrumpyJack <scrumpyjack@st.ilet.to>
-# Maintainer: ScrumpyJack <scrumpyjack@st.ilet.to>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=lzip
-pkgver=1.20
+pkgver=1.25
 pkgrel=0
 pkgdesc="Lzip is a lossless data compressor"
-url="http://www.nongnu.org/lzip/lzip.html"
+url="https://www.nongnu.org/lzip/"
 arch="all"
 license="GPL-2.0-or-later"
 subpackages="$pkgname-doc"
-source="http://download.savannah.gnu.org/releases/$pkgname/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://download-mirror.savannah.gnu.org/releases/lzip/lzip-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
-		CXX="${CXX-g++}" \
-		CPPFLAGS="${CPPFLAGS}" \
-		CXXFLAGS="${CXXFLAGS}" \
-		LDFLAGS="${LDFLAGS}"
-        make
+		CXX="$CXX" \
+		CPPFLAGS="$CPPFLAGS" \
+		CXXFLAGS="$CXXFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR=$pkgdir install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="0349b4c6c0b41e601b7ee381c3254d741397beb3ef9354c08162f346f131f4f48f6613ee0a610cdc6d827530df634f884ecfeee35215b10045a40fee76f8e938  lzip-1.20.tar.gz"
+sha512sums="
+6dec5625d5668d2f6f93816b0f2d7050ef357b5ce9a9af100bde45dddc21171341c2bcb623acdde8146b7eaed2248f8e0f5f32e64f57ecc6fe6cb9a0e187b796  lzip-1.25.tar.gz
+"

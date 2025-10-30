@@ -1,47 +1,47 @@
+# Contributor: Jonas Marklen <txc@txc.se>
 # Contributor: H <agathos5@gmail.com>
-# Maintainer:
+maintainer="Hoang Nguyen <folliekazetani@protonmail.com>"
 pkgname=megatools
-pkgver=1.9.98
-pkgrel=2
-pkgdesc="Megatools is a collection of programs for accessing Mega.nz service from a command line of your desktop or server."
-url="https://megatools.megous.com"
+pkgver=1.11.5.20250706
+pkgrel=0
+pkgdesc="Collection of programs for accessing Mega.nz service"
+url="https://xff.cz/megatools/"
 arch="all"
-license="GPL-2.0"
-makedepends="curl-dev glib-dev libressl-dev gmp-dev asciidoc"
-subpackages="$pkgname-doc"
-source="https://megatools.megous.com/builds/megatools-1.9.98.tar.gz libressl.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+license="GPL-2.0-only"
+makedepends="
+	asciidoc
+	curl-dev
+	docbook2x
+	glib-dev
+	gmp-dev
+	meson
+	openssl-dev
+	"
+subpackages="$pkgname-doc $pkgname-bash-completion"
+source="https://xff.cz/megatools/builds/megatools-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	./configure --prefix=/usr
-	make
+	abuild-meson \
+		-Db_lto=true \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
-	for i in  megacopy megadf megadl megaget megals megamkdir megaput megareg megarm; do
-		msg $i
-		./$i --version
-	done
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	#make DESTDIR="$pkgdir" install
-	./install-sh -c -d "${pkgdir}/usr/bin"
-	./install-sh -c -d "${pkgdir}/usr/share/doc/megatools"
-	./install-sh -c -d "${pkgdir}/usr/share/man/man1"
-	./install-sh -c -d "${pkgdir}/usr/share/man/man5"
-	./install-sh -c -d "${pkgdir}/usr/share/man/man7"
-	./install-sh -c -m 755 megacopy megadf megadl megaget megals megamkdir megaput megareg megarm "${pkgdir}/usr/bin"
-	./install-sh -c -m 644 LICENSE NEWS TODO README INSTALL HACKING "${pkgdir}/usr/share/doc/megatools"
-	./install-sh -c -m 644 docs/megadf.1 docs/megaget.1 docs/megals.1 docs/megamkdir.1 docs/megaput.1 docs/megareg.1 docs/megarm.1 \
-													docs/megacopy.1 docs/megadl.1 "${pkgdir}/usr/share/man/man1"
-	./install-sh -c -m 644 docs/megarc.5 "${pkgdir}/usr/share/man/man5"
-	./install-sh -c -m 644 docs/megatools.7 "${pkgdir}/usr/share/man/man7"
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	install -Dm644 contrib/bash-completion/megatools \
+		"$pkgdir"/usr/share/bash-completion/completions/megatools
+
+	for bin in megacopy megadf megadl megaget megals megamkdir megaput megareg megarm; do
+		ln -s megatools "$pkgdir"/usr/share/bash-completion/completions/$bin
+	done
 }
 
-sha512sums="4e1c9e3a6aae0009d085b38ae79d9ba9e66415b0517eb1f0c0abec40a3be103bf0f78bfd8fa8d678a578eb0652f3b88292bcb53c1e1efc83082a6239644390d0  megatools-1.9.98.tar.gz
-f30370fce5567f52a7dd007704e27e368402287cf5dc416d18f3cfd09d2fd5711b59525a0533546fe0eed98f5d162836a265fbc9d641ff5cca0ad20d3fc4f172  libressl.patch"
+sha512sums="
+d40a24c84199a25de13526fac05da5c342281df0aa98c51a602c2a9e5bea322b18cf7d4e0c79a9208b4d9876cb07299dc701952a9a194e0adcd2066e7c3118a4  megatools-1.11.5.20250706.tar.gz
+"

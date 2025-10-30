@@ -1,0 +1,108 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
+# Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
+# Contributor: Daniel Sabogal <dsabogalcc@gmail.com>
+# Maintainer: Simon Zeni <simon@bl4ckb0ne.ca>
+pkgname=libinput
+pkgver=1.29.2
+pkgrel=0
+pkgdesc="Library for handling input devices"
+url="https://www.freedesktop.org/wiki/Software/libinput"
+arch="all"
+license="MIT"
+_depends_tools="
+	py3-libevdev
+	py3-udev
+	py3-yaml
+	python3
+	"
+depends_dev="
+	eudev-dev
+	"
+makedepends="
+	$_depends_tools
+	$depends_dev
+	gtk+3.0-dev
+	libevdev-dev
+	meson
+	mtdev-dev
+	"
+checkdepends="
+	bash
+	check-dev
+	py3-pytest
+	"
+subpackages="
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-libs
+	$pkgname-udev::all
+	$pkgname-debug-gui:_debug_gui
+	$pkgname-tools
+	$pkgname-zsh-completion
+	"
+install="$pkgname.post-upgrade"
+source="https://gitlab.freedesktop.org/libinput/libinput/-/archive/$pkgver/libinput-$pkgver.tar.gz
+	test-utils.c.patch
+	1318.patch
+	"
+
+# secfixes:
+#   1.20.1-r0:
+#     - CVE-2022-1215
+
+build() {
+	abuild-meson \
+		-Db_lto=true \
+		-Ddocumentation=false \
+		-Dlibwacom=false \
+		-Ddebug-gui=true \
+		-Dtests="$(want_check && echo true || echo false)" \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+libs() {
+	default_libs
+
+	amove usr/share/libinput
+}
+
+udev() {
+	install_if="$pkgname-libs=$pkgver-r$pkgrel eudev"
+
+	amove usr/lib/udev
+}
+
+tools() {
+	pkgdesc="CLI helper tools for debugging libinput"
+	depends="$pkgname=$pkgver-r$pkgrel $_depends_tools"
+
+	# Q: Maybe move all tools (even libinput-list-devices, libinput-quirks)
+	#    into -tools? (jirutka)
+	amove usr/libexec/libinput/libinput-analyze*
+	amove usr/libexec/libinput/libinput-debug*
+	amove usr/libexec/libinput/libinput-measure*
+	amove usr/libexec/libinput/libinput-record
+	amove usr/libexec/libinput/libinput-replay
+}
+
+_debug_gui() {
+	pkgdesc="GTK-based visual debug helper for libinput"
+	depends=""
+
+	amove usr/libexec/libinput/libinput-debug-gui
+}
+
+sha512sums="
+20e6b8ae758fd4b110fe14d7f64aa61dbd951c4328d92d057224319e60ec42a92a508f18edfb5bfb4c13e078f85b627b19046d86d3e1e9a2deca56aa68372edc  libinput-1.29.2.tar.gz
+b5fea5bf24140e28716e429006db18715ea47fd87eb3f124e9f08505138403affb68f1b7f2656aabb6ff4e7eedcae84fe02725bd583a9cdca7aea7a294a349dc  test-utils.c.patch
+f45d0a9c08fdb2905f7312785394336794000faa23b598c16214243a1491b96de0fe9b594cc2c0f8366926aefdb503e248c55bee600d467a28e846097e7d0ecc  1318.patch
+"

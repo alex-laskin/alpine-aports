@@ -1,0 +1,55 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kpublictransport
+pkgver=25.08.1
+pkgrel=0
+# armhf blocked by qt6-qtdeclarative
+arch="all !armhf"
+url="https://invent.kde.org/libraries/kpublictransport"
+pkgdesc="Library to assist with accessing public transport timetables and other data"
+license="BSD-3-Clause AND LGPL-2.0-or-later AND MIT"
+depends="
+	kirigami
+	kitemmodels
+	tzdata
+	"
+depends_dev="
+	ki18n-dev
+	kirigami-addons-dev
+	networkmanager-qt-dev
+	protobuf-dev
+	qt6-qt5compat-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-dev
+	qt6-qtdeclarative-private-dev
+	zlib-dev
+	"
+makedepends="$depends_dev
+	extra-cmake-modules
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-lang"
+_repo_url="https://invent.kde.org/libraries/kpublictransport.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/kpublictransport-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	local _disabled_tests="hafasmgaterequest|efarequest|cache|backend"
+	ctest --test-dir build -E "($_disabled_tests)test"
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+3aa0291f5b7319825c9fabecde0625760745485243b1c0f9d4a662bc4556943741a16d504d6cdd5ededb903d673979a2dbe783b4810b3d7645ae59589dc7a790  kpublictransport-25.08.1.tar.xz
+"

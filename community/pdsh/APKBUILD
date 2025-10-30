@@ -1,30 +1,32 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=pdsh
-pkgver=2.33
+pkgver=2.35
 pkgrel=0
 pkgdesc="A high performance, parallel remote shell utility"
 url="https://github.com/chaos/pdsh"
 arch="all"
-license="GPL-2.0"
+license="GPL-2.0-or-later"
 depends="perl"
 makedepends="autoconf automake libtool readline-dev ncurses-dev"
+checkdepends="bash"
 subpackages="$pkgname-doc $pkgname-rcmd-ssh:_rcmd_ssh"
-source="https://github.com/chaos/$pkgname/archive/$pkgname-$pkgver.tar.gz
+source="https://github.com/chaos/pdsh/archive/pdsh-$pkgver.tar.gz
 	without-rresvport.patch
+	hostlist-fix-array-access.patch
+	hostlist-update-lsd-tools.patch
 	fix-test-t6036.patch"
+options="checkroot" # exec user needs to match module lib path owner
 builddir="$srcdir/$pkgname-$pkgname-$pkgver"
-options="!checkroot"
 
 prepare() {
 	default_prepare
 
-	cd "$builddir"
+	sed -i "s|m4_esyscmd(\[git describe .*\])|[$pkgver]|" configure.ac
 	./bootstrap
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -40,12 +42,21 @@ build() {
 }
 
 check() {
-	cd "$builddir"
-	make check
+	# Set setgid bit on world-writable directory recursively
+	# on the module lib path and its parents to pass permissions check
+	# This is done up to the second level, e.g. /builds, /home
+	# https://github.com/hilmiller/pdsh/issues/16#issuecomment-216354380
+	find "${builddir%/*/*/*/*/*/*}" -type d -exec chmod 1777 {} \;
+
+	# Skip module loading tests that do not work when run as root
+	# https://github.com/chaos/pdsh/blob/master/tests/test-lib.sh#L926
+	PDSH_SKIP_TESTS="
+		t0004.6 t0004.7 t0004.9
+		t0006.14 t0006.15 t0006.16 t0006.18 t0006.19
+		" make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
@@ -58,6 +69,10 @@ _rcmd_ssh() {
 	mv "$pkgdir"/usr/lib/$pkgname/sshcmd.* "$subpkgdir"/usr/lib/$pkgname/
 }
 
-sha512sums="cb6cd9c8449c9484ff35405a162930635cf2e7c83a5d2f476fff23f070c63a7e2d2eb1135b3480aaf76e707d4b13f563a07a787ed2e8ee7a6cba38cc0fcd4333  pdsh-2.33.tar.gz
-97d9cde907cdfe51cb805dcf772011578cc1485d67ad177e24a4f81283aac2535a400a9d71cc79f4c08f4ae8e5886635203b1c92c910ae915a591eb616b7347a  without-rresvport.patch
-8ddfb37a4e7c9550f79e8bf0d24795203f23452541382f8d744adfe40889964fa966655795f2d4d594ee21af3f14c9d2fe93ad98a0620403d5c42aaab1f55949  fix-test-t6036.patch"
+sha512sums="
+fcfb72fa6db7d44599c93cee4dbf91acb7dc35e7e4a3da54e21ac4fa5feb0164bb8f2c4293c90cbc085c25f79af71008dc5de05a716a0070a46b1f4f249c47d8  pdsh-2.35.tar.gz
+4789a1e8ee5d5a9060b6f05f4daf010fd85f3fb1050935f722d4ebcca490b8a311bd8ea025b174a2e72219291e869ccb33be501a60afccd6f51107b99fe05c05  without-rresvport.patch
+17e8673f4d133693bea619b896346acd8de6a3f8b87fbf52d320647068ba7c5f19ada257359cd3b9c92c60f7c81e42bdcd6d8ddd24b13655dd1944797d875c71  hostlist-fix-array-access.patch
+974a1247d1facd199a77a8317ca9a54b84347ecef096b05bc5fa9f21b1839479a22fabdb6ab521aac0f36ec22c40ce82ca55145782081dc9c0f080ab8b156f49  hostlist-update-lsd-tools.patch
+8ddfb37a4e7c9550f79e8bf0d24795203f23452541382f8d744adfe40889964fa966655795f2d4d594ee21af3f14c9d2fe93ad98a0620403d5c42aaab1f55949  fix-test-t6036.patch
+"

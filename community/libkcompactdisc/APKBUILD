@@ -1,0 +1,44 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=libkcompactdisc
+pkgver=25.08.1
+pkgrel=0
+# armhf blocked by qt6-qtdeclarative -> ki18n
+arch="all !armhf"
+url="https://www.kde.org/applications/multimedia/"
+pkgdesc="Library for interfacing with CDs"
+license="GPL-2.0-or-later AND LGPL-2.0-or-later"
+makedepends="
+	extra-cmake-modules
+	kcoreaddons-dev
+	ki18n-dev
+	phonon-dev
+	qt6-qtbase-dev
+	samurai
+	solid-dev
+	"
+subpackages="$pkgname-dev $pkgname-lang"
+_repo_url="https://invent.kde.org/multimedia/libkcompactdisc.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/libkcompactdisc-$pkgver.tar.xz"
+options="!check" # No usable tests
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+a2b4a2d90c78b27ece75fad105b0dc1b907aa517637d5d75123e2557f6927f6b61ed029754e4a871d50579f82ebc4cf197affc77003c662f06cb1eb1067b5c26  libkcompactdisc-25.08.1.tar.xz
+"

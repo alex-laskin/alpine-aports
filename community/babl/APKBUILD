@@ -1,40 +1,56 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=babl
-pkgver=0.1.50
+pkgver=0.1.114
 pkgrel=0
 pkgdesc="Dynamic, any to any, pixel format conversion library"
-url="http://gegl.org/babl"
+url="https://gegl.org/babl"
 arch="all"
 license="LGPL-3.0-or-later"
-subpackages="$pkgname-dev"
-source="https://ftp.gimp.org/pub/babl/${pkgver%.*}/$pkgname-$pkgver.tar.bz2"
+depends_dev="$pkgname-tools=$pkgver-r$pkgrel"
+makedepends="meson gobject-introspection-dev lcms2-dev vala"
+subpackages="$pkgname-dev $pkgname-tools"
+source="https://download.gimp.org/pub/babl/${pkgver%.*}/babl-$pkgver.tar.xz
+	arm-neon-v1.patch
+	git.patch
+	"
+
+prepare() {
+	default_prepare
+
+	# Since 10th February 2024, float-to-8bit is also failing on s390x.
+	# Even on 3.19, a rebuild of babl 0.1.106 will cause this test to fail.
+	# This is a known issue: https://gitlab.gnome.org/GNOME/babl/-/issues/88
+	case $CARCH in
+	aarch64|s390x)
+		sed -i \
+			-e "/float-to-8bit/d" \
+			tests/meson.build
+		;;
+	esac
+}
 
 build() {
-	cd "$builddir"
-	# See: https://bugzilla.gnome.org/show_bug.cgi?id=790745
-	[ "$CARCH" = "s390x" ] && sed -i -e 's/-Ofast//g' configure
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr
-	make
+	CFLAGS="$CFLAGS -O2" \
+	abuild-meson -Db_lto=true . output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	for i in float-to-8bit; do
-		cat > tests/$i <<- EOF
-		#!/bin/sh
-		echo Skipping test "$i"
-		EOF
-		chmod +x "tests/$i"
-	done
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="9b321933f6da41ce9be85a9b5e33a24857cb33d2a2a02ec30173c99dff66354d03c53e5e94ae46f9b59b11b9404b0cffbc39fc14e360412eca70584b61d25097  babl-0.1.50.tar.bz2"
+tools() {
+	pkgdesc="$pkgdesc (cli tool)"
+
+	amove usr/bin
+}
+
+sha512sums="
+ff410c9839f4fe4d6afd4dec7e4d02af34b1c8a4edbc05483784ed82f91045b1102414fc1c58357866044b7f1ab499eda24fe744f5dd692af5804020c76b2382  babl-0.1.114.tar.xz
+8c73e601fc376ed4aab10193d6060b2a2d49f2f71062ae8478335ec1eab488adf44bf6c1fe3258cf14375add7f2aa54f6eab4449f0dc3f5bdffec47ca18d166d  arm-neon-v1.patch
+8208bd7a0e34508e14a68b1f67396d2804ff2f73db4e58d198b352891e72cc19db350c05c9fa6662b25ed4671073bd08410386ac34c88e20c618125909dd38c6  git.patch
+"

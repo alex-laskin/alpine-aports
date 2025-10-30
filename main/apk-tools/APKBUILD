@@ -1,85 +1,140 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=apk-tools
-pkgver=2.10.0_rc1
+pkgver=3.0.0_rc7
+_commit=4369278256670e3c691dd5c834d8f828e03a31b3
 pkgrel=0
 pkgdesc="Alpine Package Keeper - package manager for alpine"
-subpackages="$pkgname-static"
-depends=
-makedepends_build=""
-makedepends_host="zlib-dev libressl libressl-dev linux-headers"
-makedepends="$makedepends_build $makedepends_host"
-if [ "$CBUILD" = "$CHOST" ]; then
-	subpackages="$subpackages lua5.2-apk:luaapk"
-	makedepends="$makedepends lua5.2-dev"
-fi
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz
-	"
-
-url="https://git.alpinelinux.org/cgit/apk-tools/"
 arch="all"
-license=GPL2
+url="https://gitlab.alpinelinux.org/alpine/apk-tools"
+license="GPL-2.0-only"
+subpackages="$pkgname-dbg $pkgname-dev $pkgname-static $pkgname-doc $pkgname-zsh-completion libapk"
+# Musl 1.2 introduced new ABI for time64 => upgrading apk-tools
+# while staying on musl <1.2 causes missing symbols
+# starting with musl 1.2.3_git (pre 1.2.3), we added DT_RELR
+# it is possible for old systems to upgrade, and apk-tools would upgrade first,
+# which would upgrade to a binary that cannot run until musl is upgraded.
+# forcing this constraint makes apk upgrade musl as part of the 'critical' transaction,
+# and update musl first.
+# openssl 3.5(?) introduced new symbols:
+# https://gitlab.alpinelinux.org/alpine/aports/-/issues/17199
+depends="
+	musl>=1.2.3_git20230424
+	libcrypto3>=3.5
+	libapk=$pkgver-r$pkgrel
+	"
+_lua="5.3"
+makedepends_build="meson openssl-dev>=3.5 lua$_lua lua$_lua-lzlib scdoc"
+makedepends_host="
+	linux-headers
+	openssl-dev
+	openssl-libs-static
+	zlib-dev
+	zlib-static
+	zstd-dev
+	zstd-static
+	"
+checkdepends="cmocka-dev"
+if [ -z "$BOOTSTRAP" ]; then
+	subpackages="$subpackages lua$_lua-apk:luaapk py3-apk:pyapk"
+	makedepends_host="$makedepends_host lua$_lua-dev python3-dev"
 
-builddir="$srcdir/$pkgname-$pkgver"
-prepare() {
-	default_prepare || return 1
-	cd "$builddir"
-	sed -i -e 's:-Werror::' Make.rules
-	echo "FULL_VERSION=$pkgver-r$pkgrel" > config.mk || return 1
-	if [ "$CBUILD" = "$CHOST" ]; then
-		echo "LUAAPK=YesPlease" >> config.mk
-	else
-		echo "LUAAPK=" >> config.mk
-	fi
-	echo "export LUAAPK" >> config.mk
-}
+	# ca-certificates-bundle needed for https certificate validation
+	depends="$depends ca-certificates-bundle"
+fi
+source="https://gitlab.alpinelinux.org/alpine/apk-tools/-/archive/$_commit/apk-tools-v$pkgver.tar.gz
+	repo-hash-sha1.patch
+	_apk
+	"
+builddir="$srcdir/apk-tools-$_commit"
+
+provides="apk-tools3=$pkgver-r$pkgrel"
+replaces="apk-tools3"
+
+# secfixes:
+#   2.12.6-r0:
+#     - CVE-2021-36159
+#   2.12.5-r0:
+#     - CVE-2021-30139
 
 build() {
-	cd "$builddir"
-	make || return 1
-	make static || return 1
+	export VERSION=$pkgver-r$pkgrel
+
+	abuild-meson \
+		--auto-features=disabled \
+		--bindir=/sbin \
+		-Darch="$CARCH" \
+		-Ddocs=enabled \
+		-Dhelp=enabled \
+		-Dlua_version=$_lua \
+		-Dlua="$([ -z "$BOOTSTRAP" ] && echo enabled || echo disabled)" \
+		-Dpython="$([ -z "$BOOTSTRAP" ] && echo enabled || echo disabled)" \
+		-Dtests="$(want_check && echo enabled || echo disabled)" \
+		output
+	ninja -C output
+
+	abuild-meson \
+		--auto-features=disabled \
+		-Darch="$CARCH" \
+		-Dc_link_args="$LDFLAGS -static" \
+		-Ddefault_library=static \
+		-Dprefer_static=true \
+		output-static
+	ninja -C output-static src/apk
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	install -d "$pkgdir"/var/lib/apk \
-		"$pkgdir"/var/cache/misc \
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+	install -d "$pkgdir"/lib/apk/db \
+		"$pkgdir"/lib/apk/exec \
 		"$pkgdir"/etc/apk/keys \
-		"$pkgdir"/etc/apk/protected_paths.d \
-		|| return 1
-	# the shipped README is empty
-	rm -r "$pkgdir"/usr/share/
+		"$pkgdir"/etc/apk/protected_paths.d
+
+	install -Dm644 "$srcdir"/_apk "$pkgdir"/usr/share/zsh/site-functions/_apk
+}
+
+libapk() {
+	provides="libapk2=$pkgver-r$pkgrel"
+	depends=""
+	amove usr/lib/libapk.so.*
 }
 
 static() {
 	pkgdesc="Alpine Package Keeper - static binary"
-	install -Dm755 "$srcdir"/$pkgname-$pkgver/src/apk.static \
+	depends=""
+	install -Dm755 "$builddir"/output-static/src/apk \
 		"$subpkgdir"/sbin/apk.static
 
 	# lets sign the static binary so it can be vefified from distros
 	# that does not have apk-tools
-	local abuild_conf=${ABUILD_CONF:-"/etc/abuild.conf"}
-	local abuild_home=${ABUILD_USERDIR:-"$HOME/.abuild"}
-	local abuild_userconf=${ABUILD_USERCONF:-"$abuild_home/abuild.conf"}
-	[ -f "$abuild_userconf" ] && . "$abuild_userconf"
-	local privkey="$PACKAGER_PRIVKEY"
-	local pubkey=${PACKAGER_PUBKEY:-"${privkey}.pub"}
-	local keyname=${pubkey##*/}
+	local pubkey="${PACKAGER_PUBKEY:-$PACKAGER_PRIVKEY.pub}"
+	local keyname="${pubkey##*/}"
 	${CROSS_COMPILE}strip "$subpkgdir"/sbin/apk.static
-	openssl dgst -sha1 -sign "$privkey" \
-		-out "$subpkgdir"/sbin/apk.static.SIGN.RSA.$keyname \
-		"$subpkgdir"/sbin/apk.static || return 1
+	openssl dgst -sha1 -sign "$PACKAGER_PRIVKEY" \
+		-out "$subpkgdir"/sbin/apk.static.SIGN.RSA."$keyname" \
+		"$subpkgdir"/sbin/apk.static
+	openssl dgst -sha256 -sign "$PACKAGER_PRIVKEY" \
+		-out "$subpkgdir"/sbin/apk.static.SIGN.RSA.sha256."$keyname" \
+		"$subpkgdir"/sbin/apk.static
 }
 
 luaapk() {
 	pkgdesc="Lua module for apk-tools"
-	mkdir -p "$subpkgdir"/usr/
-	mv "$pkgdir"/usr/lib "$subpkgdir"/usr/lib/
+	depends=""
+	amove usr/lib/lua
 }
 
-sha512sums="b41421f981a05e51de12297d8d88982caa66af3289681ff48485ae8a7b319587d6383ec0af2400af54735e8a20aab8fbd1481dbee754d750fd6d974e0a075c97  apk-tools-2.10.0_rc1.tar.xz"
+pyapk() {
+	pkgdesc="Python module for apk-tools"
+	depends=""
+	amove usr/lib/python*
+}
+
+sha512sums="
+46f281e0d040df6ac3ff26becca923ff30b3ef1b567143b7e73f1ef9d6fbb4a723173413737356a1ada9a981b0975651a86ba744ac48da9d51e2d3df4cd38a97  apk-tools-v3.0.0_rc7.tar.gz
+458fe877cf8920882fdfced6f9f374f0d986337e2d4e0a20dbda31c3f25741beb7273911f711cc8b28b1706f20d7ae2be671e988c3602867e6f42cc85a5e704d  repo-hash-sha1.patch
+993518cafcc5a932c9a418f7aac48012fc48f03c55964ad99d04b034bfa185d550c38dab46f1046adfaa1d65b422b4095b5a54d9a2504dee9278f25e76f9e3ed  _apk
+"

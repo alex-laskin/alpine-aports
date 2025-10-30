@@ -1,21 +1,26 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
-# Maintainer: Jakub Jirutka <jakub@jirutka.cz>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
+# Maintainer: Simon Rupf <simon@rupf.net>
 pkgname=xterm
-pkgver=333
+pkgver=403
 pkgrel=0
 pkgdesc="X Terminal Emulator"
-url="http://invisible-island.net/xterm"
+options="!check" # Requires vttest
+url="https://invisible-island.net/xterm"
 arch="all"
-license="custom"
-depends=""
+license="MIT"
+depends="ncurses-terminfo-base"
 makedepends="libxaw-dev libxft-dev ncurses-dev"
 subpackages="$pkgname-doc"
-source="ftp://ftp.invisible-island.net/$pkgname/$pkgname-$pkgver.tgz
-	posix-ptys.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://invisible-island.net/archives/xterm/xterm-$pkgver.tgz"
+
+# secfixes:
+#   371-r0:
+#     - CVE-2022-24130
+#   366-r0:
+#     - CVE-2021-27135
 
 build() {
-	cd "$builddir"
+	export CFLAGS="$CFLAGS -flto=auto -D_BSD_SOURCE"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -46,16 +51,21 @@ build() {
 		--enable-narrowproto \
 		--enable-exec-xterm \
 		--enable-sixel-graphics \
+		--enable-block-select \
 		--with-tty-group=tty \
-		--with-utempter \
-		|| return 1
-	make || return 1
+		--with-utempter
+	make
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
+	install -m755 -d "$pkgdir"/usr/share/applications
+	install -m644 "$builddir"/xterm.desktop "$pkgdir"/usr/share/applications/
+	install -m644 "$builddir"/uxterm.desktop "$pkgdir"/usr/share/applications/
+	install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	install -Dm644 README.i18n "$pkgdir"/usr/share/doc/$pkgname/README.i18n
 }
 
-sha512sums="90c5d8d3d039417915d40d22fcc6244d1c86e8bcc39d865ba6cb67fc9d1ff6e0f3ee79da06a094d23f6801195f0baa26564a553d04c974d62a331016118215a0  xterm-333.tgz
-03722dc3ebe8067a1edf4673ce2e5132832e52818f4e122bfbd3846a4ebf0ca25bea999d98455b87ec572931becbbb0432e22c75b0fb5371a81c8acf0c4e9f98  posix-ptys.patch"
+sha512sums="
+02847566386c469a303bd523ad2d6c0d785612f327485e28ec78d17ca730475ec74f8e6feebd4e8d29745dbcf62a009983d7dcf3c573bc4998b29cd79c663265  xterm-403.tgz
+"

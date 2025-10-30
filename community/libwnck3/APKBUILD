@@ -1,38 +1,43 @@
-# Maintainer:
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
 # Contributor: Sergey Lukin <sergej.lukin@gmail.com>
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libwnck3
-pkgver=3.24.1
+pkgver=43.3
 pkgrel=0
 pkgdesc="Window Navigator Construction Kit"
-url="https://git.gnome.org/browse/libwnck"
+url="https://gitlab.gnome.org/GNOME/libwnck"
 arch="all"
-license="LGPL"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-depends=
+license="LGPL-2.0-or-later"
+subpackages="$pkgname-dev $pkgname-lang"
 replaces="libwnck"
-depends_dev="glib-dev gtk+3.0-dev libx11-dev pango-dev cairo-dev
-	startup-notification-dev libxres-dev"
-makedepends="$depends_dev intltool"
+makedepends="
+	cairo-dev
+	glib-dev
+	gobject-introspection-dev
+	gtk+3.0-dev
+	libx11-dev
+	libxres-dev
+	meson
+	pango-dev
+	startup-notification-dev
+	"
+options="!check" # no tests
 source="https://download.gnome.org/sources/libwnck/${pkgver%.*}/libwnck-$pkgver.tar.xz"
-
-_builddir="$srcdir"/libwnck-$pkgver
+builddir="$srcdir/libwnck-$pkgver"
 
 build() {
-	cd "$_builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--localstatedir=/var \
-		--disable-static \
-		|| return 1
-	make || return 1
+	abuild-meson \
+		-Db_lto=true \
+		-Dgtk_doc=false \
+		. output
+	meson compile -C output
 }
 
 package() {
-	cd "$_builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
-sha512sums="e8a31ab2dc0c282f1e0994ce6a2ccd18678dc5c140943399262e795052b7f5da2d6a5d388a74f4b10f8fac66ab138983a9caaee4e72c92a17c01ca5c39b731e1  libwnck-3.24.1.tar.xz"
+
+sha512sums="
+51304ab6ad543d10e8542257b24964dbce454eb1bedfa26fc926797b01373b9effad8097fe0f18216439d0339525377abb9e3c88b58cc2e7ed04832cb40a27ed  libwnck-43.3.tar.xz
+"

@@ -1,0 +1,49 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-plasma
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kwallet-pam
+pkgver=6.5.1
+pkgrel=0
+pkgdesc="KWallet PAM integration"
+# armhf blocked by qt6-qtdeclarative -> kwallet
+arch="all !armhf"
+url="https://kde.org/plasma-desktop/"
+license="LGPL-2.1-or-later"
+depends="socat"
+makedepends="
+	extra-cmake-modules
+	kwallet-dev
+	libgcrypt-dev
+	linux-pam-dev
+	samurai
+	"
+
+case "$pkgver" in
+	*.*.9*) _rel=unstable;;
+	*) _rel=stable;;
+esac
+
+_repo_url="https://invent.kde.org/plasma/kwallet-pam.git"
+source="https://download.kde.org/$_rel/plasma/$pkgver/kwallet-pam-$pkgver.tar.xz"
+# No tests available
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBEXECDIR=libexec \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	# We don't ship systemd
+	rm -r "$pkgdir"/usr/lib/systemd
+}
+
+sha512sums="
+9dde6c0fe4bae6ad3e0bd476d2e42c21f04857cbd1e7e85f6d29080904aa98f009f896e57579f8e31cb3923f7034b965ae67cff1489adb44ea85e83b26a6a589  kwallet-pam-6.5.1.tar.xz
+"

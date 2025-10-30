@@ -1,0 +1,42 @@
+# Maintainer: mio <miyopan@e.email>
+maintainer="mio <miyopan@e.email>"
+pkgname=offpunk
+pkgver=2.7.1
+pkgrel=0
+pkgdesc="An offline-first browser for the small internet"
+url="https://offpunk.net"
+license="AGPL-3.0-only"
+install="$pkgname.post-install"
+arch="noarch"
+depends="
+	chafa
+	file
+	less
+	py3-requests
+	python3
+	"
+makedepends="
+	py3-gpep517
+	py3-hatchling
+	py3-installer
+	"
+subpackages="$pkgname-doc $pkgname-pyc"
+source="offpunk-$pkgver.tar.gz::https://git.sr.ht/~lioploum/offpunk/archive/v$pkgver.tar.gz"
+options="!check" # No tests
+builddir="$srcdir"/offpunk-v"$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+	install -Dm0644 man/"$pkgname".1 "$pkgdir"/usr/share/man/man1/"$pkgname".1
+	install -Dm0644 README.md "$pkgdir"/usr/share/doc/"$pkgname"/README.md
+}
+
+sha512sums="
+401c3ddd6201a9ea5f9b01cbbb3ae6655b3183b9c9728e18f351dff2f7e02987dab5160502dce14dc79a54083b590735fe8b2c7de8d264222f463ffc50c51592  offpunk-2.7.1.tar.gz
+"

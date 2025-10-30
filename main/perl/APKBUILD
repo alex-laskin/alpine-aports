@@ -1,23 +1,54 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=perl
-pkgver=5.26.2
-pkgrel=1
+pkgver=5.42.0
+pkgrel=0
+_cross=1.6.2
+_pkgver=${pkgver/_rc/-RC}
 pkgdesc="Larry Wall's Practical Extraction and Report Language"
-url="http://www.perl.org/"
+url="https://www.perl.org/"
 arch="all"
-license="Artistic GPL-2.0"
-options="!check !fhs"  # Tests require more musl locale support
-depends=""
-depends_dev="perl-utils"
-makedepends="bzip2-dev zlib-dev"
-subpackages="$pkgname-doc $pkgname-dev $pkgname-utils::noarch miniperl"
-source="http://www.cpan.org/src/5.0/perl-$pkgver.tar.gz
-	CVE-2018-12015.patch
+license="Artistic-1.0-Perl OR GPL-1.0-or-later"
+depends_dev="perl-utils=$pkgver-r$pkgrel"
+makedepends_host="bzip2-dev zlib-dev"
+subpackages="$pkgname-doc $pkgname-dev $pkgname-utils::noarch"
+[ "$CBUILD" = "$CHOST" ] && subpackages="$subpackages miniperl"
+source="https://www.cpan.org/src/5.0/perl-$_pkgver.tar.xz
+	perl-cross-$_cross.tar.gz.noauto::https://github.com/arsv/perl-cross/releases/download/$_cross/perl-cross-$_cross.tar.gz
+	digest-sha-cflags.patch
+	dont-write-packlist.patch
+	json-pp-options.patch
+	musl-skip-dst-test.patch
+	musl-stack-size.patch
+	skip-test-due-to-busybox-ps.patch
+	"
+builddir="$srcdir/$pkgname-$_pkgver"
+# creates empty usr/local/{lib,share} for local sitedirs
+options="!fhs"
+
+# in perl core, removed from main/perl-scalar-list-utils
+provides="
+	perl-scalar-list-utils=$pkgver-r$pkgrel
 	"
 
 # secfixes:
+#   5.40.1-r1:
+#     - CVE-2024-56406
+#   5.38.1-r0:
+#     - CVE-2023-47038
+#   5.34.0-r1:
+#     - CVE-2021-36770
+#   5.30.3-r0:
+#     - CVE-2020-10543
+#     - CVE-2020-10878
+#     - CVE-2020-12723
+#   5.26.3-r0:
+#     - CVE-2018-18311
+#     - CVE-2018-18312
+#     - CVE-2018-18313
+#     - CVE-2018-18314
 #   5.26.2-r1:
 #     - CVE-2018-12015
 #   5.26.2-r0:
@@ -28,39 +59,72 @@ source="http://www.cpan.org/src/5.0/perl-$pkgver.tar.gz
 #     - CVE-2017-12837
 #     - CVE-2017-12883
 
-builddir="$srcdir/$pkgname-$pkgver"
-
 _privlib=/usr/share/perl5/core_perl
 _archlib=/usr/lib/perl5/core_perl
 
 prepare() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		msg "Unpacking perl-cross-$_cross.tar.gz.noauto..."
+		tar --strip-components=1 -C "$builddir" \
+			-zxf "$srcdir"/perl-cross-$_cross.tar.gz.noauto
+		sed -Ei 's/\^(clang version)/^Alpine \1/' \
+			"$builddir"/cnf/configure_tool.sh
+	fi
+
+	# most sources are readonly but we patch some
 	chmod +w "$builddir"/*.c
-	default_prepare || return 1
-	cd "$builddir"
-	sed	-e 's/less -R/less/g' \
-		-e 's/libswanted="\(.*\) nsl\(.*\)"/libswanted="\1\2"/g' \
-		-i ./Configure || return 1
+	default_prepare
 
 	# Ensure that we never accidentally bundle zlib or bzip2
 	rm -rf cpan/Compress-Raw-Zlib/zlib-src
 	rm -rf cpan/Compress-Raw-Bzip2/bzip2-src
 	sed -i '/\(bzip2\|zlib\)-src/d' MANIFEST
+}
 
+_configure() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		./configure \
+			--build=$CBUILD \
+			--target=$CHOST \
+			--sysroot=$CBUILDROOT \
+			--prefix=/usr \
+			--host-has\ perl_lc_all_uses_name_value_pairs=no \
+			--host-has\ perl_lc_all_separator=yes \
+			--host-set\ perl_lc_all_separator='";"' \
+			--host-has\ perl_lc_all_category_positions_init=yes \
+			--host-set\ perl_lc_all_category_positions_init='{0,1,2,3,4,5}' \
+			-Ud_perl_lc_all_uses_name_value_pairs \
+			-Dd_perl_lc_all_separator \
+			-Dperl_lc_all_separator='";"' \
+			-Dd_perl_lc_all_category_positions_init \
+			-Dperl_lc_all_category_positions_init='{ 0, 1, 2, 3, 4, 5 }' \
+			"$@"
+	else
+		./Configure \
+			-des \
+			-Dprefix=/usr \
+			"$@"
+	fi
 }
 
 build() {
-	cd "$builddir"
-	BUILD_ZLIB=0
-	BUILD_BZIP2=0
-	BZIP2_LIB=/usr/lib
-	BZIP2_INCLUDE=/usr/inculde
+	export BUILD_ZLIB=0
+	export BUILD_BZIP2=0
+	export BZIP2_LIB="$CBUILDROOT/usr/lib"
+	export BZIP2_INCLUDE="$CBUILDROOT/usr/include"
 
-	export BUILD_ZLIB BUILD_BZIP2 BZIP2_LIB BZIP2_INCLUDE
-	./Configure -des \
-		-Dcccdlflags='-fPIC' \
+	# language runtime
+	export CFLAGS="${CFLAGS//-Os/-O2}"
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CFLAGS="$CFLAGS -D_GNU_SOURCE" # memrchr
+		HOSTCFLAGS="$HOSTCFLAGS -D_GNU_SOURCE" # setresu/gid
+	else
+		CFLAGS="$CFLAGS -flto=auto"
+	fi
+
+	_configure \
 		-Dcccdlflags='-fPIC' \
 		-Dccdlflags='-rdynamic' \
-		-Dprefix=/usr \
 		-Dprivlib=$_privlib \
 		-Darchlib=$_archlib \
 		-Dvendorprefix=/usr \
@@ -82,78 +146,104 @@ build() {
 		-Dman1ext='1' \
 		-Dman3ext='3pm' \
 		-Dcf_by='Alpine' \
+		-Dcf_email='buildozer@alpinelinux.org' \
 		-Ud_csh \
+		-Ud_fpos64_t \
+		-Ud_off64_t \
 		-Dusenm \
-		|| return 1
-	make libperl.so && make || return 1
+		-Duse64bitint
+	make libperl.so && make
+}
+
+check() {
+	export CI=true
+	export LC_ALL=C
+
+	# Perl tests HARNESS_OPTIONS against the regex
+	# /^j(\d*)$/, if $JOBS is unset, it defaults to 9
+	export HARNESS_OPTIONS=j"$JOBS"
+	export PERL_TEST_HARNESS_ASAP=1
+
+	make test_harness_notty
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	if [ -n "$(find $pkgdir/usr/local -type f)" ]; then
+	make DESTDIR="$pkgdir" install.perl
+
+	if subpackages_has "$pkgname-doc"; then
+		make install.man \
+			DESTDIR="$pkgdir" \
+			INSTALLFLAGS="--man3ext=3pm"
+	fi
+
+	# omit global flto afterward
+	# perl saves compile-time cflags and applies them to every future build
+	sed -i \
+		-e "s| -flto=auto||g" \
+		"$pkgdir"/usr/lib/perl5/core_perl/Config_heavy.pl
+
+	if [ -n "$(find "$pkgdir"/usr/local -type f)" ]; then
 		error "files found under /usr/local"
 		return 1
 	fi
-	find "$pkgdir" -name '.*' -delete
 }
 
 miniperl() {
-	install -Dm755 "$builddir"/$subpkgname \
-		"$subpkgdir"/usr/bin/$subpkgname || return 1
+	install -Dvm755 "$builddir"/miniperl \
+		-t "$subpkgdir"/usr/bin/
 }
 
 doc() {
-	default_doc
-	local file; for file in $(find "$pkgdir" -name "*.pod"); do
-		file=${file#$pkgdir/}
-		mkdir -p "$subpkgdir"/${file%/*} || return 1
-		mv "$pkgdir"/$file "$subpkgdir"/$file || return 1
+	local file; find "$pkgdir" -name "*.pod" | while read -r file; do
+		amove "${file#"$pkgdir"}"
 	done
+	default_doc
 }
 
 dev() {
-	mkdir -p "$subpkgdir"/usr/bin "$subpkgdir"/$_archlib "$subpkgdir"/$_privlib
-	mv "$pkgdir"/$_archlib/Devel "$subpkgdir"/$_archlib/
-	mv "$pkgdir"/$_privlib/Encode "$subpkgdir"/$_privlib/
-
-	mv "$pkgdir"/usr/bin/h2xs \
-		"$pkgdir"/usr/bin/perlivp \
-		"$pkgdir"/usr/bin/enc2xs \
-		"$pkgdir"/usr/bin/xsubpp \
-		"$subpkgdir"/usr/bin/
+	amove \
+		$_archlib/Devel \
+		$_privlib/Encode \
+		usr/bin/h2xs \
+		usr/bin/perlivp \
+		usr/bin/enc2xs \
+		usr/bin/xsubpp
 
 	default_dev
 }
 
 utils() {
 	pkgdesc="$pkgdesc (misc utilities)"
-	depends="$pkgname"
-	mkdir -p "$subpkgdir"/usr/bin
-	local file
-	for file in \
-		corelist \
-		cpan \
-		encguess \
-		libnetcfg \
-		h2ph \
-		instmodsh \
-		json_pp \
-		perlbug \
-		perlthanks \
-		piconv \
-		pl2pm \
-		prove \
-		ptar \
-		ptardiff \
-		ptargrep \
-		shasum \
-		splain \
-		zipdetails
-	do
-		mv "$pkgdir"/usr/bin/$file "$subpkgdir"/usr/bin/ || return 1
-	done
+	depends="$pkgname=$pkgver-r$pkgrel"
+
+	amove \
+		usr/bin/corelist \
+		usr/bin/cpan \
+		usr/bin/encguess \
+		usr/bin/libnetcfg \
+		usr/bin/h2ph \
+		usr/bin/instmodsh \
+		usr/bin/json_pp \
+		usr/bin/perlbug \
+		usr/bin/perlthanks \
+		usr/bin/piconv \
+		usr/bin/pl2pm \
+		usr/bin/prove \
+		usr/bin/ptar \
+		usr/bin/ptardiff \
+		usr/bin/ptargrep \
+		usr/bin/shasum \
+		usr/bin/splain \
+		usr/bin/zipdetails
 }
 
-sha512sums="166d767f748a911b969fc8008069f087927cbdd9ee21b375b31e5feb5afc2be8d80d68f8c291accee6fdf3be90e9dc2fc870cb9c0bd1cc68c6e001e4ed38d564  perl-5.26.2.tar.gz
-feda381bd3230443341b99135bac4d6010e9d28b619d9fb57f2dda2c29b8877f012f76d31631e5227ef79e73e0b2b162548fa24704752e61f10c05d015c68916  CVE-2018-12015.patch"
+sha512sums="
+b10f74d1245a879ae51d3ad93ad519a148df126ec865715474c801548ccfc3f542ef3bbb1f59568cea2ec77302d428dc772aba605357d7faf13eb6a351917275  perl-5.42.0.tar.xz
+51b45bf972304634d706d09e27d457636e43f9f27f739004eca529b21245ba78612dcb08b54225fc7ca19511983642c37915939ea8aa1c1a4560093474d9e76b  perl-cross-1.6.2.tar.gz.noauto
+59afa4c166e4808d355e19cd70748540ffce9da5c6919c71648be7678de328409f9121ddea33415add73fc01a22e95ed9d9629f31b8ba20b3bbfc04dab926c63  digest-sha-cflags.patch
+abae709290306a8fbc96b604b9b38fc09a46ae178f3e77944813f1b46c78e2e3654e5c3b3a6aca96684a2d1061e2871376d508fbe82604864055309156b4d0d8  dont-write-packlist.patch
+4e8a655160e54a151e0bc4819fd1cd69e43c1e36844bcefbb9734f36130a2d9e1700b1aa64153a9d20a8deb875e904876dbe7b14dd278266b21a86a33d91eebd  json-pp-options.patch
+cd5bc95a526b0803d80b7d201ad36b347cca04451aff124e0297e8514f9cbdc87c3ce37dadf41ccb72d0e77ac82d7831e165a8d4f21f36be8a9a60872a0d6f14  musl-skip-dst-test.patch
+c004d6612ec754e5947255a2e2d15b5581f187c32495aeeec9f4fa286919bd9f40c72b63db61e3f4004b09288af2063a6a14b67e5c289e9a8b23ebd7c216e16f  musl-stack-size.patch
+7d8d19d295ad740f4aa43d68cb86726c8781940c624bff825811b9874438e3621befa7f24774d98fa8667349a05047c48119cc080977b232e48964aabe5aa93a  skip-test-due-to-busybox-ps.patch
+"

@@ -1,0 +1,44 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-notifications
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Notification daemon for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-notifications"
+arch="all"
+license="GPL-3.0-only"
+depends="
+	cosmic-icons
+"
+makedepends="
+	cargo
+	just
+	libxkbcommon-dev
+	wayland-dev
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-notifications/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	just build-release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+f02a710f9ce856d247780b29e749793b1d12c9069ce48361bb4d12ec6255f19cdf5f6750b066f83c647bad717d4d5ee8b6db12ae79575a3da58b1c7b6b4a1c28  cosmic-notifications-1.0.0_beta4.tar.gz
+"

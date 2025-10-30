@@ -3,46 +3,39 @@
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=perl-archive-extract
 _pkgreal=Archive-Extract
-pkgver=0.80
-pkgrel=0
+pkgver=0.88
+pkgrel=1
 pkgdesc="Generic archive extracting mechanism"
-url="http://search.cpan.org/dist/Archive-Extract/"
+url="https://metacpan.org/release/Archive-Extract"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends=""
-cpancheckdepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
-checkdepends="$cpancheckdepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/B/BI/BINGOS/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/B/BI/BINGOS/Archive-Extract-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
-	default_prepare || return 1
+	default_prepare
 
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl -I. Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
 check() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make test
 }
 
-sha512sums="2f216ea29639c4d8b7b19e4b23542b6f69e970cfb0188dca55ff7ce7d3a3021e43129dbdf81b82f7d97d0080d00f858c6af3595520b6bacac30073a8b25ea4f0  Archive-Extract-0.80.tar.gz"
+sha512sums="
+6fcb6a49e59fac5340663e5d906978af390f4ba66da6c4f02e6b2db666da68440af59ec93a687d13316089b07237b2213df55d8ebb940c4fa9eadd09d1bacc86  Archive-Extract-0.88.tar.gz
+"

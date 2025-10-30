@@ -2,40 +2,30 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=multitail
-pkgver=6.4.2
-pkgrel=1
+pkgver=7.1.5
+pkgrel=0
 pkgdesc="MultiTail lets you view one or multiple files like the original tail program"
 arch="all"
 url="http://www.vanheusden.com/multitail"
-license="GPL-2.0"
-depends_dev=""
+license="Apache-2.0"
 depends="ncurses coreutils"
-makedepends="ncurses-dev"
-install=""
+makedepends="ncurses-dev cmake ninja"
+checkdepends="cppcheck"
 subpackages="$pkgname-doc"
-source="http://www.vanheusden.com/multitail/$pkgname-$pkgver.tgz
-	fix-ncursesw-include.patch"
-
-builddir="$srcdir"/$pkgname-$pkgver
+source="$pkgname-$pkgver.tar.gz::https://github.com/folkertvanheusden/multitail/archive/refs/tags/$pkgver.tar.gz"
+options="!check" # no tests provided
 
 build() {
-	make -C "$builddir" || return 1
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCURSES_INCLUDE_PATH=/usr/include .
+	cmake --build build
 }
 
 package() {
-	cd $builddir
-  	make DESTDIR="$pkgdir" install || return 1
-
-  	mv "$pkgdir"/usr/share/doc/$pkgname-$pkgver \
-  		"$pkgdir"/usr/share/doc/$pkgname || return 1
-  	mv "$pkgdir"/etc/multitail \
-  		"$pkgdir"/usr/share/doc/$pkgname/examples || return 1
-	mv "$pkgdir"/etc/$pkgname.conf.new "$pkgdir"/etc/$pkgname.conf || return 1
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-md5sums="a0959f7b2385061080712afd8ae6e33d  multitail-6.4.2.tgz
-7c5935cb04737f648f104e9f2b9eb96e  fix-ncursesw-include.patch"
-sha256sums="af1d5458a78ad3b747c5eeb135b19bdca281ce414cefdc6ea0cff6d913caa1fd  multitail-6.4.2.tgz
-766c463182e80756be797423f97185f6619f04c0cb1c3c63f897a99bbe6a9f38  fix-ncursesw-include.patch"
-sha512sums="668c453372ba1e4013aa5191c697bdcaad82c84732841c120a506bee063d2134941e93aed63f96e5aeeb6045829a13aba012f9514dbd9520ab4f1b9b75b42dbd  multitail-6.4.2.tgz
-8ab00ff267974cff4c64075e9c0b89cf1c90aebb001a38b41a0d6832d6f49e7838869c5dff12f6e05f5622001726b6bec0b5e7132832087a8ef89f2916e287b3  fix-ncursesw-include.patch"
+sha512sums="
+7b52eaa9c99e8747f841b23ad3f7154d8cb65c5f4bd2f89fc80d37b6a2fecdacfd7657c5ba37356e67fd03f7992556af648b7d26bb730f7e8966d0230182a8a6  multitail-7.1.5.tar.gz
+"

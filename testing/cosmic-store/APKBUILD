@@ -1,0 +1,49 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-store
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="App store for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-store"
+arch="all"
+license="GPL-3.0-only"
+depends="
+	cosmic-icons
+"
+makedepends="
+	appstream-dev
+	cargo
+	flatpak-dev
+	glib-dev
+	just
+	libxkbcommon-dev
+	openssl-dev
+	wayland-dev
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-store/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	just build-release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+37cdd31220e82f5c8a729fead47dc5035034dfc4d9c49e19242a007560e0212c76ef7c27ac93175d2efd76654104740e97b326279519cca08b38238078d7a4fa  cosmic-store-1.0.0_beta4.tar.gz
+"

@@ -1,0 +1,28 @@
+# Contributor: Leon Marz <main@lmarz.org>
+# Maintainer: Leon Marz <main@lmarz.org>
+pkgname=robin-map
+pkgver=1.4.0
+pkgrel=0
+pkgdesc="C++ implementation of a fast hash map"
+url="https://github.com/Tessil/robin-map"
+arch="noarch"
+license="MIT"
+makedepends="cmake samurai"
+source="$pkgname-$pkgver.tar.gz::https://github.com/Tessil/robin-map/archive/v$pkgver.tar.gz"
+options="!check" # no testsuite provided
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_DATADIR=lib \
+		-DCMAKE_BUILD_TYPE=None
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+d65831ac9d1ae1b26d26386ee06835d788d18529d1cd9132f892091377572b2f9d68aaecfce79956238d327764fea7a144ad2922ced3cbe47cda8734b2df419f  robin-map-1.4.0.tar.gz
+"

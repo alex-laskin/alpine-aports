@@ -1,0 +1,40 @@
+# Contributor: Marian Buschsieweke <marian.buschsieweke@posteo.net>
+# Maintainer: Marian Buschsieweke <marian.buschsieweke@posteo.net>
+pkgname=py3-secretstorage
+pkgver=3.4.0
+pkgrel=0
+pkgdesc="Python bindings to Freedesktop.org Secret Service API"
+url="https://github.com/mitya57/secretstorage"
+arch="noarch"
+license="BSD-3-Clause"
+depends="python3 py3-cryptography py3-jeepney"
+makedepends="
+	py3-gpep517
+	py3-setuptools
+	"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/mitya57/secretstorage/archive/refs/tags/$pkgver.tar.gz"
+builddir="$srcdir"/${pkgname#py3-}-$pkgver
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+
+	# can't run gnome keyring during build, so at least check importing
+	.testenv/bin/python3 -c "import secretstorage"
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+e316361d5f6f50b69711b4c4c6a17fbe57e555a1cac0347b2fb730a0f18b5b8e30289f7effb81e39e563ef40155c18ba42b067d37879c9d9591e97ecffc6c081  py3-secretstorage-3.4.0.tar.gz
+"

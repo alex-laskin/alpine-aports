@@ -4,38 +4,32 @@
 pkgname=perl-digest-bubblebabble
 _pkgreal=Digest-BubbleBabble
 pkgver=0.02
-pkgrel=2
+pkgrel=5
 pkgdesc="Create bubble-babble fingerprints"
-url="http://search.cpan.org/dist/Digest-BubbleBabble/"
+url="https://metacpan.org/release/Digest-BubbleBabble/"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends perl-module-install"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
+makedepends="perl-module-install"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/B/BT/BTROTT/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/B/BT/BTROTT/$_pkgreal-$pkgver.tar.gz"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 

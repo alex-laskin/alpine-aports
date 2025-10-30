@@ -1,39 +1,36 @@
 # Maintainer: Laurent Bercot <ska-devel@skarnet.org>
-# Contributor: Eivind Uggedal <eivind@uggedal.com>
 pkgname=s6-rc
-pkgver=0.4.0.1
-pkgrel=1
-pkgdesc="A service manager for s6-based systems."
-url="http://skarnet.org/software/$pkgname/"
+pkgver=0.5.6.0
+pkgrel=0
+pkgdesc="Service manager for s6-based systems"
+url=https://skarnet.org/software/s6-rc/
 arch="all"
 license="ISC"
 options="!check"
-makedepends="skalibs-dev execline-dev s6-dev"
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://skarnet.org/software/$pkgname/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+_skalibs_version=2.14.4
+_execline_version=2.9.7
+_s6_version=2.13.2
+makedepends="skalibs-dev>=$_skalibs_version execline-dev>=$_execline_version s6-dev>=$_s6_version"
+subpackages="$pkgname-static $pkgname-libs $pkgname-dev $pkgname-doc"
+source="https://skarnet.org/software/s6-rc/s6-rc-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--enable-shared \
-		--enable-static \
+		--prefix=/usr \
 		--disable-allstatic \
-		--libdir=/usr/lib \
-                --libexecdir="/lib/$pkgname" \
-		--with-dynlib=/lib
+		--libexecdir="/usr/lib/$pkgname" \
+		--with-pkgconfig \
+		--enable-pkgconfig
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
+	mkdir -p "$pkgdir/usr/share/doc"
+	cp -a "$builddir/doc" "$pkgdir/usr/share/doc/$pkgname"
 }
 
-doc() {
-	default_doc
-	mkdir -p "$subpkgdir/usr/share/doc"
-	cp -a "$builddir/doc" "$subpkgdir/usr/share/doc/$pkgname"
-}
-
-sha512sums="f4e4105dd51eb9dfa4ba45d3f85970d763c70eb5e276de818d9b2c75db9153d3000dd7579ca8e7c4bf814b05bcbcde1dd9b363c57c6507f1cc5af7898049fba7  s6-rc-0.4.0.1.tar.gz"
+sha512sums="
+1e65ff999b7c5b4f34c90ae1edf5e4315e3323d03ac82ca1467848a41936f57623cb2d20b77b43f944b6845992ceb482a5573acbfa1c1d241eb825ea4b7ca90b  s6-rc-0.5.6.0.tar.gz
+"

@@ -1,0 +1,54 @@
+# Contributor: Jonas <spameier+alpine@proton.me>
+# Maintainer: Jonas <spameier+alpine@proton.me>
+pkgname=py3-minikerberos
+_pyname=minikerberos
+pkgver=0.4.7
+pkgrel=1
+pkgdesc="Kerberos manipulation library in pure Python"
+url="https://github.com/skelsec/minikerberos"
+arch="noarch"
+license="MIT"
+depends="
+	py3-asn1crypto
+	py3-asysocks
+	py3-oscrypto
+	py3-six
+	py3-tqdm
+	py3-unicrypto
+	python3
+	"
+makedepends="
+	py3-gpep517
+	py3-wheel
+	py3-setuptools
+	"
+checkdepends="py3-pytest"
+subpackages="
+	$pkgname-pyc
+	$pkgname-examples
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/skelsec/minikerberos/archive/refs/tags/$pkgver.tar.gz"
+builddir="$srcdir/$_pyname-$pkgver"
+options="!check" # test suite requires connection to a KDC service (see /tests/config.py)
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+	rm -rf "$pkgdir"/usr/lib/python3.*/site-packages/tests/ # remove tests
+}
+
+examples() {
+	pkgdesc="$pkgdesc (example scripts)"
+	depends="$pkgname=$pkgver-r$pkgrel"
+	amove usr/lib/python*/site-packages/minikerberos/examples
+	amove usr/bin
+}
+
+sha512sums="
+a6e781826ac6d456bf4e986ab04220c9dbef83c76837087f542b8b0f3843700c217c29bcf9c54269a1c10398e8d6fa05b08bddc9e5c7b3da7889ab12af0c164c  py3-minikerberos-0.4.7.tar.gz
+"

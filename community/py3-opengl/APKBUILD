@@ -1,0 +1,29 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
+# Contributor: Francesco Colista <fcolista@alpinelinux.org>
+# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
+pkgname=py3-opengl
+_pkgname=pyopengl
+pkgver=3.1.9
+pkgrel=0
+pkgdesc="Standard OpenGL bindings"
+url="https://pyopengl.sourceforge.net/"
+options="!check"
+arch="noarch"
+license="BSD-3-Clause"
+depends="python3"
+makedepends="py3-setuptools"
+subpackages="$pkgname-pyc"
+source="https://files.pythonhosted.org/packages/source/P/PyOpenGL/pyopengl-$pkgver.tar.gz"
+builddir="$srcdir"/$_pkgname-$pkgver
+
+build() {
+	python3 setup.py build
+}
+
+package() {
+	python3 setup.py install --skip-build --root="$pkgdir"
+}
+
+sha512sums="
+b0fae0031cf0c47899d3cef6a334ee885595b4bc7d3da5055cd12240e6612b2ade1dc75afe1b1f6fe8e4572b994b88c4ec557d893e6606353f4700111cb6f161  pyopengl-3.1.9.tar.gz
+"

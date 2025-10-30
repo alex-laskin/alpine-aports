@@ -3,44 +3,43 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=perl-test-postgresql
 _pkgreal=Test-PostgreSQL
-pkgver=1.26
-pkgrel=0
+pkgver=1.29
+pkgrel=1
 pkgdesc="PostgreSQL runner for tests"
-url="http://search.cpan.org/dist/Test-PostgreSQL/"
+url="https://metacpan.org/release/Test-PostgreSQL/"
 arch="noarch"
 license="Artistic-2.0"
-cpandepends="perl-class-accessor-lite"
-cpanmakedepends="perl-test-sharedfork perl-dbd-pg perl-dbi
-	perl-test-pod perl-moo perl-type-tiny perl-function-parameters
-	perl-file-which perl-tie-hash-method"
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends perl-module-install"
+depends="perl perl-class-accessor-lite"
+makedepends="
+	perl-test-sharedfork perl-dbd-pg perl-dbi perl-test-pod perl-moo perl-type-tiny
+	perl-function-parameters perl-file-which perl-tie-hash-method perl-module-build-tiny
+	perl-module-install
+	"
 checkdepends="perl-try-tiny"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/T/TJ/TJC/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/T/TJ/TJC/$_pkgreal-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
-check() {
-	cd "$builddir"
-	make test
-}
-
 prepare() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
-	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
+	default_prepare
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
+	perl Build.PL --installdirs=vendor
 }
 
 build() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
-	make
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
+	./Build
+}
+
+check() {
+	./Build test
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	./Build install --destdir="$pkgdir"
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="c56986ab59e844272ab1d6447ed7d0ac83c3c5f5f1ad9a4f10c16505d51412ede3775f1dae28306dd1b7d461f679343bed911066ec775c58f21a88a1294c2d30  Test-PostgreSQL-1.26.tar.gz"
+sha512sums="
+8ff40ee0b8548fa8342a7aeb30e3b23d94e594d9ae2de1e708fa7eecffea52d9b797c3e961f7f36ea90b9a23c7593307b169a3fc18c61b7164d7adb96d4c7326  Test-PostgreSQL-1.29.tar.gz
+"

@@ -1,0 +1,44 @@
+# Contributor: Newbyte <newbyte@postmarketos.org>
+# Maintainer: team/gnome <newbyte@postmarketos.org>
+pkgname=loupe
+pkgver=49.0
+pkgrel=0
+pkgdesc="Image viewer application written with GTK 4 and Rust"
+url="https://gitlab.gnome.org/GNOME/loupe"
+arch="all"
+license="GPL-3.0-or-later"
+depends="glycin-loaders"
+makedepends="
+	cargo
+	desktop-file-utils
+	glib-dev
+	gtk4.0-dev
+	itstool
+	lcms2-dev
+	libadwaita-dev
+	libgweather4-dev
+	libseccomp-dev
+	meson
+	"
+checkdepends="appstream-glib desktop-file-utils"
+subpackages="$pkgname-lang"
+source="https://gitlab.gnome.org/GNOME/loupe/-/archive/$pkgver/loupe-$pkgver.tar.gz"
+options="net" # cargo fetch
+
+build() {
+	abuild-meson . output
+	meson compile -C output
+}
+
+check() {
+	# riscv is slow
+	meson test -t 2 --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+e6c74de5e282e82b9ba6e60fb6a080af929c95b8576bb15c295ced72f3b99c6e8ed268faac81a0373d3bfce212e1453a774823740356f62239f2ca1acf950c8a  loupe-49.0.tar.gz
+"

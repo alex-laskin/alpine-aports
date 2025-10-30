@@ -1,30 +1,29 @@
 # Maintainer: Nathan Angelacos <nangel@alpinelinux.org>
 pkgname=dmidecode
-pkgver=3.1
+pkgver=3.6
 pkgrel=0
 pkgdesc="A utility for reporting system hardware as described by BIOS"
-url="http://www.nongnu.org/dmidecode"
+url="https://nongnu.org/dmidecode"
 arch="all"
-license="GPL"
-options="!check"
-subpackages="$pkgname-doc"
-source="http://download.savannah.gnu.org/releases/dmidecode/dmidecode-$pkgver.tar.xz"
-
-builddir="$srcdir"/$pkgname-$pkgver
+license="GPL-2.0-or-later"
+makedepends="bash-completion bash-completion-dev"
+options="!check" # No testsuite
+subpackages="$pkgname-doc $pkgname-bash-completion"
+source="https://download.savannah.gnu.org/releases/dmidecode/dmidecode-$pkgver.tar.xz"
 
 prepare() {
 	default_prepare
-	sed -e '/^PROGRAMS !=/d' -e 's/-O2/-Os/' -i Makefile || return 1
+	sed -e '/^PROGRAMS !=/d' -i Makefile
 }
 
 build() {
-	cd "$builddir"
 	make prefix=/usr
 }
 
 package() {
-	cd "$builddir"
-	make prefix=/usr DESTDIR="${pkgdir}" install
+	make prefix=/usr DESTDIR="$pkgdir" install
 }
 
-sha512sums="226557ad5747a2a2eb54a938543373b9ddcff032d330ca3b9a066cc81c0e137028f606ffedc042e0220b523346e2f2f7abb0e4b8b34a8bd173719aa858519de9  dmidecode-3.1.tar.xz"
+sha512sums="
+b1e47a2121062581876ba2daf3ce80b1c39612d078718609b8bc97d4e7a4b47427200502468b5d71f0d0dcb5ba299fb2e808791b62dc5b50e67acac60c51a461  dmidecode-3.6.tar.xz
+"

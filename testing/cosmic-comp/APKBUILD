@@ -1,0 +1,49 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-comp
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Compositor for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-comp"
+# loongarch64: https://github.com/bytecodealliance/rustix/issues/1496
+# s390x: nix
+arch="all !loongarch64 !s390x"
+license="GPL-3.0-only"
+makedepends="
+	cargo
+	fontconfig-dev
+	libdisplay-info-dev
+	libinput-dev
+	libseat-dev
+	libxcb-dev
+	libxkbcommon-dev
+	mesa-dev
+	pixman-dev
+	wayland-dev
+"
+options="net"  # fetch dependencies
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-comp/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	make ARGS+=" --frozen --release"
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+}
+
+sha512sums="
+446e0b83dfa4707f722589bc8981ea25a6364259df2c41be887919bd9c2813f537f77b9cadbb64260b1b75338a4689733beb9f78e9e67824d0a8e2b525f95df3  cosmic-comp-1.0.0_beta4.tar.gz
+"

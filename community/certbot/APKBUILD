@@ -1,48 +1,51 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=certbot
-pkgver=0.25.1
+pkgver=4.2.0
 pkgrel=0
 pkgdesc="An ACME client that can update Apache/Nginx configurations"
 url="https://github.com/certbot/certbot"
 arch="noarch"
-license="Apache"
-depends="py-setuptools py-mock py-acme py-configargparse py-configobj
-	py-cryptography py-parsedatetime py-dialog py-openssl
-	py-rfc3339 py-tz py-requests py-six py-zope-component py-zope-interface
-	py-zope-event py-cffi py-enum34 py-ipaddress py-idna py-argparse py-packaging
-	py-certifi py-chardet py-future py-urllib3 py-josepy"
-# define acme deps here and add them to makedepends
-# so they get pulled in when bootstrapping.
-_depends_acme="py-setuptools py-cryptography py-ndg_httpsclient py-asn1 py-openssl
-	py-tz py-rfc3339 py-requests py-six py-werkzeug"
-replaces="letsencrypt"
-makedepends="$depends_dev $_depends_acme"
-subpackages="py-acme:acme"
-source="certbot-$pkgver.tar.gz::https://github.com/certbot/certbot/archive/v$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
-
-check() {
-	cd "$builddir"
-	python2 setup.py check
-}
+license="Apache-2.0"
+depends="
+	py3-acme
+	py3-configargparse
+	py3-configobj
+	py3-cryptography
+	py3-distro
+	py3-distutils-extra
+	py3-josepy
+	py3-parsedatetime
+	py3-pyrfc3339
+	py3-setuptools
+	py3-tz
+	"
+makedepends="
+	py3-gpep517
+	py3-wheel
+	"
+checkdepends="py3-augeas py3-pytest-xdist tzdata"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/certbot/certbot/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/certbot-$pkgver/$pkgname"
 
 build() {
-	cd "$builddir"
-	python2 setup.py build
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest -n auto -p no:warnings
 }
 
 package() {
-	cd "$builddir"
-	python2 setup.py install --prefix=/usr --root="$pkgdir"
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
 }
 
-acme() {
-	pkgdesc="ACME protocol implementation for Python"
-	depends="$_depends_acme"
-	cd "$builddir"/acme
-	python2 setup.py build
-	python2 setup.py install --prefix=/usr --root="$subpkgdir"
-}
-
-sha512sums="6395baa33acb4cf9e953294ddb07694ffa1e76424e12114db8df0f64fb3f1872c3145b02d853c139183b2b708d40d236f91d356eb9ecca447f577bd725fee6e5  certbot-0.25.1.tar.gz"
+sha512sums="
+9003a2fe06dd05c7fde5954051feb8d11586acfeb5b2aab298d4eccae7cfd0a13366212eb812e2be118711d8c273f39bfb53d8590f9bab418338e46b1f628504  certbot-4.2.0.tar.gz
+"

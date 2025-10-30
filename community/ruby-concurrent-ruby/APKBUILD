@@ -2,64 +2,77 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=ruby-concurrent-ruby
 _gemname=${pkgname#ruby-}
-pkgver=1.0.5
-pkgrel=1
+pkgver=1.3.5
+pkgrel=0
 pkgdesc="Modern concurrency tools for Ruby"
 url="http://www.concurrent-ruby.com"
 arch="all"
 license="MIT"
 depends="ruby"
-makedepends="ruby-dev"
-checkdepends="ruby-rake ruby-rake-compiler ruby-rspec ruby-timecop"
+makedepends="ruby-dev ruby-rake ruby-rake-compiler"
+checkdepends="ruby-rspec ruby-timecop"
 subpackages="$pkgname-ext"
 source="$pkgname-$pkgver.tar.gz::https://github.com/ruby-concurrency/$_gemname/archive/v$pkgver.tar.gz
-	ungit-gemspec.patch"
+	gemspecs.patch
+	rakefile-remove-dock.patch
+	"
 builddir="$srcdir/$_gemname-$pkgver"
 
-case "$CARCH" in
-	# XXX: Two test fail, see https://github.com/ruby-concurrency/concurrent-ruby/issues/689
-	armhf) options="!check";;
+# limited by jruby and openjdk
+case "$CARCH" in x86_64 | aarch64)
+	makedepends="$makedepends jruby java-jdk"
+	subpackages="$subpackages $pkgname-java::noarch"
+
+	export JRUBY_HOME="/usr/share/jruby"
 esac
 
 build() {
-	cd "$builddir"
+	rake repackage
 
-	gem build $_gemname.gemspec
-
-	gem build $_gemname-ext.gemspec
 	RUBYLIB="$(pwd)/lib" gem install --local \
-		--install-dir dist \
+		--install-dir dist-ext \
 		--ignore-dependencies \
 		--no-document \
 		--verbose \
-		$_gemname-ext
+		pkg/$_gemname-ext-$pkgver.gem
 }
 
 check() {
-	cd "$builddir"
+	gem install --local \
+		--install-dir .gems \
+		--ignore-dependencies \
+		--no-document \
+		--verbose \
+		pkg/$_gemname-*.gem
 
-	rake compile
-	rspec --tag ~unfinished --tag ~buggy --tag ~edge spec
+	GEM_PATH=".gems" rspec --tag ~unfinished --tag ~buggy --tag ~edge spec
 }
 
 package() {
 	local gemdir="$pkgdir/$(ruby -e 'puts Gem.default_dir')"
-
-	cd "$builddir"
 
 	gem install --local \
 		--install-dir "$gemdir" \
 		--ignore-dependencies \
 		--no-document \
 		--verbose \
-		$_gemname
+		pkg/$_gemname-$pkgver.gem
 
 	# Remove unnecessary files.
 	rm -r "$gemdir"/cache \
 		"$gemdir"/build_info \
 		"$gemdir"/doc
 	cd "$gemdir"/gems/$_gemname-$pkgver
-	rm *.md *.txt
+	rm -rf ext Gemfile Rakefile *.md
+}
+
+java() {
+	pkgdesc="$pkgdesc (Java extension)"
+	depends="$pkgname=$pkgver-r$pkgrel"
+	install_if="$pkgname=$pkgver-r$pkgrel jruby"
+	local gemdir="$(ruby -e 'puts Gem.default_dir')"
+
+	amove ${gemdir#/}/gems/$_gemname-$pkgver/lib/$_gemname/*/*.jar
 }
 
 ext() {
@@ -68,7 +81,7 @@ ext() {
 
 	local gemdir="$subpkgdir/$(ruby -e 'puts Gem.default_dir')"
 
-	cd "$builddir"/dist
+	cd "$builddir"/dist-ext
 
 	mkdir -p "$gemdir"
 	cp -r extensions gems specifications "$gemdir"/
@@ -76,8 +89,12 @@ ext() {
 	# Remove unnecessary files and rubbish...
 	find "$gemdir"/extensions/ -name mkmf.log -delete
 	cd "$gemdir"/gems/$_gemname-ext-$pkgver
-	rm -r ext/ lib/concurrent/*.so *.md *.txt
+	rm -r ext/ lib/concurrent/*.so *.md
+	rmdir -p --ignore-fail-on-non-empty "$(pwd)/lib/concurrent"
 }
 
-sha512sums="fdf7324b56bb37b4a79dc89882354e452ee838a097f522fb906c20a06856303cfbbae16f2500255cbfb4bba33ee1b3b3ee8facf3d0156e976add64209e349da6  ruby-concurrent-ruby-1.0.5.tar.gz
-3138b42e004efa6e270aa0153125ee65a73691c981eae6484d86919539b811b8190b8b67a51c4df8bb7a94100070f045a3fcaffaccefc2bdd6c5458e26f972b1  ungit-gemspec.patch"
+sha512sums="
+0bf85fb3d9c5b1107768e2175c9f6958449de4033be403ef92d73f3f665ce04fca1a6d1437493b83ce7a1928c79ec89bda7ec47d9d7053435b7de0b5158afba7  ruby-concurrent-ruby-1.3.5.tar.gz
+2db9dbd791f52647c7ba66b6537575ccbaa402de0316169cfc887f8f25093f0507e144eca86a4f1baaefc9cd268474460ed1ea09713b5ffb354642c036bc46f0  gemspecs.patch
+964384305dbe7d0578e80117587235acd2ab8e812aaa9353a13157ad92574b6db632fe96b144950e64377f94af26fa2ec1bad1c829493c48d379c0c91e1282b7  rakefile-remove-dock.patch
+"

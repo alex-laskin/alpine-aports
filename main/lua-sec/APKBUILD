@@ -1,29 +1,28 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
-_luaversions="5.1 5.2 5.3"
+_luaversions="5.1 5.2 5.3 5.4"
 pkgname=lua-sec
-pkgver=0.6
-pkgrel=4
+pkgver=1.3.2
+pkgrel=0
 pkgdesc="TLS/SSL Support for Lua"
 url="https://github.com/brunoos/luasec/wiki"
 arch="all"
 license="MIT"
-depends=
-makedepends="libressl-dev"
-install=
+makedepends="openssl-dev>3"
 subpackages="$pkgname-doc"
 for _i in $_luaversions; do
 	makedepends="$makedepends lua$_i-dev"
-	subpackages="$subpackages lua$_i-sec:split_${_i/./_}"
+	subpackages="$subpackages lua$_i-sec:_split"
 done
 
-source="luasec-$pkgver.tar.gz::https://github.com/brunoos/luasec/archive/luasec-$pkgver.tar.gz"
-_builddir="$srcdir"/luasec-luasec-$pkgver
+source="luasec-$pkgver.tar.gz::https://github.com/brunoos/luasec/archive/v$pkgver.tar.gz"
+
+builddir="$srcdir/luasec-$pkgver"
+options="!check"
 
 prepare() {
-	cd "$srcdir"
+	default_prepare
 	for _i in $_luaversions; do
-		cp -r "$srcdir"/luasec-luasec-$pkgver build-$_i
+		cp -r "$builddir" "$srcdir"/build-$_i
 	done
 }
 
@@ -31,14 +30,14 @@ build() {
 	for _i in $_luaversions; do
 		cd "$srcdir"/build-$_i
 		make linux INC_PATH="$(pkg-config --cflags lua$_i)" \
-			LD="${CC:-gcc}" || return 1
+			LD="${CC:-gcc}"
 	done
 }
 
 package() {
 	for _i in $_luaversions; do
-		_luasharedir=/usr/share/lua/$_i
-		_lualibdir=/usr/lib/lua/$_i
+		local _luasharedir=/usr/share/lua/$_i
+		local _lualibdir=/usr/lib/lua/$_i
 		cd "$srcdir"/build-$_i
 		mkdir -p "$pkgdir"/$_luasharedir "$pkgdir"/$_lualibdir
 		make LUAPATH="$pkgdir"/$_luasharedir \
@@ -46,14 +45,14 @@ package() {
 			install
 		if ! [ -d "$pkgdir"/usr/share/doc/$pkgname/sambles ]; then
 			mkdir -p "$pkgdir"/usr/share/doc/$pkgname
-			cp -r samples "$pkgdir"/usr/share/doc/$pkgname/ \
-				|| return 1
+			cp -r samples "$pkgdir"/usr/share/doc/$pkgname/
 		fi
 	done
 }
 
 _split() {
-	local d= _ver=$1
+	local d= _ver=${subpkgname#lua}
+	_ver=${_ver%-*}
 	pkgdesc="TLS/SSL Support for Lua $_ver"
 	install_if="lua$_ver $pkgname=$pkgver-r$pkgrel"
 	replaces="$pkgname"
@@ -61,15 +60,11 @@ _split() {
 	for d in usr/lib/lua usr/share/lua; do
 		if [ -d "$pkgdir"/$d/$_ver ]; then
 			mkdir -p "$subpkgdir"/$d
-			mv "$pkgdir"/$d/$_ver "$subpkgdir"/$d/ || return 1
+			mv "$pkgdir"/$d/$_ver "$subpkgdir"/$d/
 		fi
 	done
 }
 
-for _i in $_luaversions; do
-	eval "split_${_i/./_}() { _split $_i; }"
-done
-
-md5sums="14e1aef6d2aae96bbf98afc6b6634af2  luasec-0.6.tar.gz"
-sha256sums="cef3a35c18beb8a54d9c8ce6260a4cabbd9a386de8711320d084daffad0aed5d  luasec-0.6.tar.gz"
-sha512sums="f7004a329153d0126a3ea27b4986e9d83fb8f2de9c5c2f0c96427c50cc42e1252c69fd8cc69e2e8d423745d2dbfdb5a781b609938f7f502c7aedeb99fd0778cd  luasec-0.6.tar.gz"
+sha512sums="
+8f0c4b5ff87c024685b23770e1d342467554b8dc19a1704076e184d9e84b966f171091c31d1da135ab009e850275adc2bf2720fc9f32c83ac23f0a42f13d311f  luasec-1.3.2.tar.gz
+"

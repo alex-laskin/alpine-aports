@@ -1,28 +1,28 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=perl-snmp-session
-_name=SNMP_Session
-pkgver=1.13
+pkgver=1.16
 pkgrel=2
 pkgdesc="A SNMP Perl Module"
-url="http://code.google.com/p/snmp-session/"
+url="https://github.com/sleinen/snmp-session"
 arch="noarch"
-license="PerlArtistic"
+license="Artistic-1.0-Perl OR GPL-1.0-or-later"
+options="!check" # no testsuite
 depends="perl"
-makedepends="perl-dev"
-# note this project has moved to: https://github.com/sleinen/snmp-session/
-# but the new location has no release tags, so fall back to archives for now
-source="https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/snmp-session/$_name-$pkgver.tar.gz"
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/sleinen/snmp-session/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/snmp-session-$pkgver"
 
-build () {
-	cd "$srcdir"/$_name-$pkgver
-	perl Makefile.PL INSTALLDIRS=vendor || return 1
-	make MAN1EXT=1p MAN3EXT=3pm || return 1
+build() {
+	perl Makefile.PL INSTALLDIRS=vendor
+	make MAN1EXT=1p MAN3EXT=3pm
 }
 
 package() {
-	cd "$srcdir"/$_name-$pkgver
-	make install MAN1EXT=1p MAN3EXT=3pm DESTDIR="$pkgdir" || return 1
+	make install MAN1EXT=1p MAN3EXT=3pm DESTDIR="$pkgdir"
 	find "$pkgdir" -name perllocal.pod -delete
 	find "$pkgdir" -name .packlist -delete
 }
-sha512sums="5185739cfe1c37f7087136b23f3fb1eb5daa9d1ab2036d8bbf36438b0a9ede354daca73567529c96297f2621842dfb4c7832101306cee1540ee950b4d0bfe6a8  SNMP_Session-1.13.tar.gz"
+
+sha512sums="
+fa0baa4423088198ea533d432118ab4760540416673ef72ae13ad9544f76ebccb42ae274337a392be33c74ed682e623d9f77ce43cadb9d2c9bf401b404583e4e  perl-snmp-session-1.16.tar.gz
+"

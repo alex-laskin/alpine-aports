@@ -1,0 +1,33 @@
+maintainer="Michał Polański <michal@polanski.me>"
+pkgname=py3-ciso8601
+pkgver=2.3.2
+pkgrel=0
+pkgdesc="Fast ISO8601 date time parser for Python written in C"
+url="https://github.com/closeio/ciso8601"
+license="MIT"
+arch="all"
+makedepends="python3-dev py3-gpep517 py3-setuptools py3-wheel"
+checkdepends="py3-pytest py3-tz"
+source="https://github.com/closeio/ciso8601/archive/v$pkgver/py3-ciso8601-$pkgver.tar.gz"
+builddir="$srcdir/ciso8601-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+2e03bc846b7207206986b66a398402bbc56805d0b23e9c24b26cc50bdb8d5c9c19955b0b9316a01dc3f128faf813a4652f3a585f1837d7baa4bb805226ddad49  py3-ciso8601-2.3.2.tar.gz
+"

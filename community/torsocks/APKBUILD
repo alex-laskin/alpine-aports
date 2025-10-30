@@ -1,20 +1,19 @@
-# Maintainer: Christian Kampka <christian@kampka.net>
+# Contributor: Christian Kampka <christian@kampka.net>
+# Maintainer: omni <omni+alpine@hack.org>
 pkgname=torsocks
-pkgver=2.2.0
-pkgrel=1
+pkgver=2.5.0
+pkgrel=0
 pkgdesc="Wrapper to safely torify applications"
-url="https://gitweb.torproject.org/torsocks.git"
+url="https://gitlab.torproject.org/tpo/core/torsocks"
 arch="all"
 license="GPL-2.0"
-depends="tor"
-makedepends="$depends_dev autoconf automake libtool"
+makedepends="autoconf automake libtool"
 subpackages="$pkgname-doc"
-source="https://people.torproject.org/~dgoulet/${pkgname}/${pkgname}-${pkgver}.tar.xz"
-
-builddir="${srcdir}/${pkgname}-${pkgver}"
+source="$pkgname-$pkgver.tar.gz::https://gitlab.torproject.org/tpo/core/torsocks/-/archive/v$pkgver/torsocks-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 build() {
-	cd "$builddir"
+	./autogen.sh
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -26,13 +25,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="89eb1263bfb0079ca5cb7fcc3a6fa1ecde1327df9ea98de48babfff1f8947b1e9db8407ead747fef0190671e7fff502025dcfcd9b6cba97abbaf25b5a575c62a  torsocks-2.2.0.tar.xz"
+sha512sums="
+dcf4d4d817eb79e52930afff12915eb040b8fc7acd75ec60f28e0d06528cf011b20968ae6ea9bcb3dc51aebe26f88e89fc53d0630487e9216371ed7f71d25773  torsocks-2.5.0.tar.gz
+"

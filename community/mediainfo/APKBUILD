@@ -1,16 +1,25 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=mediainfo
-pkgver=18.05
+pkgver=25.09
 pkgrel=0
-pkgdesc="Supplies technical and tag information about media files (CLI)"
+pkgdesc="Supplies technical and tag information about media files"
 url="https://mediaarea.net/en/MediaInfo"
 arch="all"
 license="BSD-2-Clause"
-makedepends="automake autoconf cmake libmediainfo-dev>=$pkgver libtool libzen-dev"
-source="https://mediaarea.net/download/source/$pkgname/$pkgver/${pkgname}_$pkgver.tar.xz"
+makedepends="
+	autoconf
+	automake
+	libmediainfo-dev~${pkgver%.*}
+	libtool
+	libzen-dev
+	wxwidgets-dev
+	"
+subpackages="$pkgname-gui"
+source="https://mediaarea.net/download/source/mediainfo/$pkgver/mediainfo_$pkgver.tar.xz"
 builddir="$srcdir/MediaInfo"
 _clidir="$builddir/Project/GNU/CLI"
+_guidir="$builddir/Project/GNU/GUI"
 
 prepare() {
 	default_prepare
@@ -18,12 +27,16 @@ prepare() {
 	rm -Rf "$builddir"/Project/MS*
 
 	cd "$_clidir"
-	./autogen.sh
+	sh ./autogen.sh
+	cd "$_guidir"
+	sh ./autogen.sh
 }
 
 build() {
-	cd "$_clidir"
+	export CFLAGS="$CFLAGS -flto=auto"
+	export CXXFLAGS="$CXXFLAGS -flto=auto"
 
+	cd "$_clidir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -31,6 +44,14 @@ build() {
 		--libdir=/usr/lib \
 		--sysconfdir=/etc \
 		--enable-static=no
+	make
+	cd "$_guidir"
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--libdir=/usr/lib \
+		--sysconfdir=/etc
 	make
 }
 
@@ -40,8 +61,24 @@ check() {
 }
 
 package() {
-	cd "$_clidir"
-	make DESTDIR="$pkgdir" install
+	pkgdesc="$pkgdesc (CLI)"
+	make -C "$_clidir" DESTDIR="$pkgdir" install
+	make -C "$_guidir" DESTDIR="$pkgdir" install
+
+	cd "$pkgdir"
+	# legacy
+	rm -r usr/share/pixmaps
+	rm -r usr/share/kde4
 }
 
-sha512sums="10ffad5828d7afe83533e6e850f7124499fe1cdce024c9f3f46c5ab2333e19d40747feea641ce0b8a8d37f9aa069db39e205d0ac2bf1f5189ee2b044d6d7e2bf  mediainfo_18.05.tar.xz"
+gui() {
+	pkgdesc="$pkgdesc (GUI)"
+
+	amove \
+		usr/bin/mediainfo-gui \
+		usr/share
+}
+
+sha512sums="
+b55c040eb1118e2d4a22053979fdb430fafd5c046a37df5d6eb4a33acd0a928bafd4d566a666ff5113bb0604a0d1def2b1bd33c6bd5a2d7bc3e1735ac6d750d7  mediainfo_25.09.tar.xz
+"

@@ -1,33 +1,37 @@
 # Contributor: Henrik Holst <henrik.holst@millistream.com>
 # Maintainer:
 pkgname=libmdf
-pkgver="1.0.20"
-pkgrel=2
+pkgver=1.0.29
+pkgrel=0
 pkgdesc="Millistream Data Feed API library"
 url="https://millistream.com"
-arch="all"
-license="LGPL-3.0"
-depends=""
-makedepends="libressl-dev zlib-dev"
-install=""
+arch="all !ppc64le" # Fails to fetch on builders
+license="LGPL-3.0-or-later"
+makedepends="
+	openssl-dev>3
+	zlib-dev
+	zstd-dev
+	"
 subpackages="$pkgname-dev"
-source="ftp://ftp1.millistream.com/sources/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://packages.millistream.com/source/libmdf-$pkgver.tar.gz"
 
 build() {
-    cd "$builddir"
-    ./configure --prefix=/usr
-    make
+	./configure \
+		--host=$CHOST \
+		--build=$CBUILD \
+		--prefix=/usr \
+		--disable-static
+	make
 }
 
 check() {
-    cd "$builddir"
-    make check
+	make check
 }
 
 package() {
-    cd "$builddir"
-    make DESTDIR="$pkgdir" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="b6e496839090067e481d21cbdcee473538941979ada1ad44130522d49f8ae276f68c0b073e28651d733046d72dcc1f5d6369c318ea709bc49dbff1354144c400  libmdf-1.0.20.tar.gz"
+sha512sums="
+3211674382a7f02bc53a240c66d12160fbf7b2aa62a54ddd23ebe2d35a6065f052f14735975129636618b6d38960660716835d3cc17cc874e89de9aa5d4d85dc  libmdf-1.0.29.tar.gz
+"

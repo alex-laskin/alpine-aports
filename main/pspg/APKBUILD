@@ -1,18 +1,25 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=pspg
-pkgver=1.1.1
+pkgver=5.8.12
 pkgrel=0
 pkgdesc="A unix pager optimized for psql"
 url="https://github.com/okbob/pspg"
 arch="all"
+options="!check" # there is no tests
 license="BSD-2-Clause"
-makedepends="ncurses-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/okbob/$pkgname/archive/$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="automake autoconf libpq-dev ncurses-dev readline-dev"
+subpackages="$pkgname-doc"
+source="https://github.com/okbob/pspg/archive/$pkgver/pspg-$pkgver.tar.gz"
+
+prepare() {
+	default_prepare
+	./autogen.sh
+}
 
 build() {
-	cd "$builddir"
+	# getpass
+	CFLAGS="$CFLAGS -D_BSD_SOURCE" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -22,14 +29,11 @@ build() {
 	make
 }
 
-check() {
-	cd "$builddir"
-	./pspg -V
-}
-
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
+	install -Dm644 pspg.1 -t "$pkgdir"/usr/share/man/man1/
 }
 
-sha512sums="c8a0e9fe6033366ad00e56cc57d449068d932e484da9e3fef21b0c902857353f8df2685a3822e7ef333e3c3a41c296ab0ca527836575ccd88f04db2b1094db75  pspg-1.1.1.tar.gz"
+sha512sums="
+77202dc002d80d9febd7c55b6accc33a595a88bab2c758f7c05b66eb3d8abd11bd2a8d8be2807257ceda1a9a041a22dc741388c4a9319dcf8c8c752fd363c690  pspg-5.8.12.tar.gz
+"

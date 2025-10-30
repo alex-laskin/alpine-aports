@@ -1,31 +1,27 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=lksctp-tools
-pkgver=1.0.17
-pkgrel=0
+pkgver=1.0.19
+pkgrel=5
 pkgdesc="User-space access to Linux Kernel SCTP"
-url="http://lksctp.sourceforge.net"
+url="https://lksctp.sourceforge.net/"
 arch="all"
 options="!check"  # sctp_connectx in v4test fails on kernel 4.14
-license="GPL-2.0 and GPL-2.0-or-later and LGPL-2.0 and MIT"
-depends=""
-makedepends="libtool automake autoconf linux-headers"
-install=""
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://downloads.sourceforge.net/lksctp/lksctp-tools-$pkgver.tar.gz"
+license="GPL-2.0-or-later AND LGPL-2.1-or-later"
+depends_dev="linux-headers"
+makedepends="$depends_dev libtool automake autoconf"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc lib${pkgname%-tools}:libs"
+source="$pkgname-$pkgver.tar.gz::https://github.com/sctp/lksctp-tools/archive/v$pkgver.tar.gz"
 
 prepare() {
-	cd "$builddir"
 	default_prepare
-	if ! [ -e configure ]; then
-		./bootstrap
-	fi
+	autoreconf -fi
 }
 
 build() {
-	cd "$builddir"
 	./configure \
-		--prefix=/usr \
-		--disable-static
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr
 	make
 }
 
@@ -36,8 +32,15 @@ check() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="055719130b7dda4da9cf002dcd5f1fb3d8cf75300a99365976e087b2b6971b4ccd357f95b515a44e37874af161f7b7f9b42c60191aff938d18fada5a49aa44c4  lksctp-tools-1.0.17.tar.gz"
+libs() {
+	default_libs
+	mkdir -p "$subpkgdir"/usr/lib
+	mv "$pkgdir"/usr/lib/lksctp-tools "$subpkgdir"/usr/lib
+}
+
+sha512sums="
+e56a4b00206acfb88cab1b8fc7424a1a4996f67ef925c29a97395c44c57f2cbcb3fc36ec2648f5e5a5ce29d8d61ee1f7a5e7869e6bbd68bff85590b6ec521883  lksctp-tools-1.0.19.tar.gz
+"

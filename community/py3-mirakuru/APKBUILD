@@ -1,0 +1,42 @@
+# Contributor: Antoine Martin (ayakael) <dev@ayakael.net>
+# Maintainer: Antoine Martin (ayakael) <dev@ayakael.net>
+pkgname=py3-mirakuru
+pkgver=2.6.1
+pkgrel=0
+#_pkgreal is used by apkbuild-pypi to find modules at PyPI
+_pkgreal=mirakuru
+pkgdesc="Process executor (not only) for tests."
+url="https://pypi.python.org/project/mirakuru"
+arch="noarch"
+license="LGPL-3.0-only"
+depends="py3-psutil"
+checkdepends="py3-daemon py3-pytest netcat-openbsd bash procps-ng py3-flaky"
+makedepends="py3-setuptools py3-gpep517 py3-wheel"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/ClearcodeHQ/mirakuru/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/$_pkgreal-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer "$builddir"/.dist/*.whl
+	# tests/executors/test_executor.py::test_stop_custom_exit_signal_context: failure in 32-bit arches
+	# mirakuru.exceptions.ProcessFinishedWithError: The process invoked by the <mirakuru.base.SimpleExecutor: "false" 0xf6491780> executor has exited with a non-zero code: 1.
+	# tests/executors/test_executor_kill.py::test_daemons_killing: failure in armhf
+	# assert SAMPLE_DAEMON_PATH not in ps_aux()
+	.testenv/bin/python3 -m pytest -v -k 'not test_stop_custom_exit_signal_context and not test_daemons_killing'
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+a9e8ff704329f7eb1aaf451c588fba9236094b8ac7c7a6e712bcda718280509fee3dc2db8d837f18e1ac17bab16c3ba748aa432b7a0ffff2e31b277307abaadc  py3-mirakuru-2.6.1.tar.gz
+"

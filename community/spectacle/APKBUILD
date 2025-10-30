@@ -1,0 +1,84 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-plasma
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=spectacle
+pkgver=6.5.1
+pkgrel=0
+pkgdesc="Application for capturing desktop screenshots"
+# armhf blocked by qt6-qtdeclarative
+# ppc64le, s390x, and riscv64 blocked by qt6-qtwebengine -> purpose
+arch="all !armhf !ppc64le !s390x !riscv64"
+url="https://kde.org/applications/utilities/org.kde.spectacle"
+license="GPL-2.0-only"
+makedepends="
+	extra-cmake-modules
+	kconfig-dev
+	kcoreaddons-dev
+	kdbusaddons-dev
+	kdeclarative-dev
+	kdoctools-dev
+	ki18n-dev
+	kio-dev
+	knewstuff-dev
+	knotifications-dev
+	kpipewire-dev
+	kstatusnotifieritem-dev
+	kwayland-dev
+	kwidgetsaddons-dev
+	kwindowsystem-dev
+	prison-dev
+	layer-shell-qt-dev
+	libxcb-dev
+	opencv-dev
+	pipewire-dev
+	purpose-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-private-dev
+	samurai
+	xcb-util-cursor-dev
+	xcb-util-image-dev
+	xcb-util-renderutil-dev
+	zxing-cpp-dev
+	"
+subpackages="$pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/graphics/spectacle.git"
+
+case "$pkgver" in
+    *.*.9*) _rel=unstable;;
+    *) _rel=stable;;
+esac
+
+# strip fourth version component for source URL
+case "$pkgver" in
+    *.*.*.*) _pkgver="${pkgver%.*}" ;;
+    *) _pkgver="$pkgver" ;;
+esac
+
+source="https://download.kde.org/$_rel/plasma/$_pkgver/spectacle-$pkgver.tar.xz
+	spectacle.desktop
+	"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	install -Dm644 "$srcdir"/spectacle.desktop -t "$pkgdir"/etc/xdg/autostart/
+
+	# We don't ship systemd
+	rm -r "$pkgdir"/usr/lib/systemd
+}
+sha512sums="
+475f4104529e8f88a2628cfe0b00a7413b3a0d649b6cd7829613b86bc73f550dc5b570449b471bc45560c0da916c352f596da40a3b6c38a9bca184d0e1d963a1  spectacle-6.5.1.tar.xz
+7c563d811f30d26f83e01a465e803b95167c5b2b842315257216ab282e07c69e7582a14d7f429cd19678199179ad8f3f2854265092f5a4c9ce9b65c87ed3849d  spectacle.desktop
+"

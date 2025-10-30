@@ -1,41 +1,37 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-jis-misc
-pkgver=1.0.3
-pkgrel=0
+pkgver=1.0.4
+pkgrel=1
 pkgdesc="X.org misc font"
-url="http://xorg.freedesktop.org/"
-arch="all"
+url="https://xorg.freedesktop.org/"
+arch="noarch"
 license="custom"
-depends="encodings font-alias mkfontscale mkfontdir fontconfig"
+options="!check"
+depends="encodings font-alias mkfontscale fontconfig"
 makedepends="font-util-dev bdftopcf"
-install=
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$srcdir"/$pkgname-$pkgver
-	update_config_sub || return 1
-}
+source="https://www.x.org/releases/individual/font/font-jis-misc-$pkgver.tar.xz"
+subpackages="$pkgname-doc"
 
 build() {
-	cd "$srcdir"/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-mapfiles=/usr/share/fonts/util \
-		--with-fontdir=/usr/share/fonts/misc \
-		|| return 1
-	make || return 1
+		--with-fontdir=/usr/share/fonts/misc
+	make
 }
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-	make -j1 DESTDIR="$pkgdir" \
+	make DESTDIR="$pkgdir" \
 		MKFONTDIR=: \
 		MKFONTSCALE=: \
 		FCCACHE=: \
-		install || return 1
+		install
+
+	install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
 }
-md5sums="cb7b57d7800fd9e28ec35d85761ed278  font-jis-misc-1.0.3.tar.bz2"
-sha256sums="2b18ce10b367ebafe95a17de799b6db9a24e2337188d124adaf68af05b1fac65  font-jis-misc-1.0.3.tar.bz2"
-sha512sums="3ce4c96d54440045e84f54f7d790e350c05b0c56a72491941f2cd9ed7e2d1735ff4b41667501cf08d5d81ee19c9de6d43f88a8b59a3c5c55de9fb1696cae208c  font-jis-misc-1.0.3.tar.bz2"
+
+sha512sums="
+c54034205e7bd7a01b311c25c890f9fd1abc25f842315812d5c83d4e4091e5e6c2125a43d4d532b88c79d51cb812b86cfa8e7e4c1a87175746f1bd4e38129440  font-jis-misc-1.0.4.tar.xz
+"

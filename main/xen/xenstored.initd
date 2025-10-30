@@ -8,9 +8,14 @@ depend() {
 	after localmount
 }
 
+check_xenstored_up() {
+	test -f /run/xenstored.pid
+	return $?
+}
+
 wait_xenstored_up() {
 	local time=0 timeout=30
-	while ! xenstore-read -s / >/dev/null 2>&1; do
+	while ! check_xenstored_up; do
 		time=$(($time+1))
 		if [ $time -gt $timeout ]; then
 			return 1
@@ -21,8 +26,8 @@ wait_xenstored_up() {
 }
 
 start() {
-	checkpath --directory --mode 755 /var/run/xen
-	if xenstore-read -s / >/dev/null 2>&1; then
+	checkpath --directory --mode 755 /run/xen
+	if check_xenstored_up; then
 		ewarn "Xenstore can only be started once"
 		return 0
 	fi
@@ -52,16 +57,15 @@ start() {
 		wait_xenstored_up
 	else
 		start-stop-daemon --start --exec /usr/sbin/xenstored \
-			--pidfile /var/run/xenstored.pid \
-			-- --pid-file=/var/run/xenstored.pid \
+			--pidfile /run/xenstored.pid \
+			-- --pid-file=/run/xenstored.pid \
 			$XENSTORED_OPTS $_traceopt
 		wait_xenstored_up
 	fi
 	eend $? || return 1
 
 	ebegin "Setting domain0 name and domid record"
-	/usr/bin/xenstore-write "/local/domain/0/name" "Domain-0" \
-		&& /usr/bin/xenstore-write "/local/domain/0/domid" 0
+	/usr/lib/xen/bin/xen-init-dom0
 	eend $?
 }
 

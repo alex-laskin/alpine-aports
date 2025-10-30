@@ -1,0 +1,28 @@
+# Contributor: Jakub Jirutka <jakub@jirutka.cz>
+# Maintainer: Jakub Jirutka <jakub@jirutka.cz>
+pkgname=postgresql-hypopg
+_projname=hypopg
+pkgver=1.4.1
+pkgrel=0
+pkgdesc="An extension adding hypothetical indexes in PostgreSQL"
+url="https://github.com/HypoPG/hypopg"
+arch="all"
+license="PostgreSQL"
+makedepends="postgresql-dev"
+source="https://github.com/HypoPG/hypopg/archive/$pkgver/$pkgname-$pkgver.tar.gz"
+builddir="$srcdir/$_projname-$pkgver"
+options="!check"  # tests require running PostgreSQL
+
+build() {
+	make
+}
+
+package() {
+	depends="postgresql$(pg_config --major-version)"
+
+	make install DESTDIR="$pkgdir"
+}
+
+sha512sums="
+322232553cab5e9d0ade5f59928dc1b9044fcf9175c0872a075755aef1aa27e30c870817108a2809e1363b9cbfd0ae6399e375304fbde114b6eb891a400c9652  postgresql-hypopg-1.4.1.tar.gz
+"

@@ -1,0 +1,50 @@
+# Contributor: Aster Boese <asterboese@mailbox.org>
+# Maintainer: Luca Weiss <luca@lucaweiss.eu>
+pkgname=lomiri-ui-extras
+pkgver=0.7.0
+pkgrel=0
+pkgdesc='Misc Lomiri UI QML components'
+arch="all !armhf" # qt5-qtdeclarative is broken on armhf
+url="https://gitlab.com/ubports/development/core/lomiri-ui-extras"
+license="GPL-3.0-only"
+makedepends="
+	cmake-extras
+	cups-dev
+	exiv2-dev
+	linux-pam-dev
+	qt5-qtbase-dev
+	qt5-qtdeclarative-dev
+	samurai
+	"
+checkdepends="
+	bash
+	dbus-test-runner
+	diffutils
+	grep
+	lomiri-ui-toolkit
+	xvfb-run
+	"
+source="https://gitlab.com/ubports/development/core/lomiri-ui-extras/-/archive/$pkgver/lomiri-ui-extras-$pkgver.tar.gz"
+subpackages="$pkgname-lang"
+options="!check" # tests fail sometimes
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=ON \
+		-DCMAKE_BUILD_TYPE=None
+	cmake --build build
+}
+
+check() {
+	xvfb-run ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+47a6ed2a6d814a97d310793c76e895ca653a28b2ea734b236a8da5ca22ec7c96b83d980f1d991e3de27f904b274b62b5ecd18e18effff3a29d7b650e04f67777  lomiri-ui-extras-0.7.0.tar.gz
+"

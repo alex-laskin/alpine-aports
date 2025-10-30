@@ -1,25 +1,22 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libconfig
-pkgver=1.5
-pkgrel=3
+pkgver=1.8.1
+pkgrel=0
 pkgdesc="A simple library for manipulating structured configuration files"
-url="http://www.hyperrealm.com/libconfig/"
+url="https://www.hyperrealm.com/libconfig/libconfig.html"
 arch="all"
-license="LGPL"
-makedepends="autoconf automake libtool"
-source="$pkgname-$pkgver.tar.gz::https://github.com/hyperrealm/$pkgname/archive/v$pkgver.tar.gz"
-subpackages="$pkgname-doc $pkgname-dev $pkgname++:_cxx"
-
-builddir="$srcdir/$pkgname-$pkgver"
+license="LGPL-2.1-or-later"
+makedepends="automake autoconf libtool texinfo"
+subpackages="$pkgname-static $pkgname-doc $pkgname-dev $pkgname++:_cxx"
+source="$pkgname-$pkgver.tar.gz::https://github.com/hyperrealm/libconfig/archive/v$pkgver.tar.gz"
 
 prepare() {
-	cd "$builddir"
 	default_prepare
-	autoreconf -vif
+	autoreconf -fi
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -29,13 +26,11 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir/" install
+	make DESTDIR="$pkgdir/" install
 }
 
 _cxx() {
@@ -44,4 +39,13 @@ _cxx() {
 	mv "$pkgdir"/usr/lib/libconfig++.so.* "$subpkgdir"/usr/lib/
 }
 
-sha512sums="f3a0a969d56604c473b004fd15e541569a6b7639a23db896e391d6280060c278f0adbae1da92bc2a9a55431e74a9312d7581cc47dc27d043a9ac3b045ae2a8a0  libconfig-1.5.tar.gz"
+static() {
+	depends=""
+	pkgdesc="$pkgdesc (static libraries)"
+	mkdir -p "$subpkgdir"/usr/lib
+	mv "$pkgdir"/usr/lib/*.a "$subpkgdir"/usr/lib
+}
+
+sha512sums="
+1d9d7b21baf73259c09b503ca02942bdf847741378f8c3d7e138c9b4979c5304aae510595958fe1842b726778cedf2aaeb1844f8b209a61ccb24debea592bd0c  libconfig-1.8.1.tar.gz
+"

@@ -1,22 +1,23 @@
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=vanessa_socket
 pkgver=0.0.13
-pkgrel=0
+pkgrel=3
 pkgdesc="User space TCP/IP pipe"
-url="http://horms.net/projects/perdition/"
+url="https://projects.horms.net/projects/vanessa/"
 arch="all"
 license="LGPL-2.0-or-later"
-depends=
 depends_dev="popt-dev vanessa_logger-dev"
 makedepends="$depends_dev"
-install=""
 subpackages="$pkgname-dev $pkgname-doc"
-source="http://horms.net/projects/vanessa/download/$pkgname/$pkgver/$pkgname-$pkgver.tar.bz2"
-builddir="$srcdir"/$pkgname-$pkgver
+source="https://projects.horms.net/projects/vanessa/download/vanessa_socket/$pkgver/vanessa_socket-$pkgver.tar.bz2"
+
+prepare() {
+	default_prepare
+	update_config_sub
+}
 
 build() {
 	export LDFLAGS="$LDFLAGS -lvanessa_logger"
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -28,12 +29,10 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 

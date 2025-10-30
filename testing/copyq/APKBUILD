@@ -1,37 +1,43 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
+# Contributor: Kevin Daudt <kdaudt@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=copyq
 _pkgname=CopyQ
-pkgver=3.3.0
+pkgver=10.0.0
 pkgrel=0
 pkgdesc="Clipboard manager with searchable and editable history"
 url="https://github.com/hluk/CopyQ"
-arch="all"
+arch="all !armhf"
 license="GPL-3.0-or-later"
-makedepends="cmake libxfixes-dev libxtst-dev qt5-qtscript-dev
-	qt5-qtsvg-dev qt5-qttools-dev"
+makedepends="
+	cmake
+	extra-cmake-modules
+	knotifications-dev
+	kstatusnotifieritem-dev
+	libxfixes-dev
+	libxtst-dev
+	qt6-qtsvg-dev
+	qt6-qttools-dev
+	qt6-qtwayland-dev
+	samurai
+	"
 options="!check" # upstream does not provide check
-subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/hluk/${_pkgname}/archive/v${pkgver}.tar.gz"
+subpackages="$pkgname-doc $pkgname-bash-completion"
+source="$pkgname-$pkgver.tar.gz::https://github.com/hluk/$_pkgname/archive/v$pkgver.tar.gz"
 builddir="$srcdir/$_pkgname-$pkgver"
 
-prepare() {
-	default_prepare
-	mkdir "$builddir"/build
-}
-
 build() {
-	cd "$builddir"/build
-	cmake .. \
-		-DWITH_QT5=TRUE \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_PREFIX=/usr
-	make
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DWITH_QT6=ON
+	cmake --build build
 }
 
 package() {
-	cd "$builddir"/build
-	make DESTDIR="${pkgdir}" install
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-sha512sums="91fa2d23745a05c836f3310a63166f88df73c54f0a2bc58c677c3a8cfc8e4572f28b63bc0da20f670e9bc989ebcea84b61b2a4893ef75b7be8218774578b442c  copyq-3.3.0.tar.gz"
+sha512sums="
+e53254f2394b062955484bc176c002168a64b580159915bfab07f53a9227371821c4f8c7d66fab9a477c4613e5d50f47c19038a52828fa459f5a086ae64dba42  copyq-10.0.0.tar.gz
+"

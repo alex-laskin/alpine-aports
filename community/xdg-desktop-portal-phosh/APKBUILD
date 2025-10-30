@@ -1,0 +1,48 @@
+maintainer="team/phosh <achill@achill.org>"
+pkgname=xdg-desktop-portal-phosh
+pkgver=0.50.0
+pkgrel=0
+pkgdesc="xdg-desktop-portal implementation using GTK/GNOME/Phosh"
+url="https://gitlab.gnome.org/guidog/xdg-desktop-portal-phosh"
+arch="all"
+license="GPL-3.0-or-later"
+depends="
+	gsettings-desktop-schemas
+	xdg-desktop-portal
+	"
+makedepends="
+	cargo
+	gnome-desktop-dev
+	libadwaita-dev
+	meson
+	xdg-desktop-portal-dev
+	"
+source="https://sources.phosh.mobi/releases/xdg-desktop-portal-phosh/xdg-desktop-portal-phosh-${pkgver/_/.}.tar.xz"
+options="!check net" # no tests, cargo modules for pfs
+builddir="$srcdir/$pkgname-${pkgver/_/.}"
+
+prepare() {
+	default_prepare
+	sed -i 's/\.rc/_rc/' meson.build
+}
+
+build() {
+	abuild-meson \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	# We don't ship systemd
+	rm -fr "$pkgdir"/usr/lib/systemd
+}
+
+sha512sums="
+b9f8b95955b358b76e1c72d34a4daf16686a706f5b3f43c99365403e9c4c98cd2fb0474674d42f9002b70eb996a3a73640ca9e06bd011cb464b1d61725b40ebe  xdg-desktop-portal-phosh-0.50.0.tar.xz
+"

@@ -1,42 +1,59 @@
 # Contributor: Denis Ryabyy <vv1r0x@gmail.com>
-# Maintainer: Denis Ryabyy <vv1r0x@gmail.com>
+# Maintainer: Bart Ribbers <bribbers@disroot.org>
 pkgname=qt5-qtserialport
-_pkgname=${pkgname/qt5-//}-everywhere-src
-pkgver=5.10.1
-_ver=${pkgver/_p/-}
-_ver=${_ver/_/-}
-_ver=${_ver/beta0/beta}
-_ver=${_ver/rc0/rc}
-_V=${_ver/rc/RC}
-pkgrel=0
+pkgver=5.15.10_git20230424
+pkgrel=1
+_module="${pkgname#qt5-}"
+_pkgver=af58a4c62415fbfd997c43422acf93e2e6ab5155
+_fullname=$_module-$_pkgver
 pkgdesc="Qt5 - QtSerialPort module"
-url="http://wiki.qt.io/QtSerialPort"
+url="https://wiki.qt.io/QtSerialPort"
 arch="all"
-license="LGPL-2.0 with exceptions or GPL-3.0 with exceptions"
-makedepends="qt5-qtbase-dev eudev-dev"
+license="( LGPL-2.0-or-later OR GPL-3.0-only OR GPL-2.0-or-later ) AND Qt-GPL-exception-1.0"
+makedepends="
+	eudev-dev
+	qt5-qtbase-dev
+	"
 subpackages="$pkgname-dev"
+source="https://dev.alpinelinux.org/archive/qt/$_fullname.tar.xz"
+builddir="$srcdir/$_fullname"
 
-case $pkgver in
-*_beta*|*_rc*) _rel=development_releases;;
-*) _rel=official_releases;;
-esac
-source="http://download.qt.io/official_releases/qt/${pkgver%.*}/$_ver/submodules/$_pkgname-$_ver.tar.xz"
+_disturl="dev.alpinelinux.org:/archive/qt/"
+snapshot() {
+	clean
+	makedepends="git xz rsync tar" deps
+	mkdir -p "$srcdir" && cd "$srcdir"
+	git clone --filter=tree:0 https://invent.kde.org/qt/qt/$_module.git .
+	git archive --format tar --prefix=$_fullname/ $_pkgver > "$SRCDEST"/$_fullname.tar
+	xz -vv -T0 -9 -e "$SRCDEST"/$_fullname.tar
+	rsync --progress -La "$SRCDEST"/$_fullname.tar.xz $_disturl
+}
 
-builddir="$srcdir"/$_pkgname-${_V%-*}
+prepare() {
+	default_prepare
+
+	# We need to make the build system think we're running in a git repository
+	# so it correctly symlinks during the build
+	mkdir .git
+}
 
 build() {
-	cd "$builddir"
-	qmake-qt5 && make
+	qmake-qt5
+	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make INSTALL_ROOT="$pkgdir" install
+
+	# Drop QMAKE_PRL_BUILD_DIR because reference the build dir
+	find "$pkgdir/usr/lib" -type f -name '*.prl' \
+		-exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 }
 
-sha512sums="6c0a47adbc1f518634ca1313f2d22a9e3e7734ddbf8db85ea17c777dee5feae2e9120236479e0c4163702e636d6a2c1dc61462c392fbd79f3332e05d4e0afc1d  qtserialport-everywhere-src-5.10.1.tar.xz"
+sha512sums="
+2e4a239cd771ac1d77b6c07d97599b30c339475a36c2de15f2af543aa726444f96f087152b35c151e5b2035809a0daff5f0dc1c47d09e3b2579a8b86a8e45b68  qtserialport-af58a4c62415fbfd997c43422acf93e2e6ab5155.tar.xz
+"

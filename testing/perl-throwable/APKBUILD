@@ -3,44 +3,39 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=perl-throwable
 _pkgreal=Throwable
-pkgver=0.200013
+pkgver=1.001
 pkgrel=1
 pkgdesc="A role for classes that can be thrown"
-url="http://search.cpan.org/dist/Throwable/"
+url="https://metacpan.org/release/Throwable"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends="perl-moo perl-class-load perl-moox-types-mooselike perl-devel-stacktrace"
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl perl-moo perl-class-load perl-moox-types-mooselike perl-devel-stacktrace"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/R/RJ/RJBS/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/R/RJ/RJBS/$_pkgreal-$pkgver.tar.gz"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
 	default_prepare
 
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 make
 }
 
 check() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="81ce73709c7c6a0160da42b00ce06ddf4cce79a6801df7aa90ddcce67efed6ace17b06171ac42b2737a98515c17ab46b5a3b7fd9e5bd3079b109a977dc6c0963  Throwable-0.200013.tar.gz"
+sha512sums="
+b0b8d906c1cf7d4f5ea985b91bb2eca191056cd41b12c37560504c825bf57fe4a0cf4423ad53da04a9cd43edeba52321d407f03e556033156071b0c3ef97001a  Throwable-1.001.tar.gz
+"

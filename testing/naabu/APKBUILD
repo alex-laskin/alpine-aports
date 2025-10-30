@@ -1,0 +1,30 @@
+# Contributor: Jonas <spameier+alpine@proton.me>
+# Maintainer: Jonas <spameier+alpine@proton.me>
+pkgname=naabu
+pkgver=2.3.5
+pkgrel=3
+pkgdesc="Fast port scanner written in go with a focus on reliability and simplicity"
+url="https://docs.projectdiscovery.io/tools/naabu"
+arch="aarch64 s390x x86_64" # test only succeed on these archs
+license="MIT"
+makedepends="go libpcap-dev"
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/projectdiscovery/naabu/archive/refs/tags/v$pkgver.tar.gz"
+options="net !check" # go dependencies, bogus host discovery
+
+build() {
+	make build
+}
+
+check() {
+	make test
+}
+
+package() {
+	install -Dm755 "$builddir/naabu" -t "$pkgdir/usr/bin/"
+	install -Dm644 LICENSE.md "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+}
+
+sha512sums="
+4448e5b65534ec174692830570199ee5411a386f420e41d77b890b019ec631d0560b64c478ddcfd607a8d90d17c7ea5d695fd30f7d7670d0ad3cb61fa65ed827  naabu-2.3.5.tar.gz
+"

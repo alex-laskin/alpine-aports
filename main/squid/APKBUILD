@@ -1,51 +1,103 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=squid
-pkgver=3.5.27
+pkgver=6.12
 pkgrel=1
-pkgdesc="A full-featured Web proxy cache server."
-url="http://www.squid-cache.org"
+_langpack=20240307
+pkgdesc="Full-featured Web proxy cache server"
+url="https://www.squid-cache.org/"
 install="squid.pre-install squid.pre-upgrade"
-pkgusers="squid"
-pkggroups="squid"
 arch="all"
-license="GPL-2.0"
+license="GPL-2.0-or-later"
 depends="logrotate"
-makedepends="libressl-dev perl-dev autoconf automake heimdal-dev libtool
-	libcap-dev linux-headers"
-subpackages="$pkgname-doc"
-linguas="af ar az bg ca cs da de el es et fa fi fr he hu hy id it ja ka ko lt
-	lv ms nl oc pl pt ro ru sk sl sr sv th tr uk uz vi zh"
-langdir="/usr/share/squid/errors"
-source="http://www.squid-cache.org/Versions/v3/${pkgver%.*}/squid-${pkgver}.tar.xz
-	bug-3679.patch
-
-	squid.initd
-	squid.confd
+makedepends="
+	heimdal-dev
+	libcap-dev
+	linux-headers
+	openssl-dev>3
+	perl-dev
+	"
+subpackages="$pkgname-openrc $pkgname-doc"
+for _lang in af ar az bg ca cs da de el es et fa fi fr he hu hy id it ja ka ko lt \
+	lv ms nl oc pl pt ro ru sk sl spq sr sv th tr uk uz vi zh; do
+	subpackages="$subpackages $pkgname-lang-$_lang:_lang:noarch"
+done
+source="https://www.squid-cache.org/Versions/v${pkgver%%.*}/squid-$pkgver.tar.xz
+	squid-langpack-$_langpack.tar.gz.noauto::https://www.squid-cache.org/Versions/langpack/squid-langpack-$_langpack.tar.gz
+	$pkgname.initd
+	$pkgname.confd
 	$pkgname.logrotate
 	"
 pkgusers="squid"
 pkggroups="squid"
-builddir="$srcdir"/$pkgname-$pkgver
+options="!check"
 
 # secfixes:
-#   3.5.27-r0:
+#   6.6-r0:
+#     - CVE-2023-50269
+#   6.5-r0:
+#     - CVE-2023-49285
+#     - CVE-2023-49286
+#   6.4-r0:
+#     - CVE-2023-46847
+#     - CVE-2023-46846
+#     - CVE-2023-46724
+#     - CVE-2023-46848
+#   6.1-r0:
+#     - CVE-2023-49288
+#   5.7-r0:
+#     - CVE-2022-41317
+#   5.2-r0:
+#     - CVE-2021-41611
+#     - CVE-2021-28116
+#   5.0.6-r0:
+#     - CVE-2021-28651
+#     - CVE-2021-28652
+#     - CVE-2021-28662
+#     - CVE-2021-31806
+#     - CVE-2021-31807
+#     - CVE-2021-31808
+#     - CVE-2021-33620
+#   5.0.5-r0:
+#     - CVE-2020-25097
+#   4.13.0-r0:
+#     - CVE-2020-15810
+#     - CVE-2020-15811
+#     - CVE-2020-24606
+#   4.12.0-r0:
+#     - CVE-2020-15049
+#   4.10-r0:
+#     - CVE-2020-8449
+#     - CVE-2020-8450
+#     - CVE-2019-12528
+#     - CVE-2020-8517
+#   4.9-r0:
+#     - CVE-2019-18679
+#   4.8-r0:
+#     - CVE-2019-13345
+#   3.5.27-r2:
 #     - CVE-2018-1000024
 #     - CVE-2018-1000027
+#     - CVE-2018-1172
+
+unpack() {
+	default_unpack
+	mkdir -p "$srcdir"/langpack
+	tar -xzf "$srcdir"/squid-langpack-$_langpack.tar.gz.noauto -C "$srcdir"/langpack
+}
 
 prepare() {
-	cd "$builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-	find -name config.sub | xargs chmod u+w
+	default_prepare
+
+	cd "$srcdir"/langpack
+	# create symlink names for languages
+	./alias-link.sh ln rm . aliases
+	# delete non-translation files already installed
+	rm -r templates COPYRIGHT TRANSLATORS aliases alias-link.sh
 }
 
 build() {
-	cd "$builddir"
-
+	CXXFLAGS="$CXXFLAGS -O2 -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -61,8 +113,8 @@ build() {
 		--enable-auth-digest \
 		--enable-auth-basic="getpwnam,NCSA,SMB,SMB_LM,RADIUS" \
 		--enable-epoll \
-		--enable-external-acl-helpers="file_userip,unix_group,wbinfo_group,session" \
-		--enable-auth-ntlm="fake,smb_lm" \
+		--enable-external-acl-helpers="file_userip,unix_group,wbinfo_group" \
+		--enable-auth-ntlm="fake,SMB_LM" \
 		--enable-auth-negotiate="kerberos,wrapper" \
 		--disable-mit \
 		--enable-heimdal \
@@ -84,14 +136,12 @@ build() {
 		--enable-follow-x-forwarded-for \
 		--with-large-files \
 		--with-default-user=squid \
-		--with-openssl \
-		|| return 1
+		--with-openssl
 
-	make || return 1
+	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 
 	install -m755 -D "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
@@ -104,15 +154,26 @@ package() {
 		"$pkgdir"/var/log/squid \
 		"$pkgdir"/var/run/squid
 	chmod +x "$pkgdir"/usr/lib/squid/*
+
+	cp -r "$srcdir"/langpack/* "$pkgdir"/usr/share/squid/errors/
 }
 
 squid_kerb_auth() {
-	pkgdesc="Squid kerberos authetication helper"
-	install -d "$subpkgdir"/usr/lib/squid
-	mv "$pkgdir"/usr/lib/squid/squid_kerb_auth "$subpkgdir"/usr/lib/squid/
+	pkgdesc="Squid kerberos authentication helper"
+
+	amove usr/lib/squid/squid_kerb_auth
 }
-sha512sums="4172a053c3b7ffe7a12dfb3febac96942d0fbbe7e98e3f797f22cd75b0a3a89cbbfe7260b5daad099e79d5e9303bb5dfbfee7499cb30a90590aa1bd242ff4817  squid-3.5.27.tar.xz
-d44d0688a416ce993e186afe77051f764c7b01f452cfe27474a7876bc7f58e36c15c06978eedb189b98e276f512aa3bd58992a08668e89a5ef9cd843c22af72a  bug-3679.patch
-15d95f7d787be8c2e6619ef1661fd8aae8d2c1ede706748764644c7dc3d7c34515ef6e8b7543295fddc4e767bbd74a7cf8c42e77cf60b3d574ff11b3f6e336c9  squid.initd
+
+_lang() {
+	local lang=${subpkgname##*-}
+	pkgdesc="$pkgname language pack for $lang"
+	amove usr/share/squid/errors/$lang*
+}
+
+sha512sums="
+7ab61f19416426fb8284de7bddc1ea9a5a7b3148fc54c018a243071ba5854610ef38a248f6a22634a2acb7d3ea408b582af1f48818dfe698ade0b7b8c00fd183  squid-6.12.tar.xz
+e41fc9bca1f0f98943bc647fc7b468de808814579b39b204ae72d7bea77b26c9d8959764c559faef7873feb8d8dde504cd1d21cf1289b78f3b87b13da834f473  squid-langpack-20240307.tar.gz.noauto
+e3968a6b97baebfe18e1e978c76f6ef7a8a60cfb96dfc2d5199e91a84a065fe964aed6531aa04fe3824c5fd0644adec28ff81ff2f4fed424a29e636829b118d8  squid.initd
 7292661de344e8a87d855c83afce49511685d2680effab3afab110e45144c0117935f3bf73ab893c9e6d43f7fb5ba013635e24f6da6daf0eeb895ef2e9b5baa9  squid.confd
-89a703fa4f21b6c7c26e64a46fd52407e20f00c34146ade0bea0c4b63d050117c0f8e218f2256a1fbf6abb84f4ec9b0472c9a4092ff6e78f07c4f5a25d0892a5  squid.logrotate"
+89a703fa4f21b6c7c26e64a46fd52407e20f00c34146ade0bea0c4b63d050117c0f8e218f2256a1fbf6abb84f4ec9b0472c9a4092ff6e78f07c4f5a25d0892a5  squid.logrotate
+"

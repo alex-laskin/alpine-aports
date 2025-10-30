@@ -1,0 +1,111 @@
+# Contributor: Magnus Sandin <magnus.sandin@valitron.se>
+# Maintainer: Magnus Sandin <magnus.sandin@valitron.se>
+pkgname=lsp-plugins
+pkgver=1.2.23
+pkgrel=0
+pkgdesc="Collection of free plugins compatible with LADSPA, LV2 and LinuxVST"
+url="https://lsp-plug.in"
+arch="all"
+license="LGPL-3.0-or-later"
+install="$pkgname.post-upgrade"
+makedepends="
+	cairo-dev
+	cmd:php
+	cmd:git
+	gst-plugins-base-dev
+	jack-dev
+	ladspa-dev
+	libsndfile-dev
+	libxrandr-dev
+	lv2-dev
+	mesa-dev
+	"
+subpackages="
+	$pkgname-doc
+	$pkgname-dev
+	liblsp-r3d-glx-lib
+	$pkgname-xdg::noarch
+	$pkgname-clap
+	$pkgname-ladspa
+	$pkgname-lv2
+	$pkgname-vst2
+	"
+source="
+	lsp-plugins-$pkgver.tar.gz::https://github.com/lsp-plugins/lsp-plugins/archive/refs/tags/$pkgver.tar.gz
+	"
+options="!check" # no testsuite
+
+# GitLab CI and builders run armhf/armv7 as 32-bit arches on aarch64. Thus, we
+# cannot rely on the uname -m output on these platforms, as the build system is
+# broken and does not use the gcc default architecture, rather passing -march
+# values manually.
+case "$CARCH" in
+armhf) export ARCHITECTURE=armv6l ;;
+armv7) export ARCHITECTURE=armv7l ;;
+esac
+
+build() {
+	export CFLAGS="$CFLAGS -O2"
+	export CXXFLAGS="$CXXFLAGS -O2 -fno-lto"
+	export LDFLAGS="-fno-lto"
+	make clean
+	make \
+		PREFIX=/usr \
+		ADD_FEATURES=xdg \
+		ARTIFACT_EXPORT_HEADERS=1 \
+		config
+	make fetch
+	make
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+	rm "$pkgdir"/usr/lib/*.a
+}
+
+lib() {
+	pkgdesc="$pkgdesc (lsp-plugins gfx library)"
+
+	amove usr/lib/liblsp-r3d-glx-lib*
+}
+
+xdg() {
+	pkgdesc="$pkgdesc (XDG integration)"
+
+	amove usr/share/applications
+	amove usr/share/desktop-directories
+	amove usr/share/icons
+	amove etc/xdg/menus/applications-merged
+}
+
+clap() {
+	pkgdesc="$pkgdesc (clap integration)"
+	depends="liblsp-r3d-glx-lib=$pkgver-r$pkgrel"
+
+	amove usr/lib/clap
+}
+
+ladspa() {
+	pkgdesc="$pkgdesc (ladspa integration)"
+	depends="liblsp-r3d-glx-lib=$pkgver-r$pkgrel"
+
+	amove usr/lib/ladspa
+}
+
+lv2() {
+	pkgdesc="$pkgdesc (lv2 plugins)"
+	depends="liblsp-r3d-glx-lib=$pkgver-r$pkgrel"
+
+	amove usr/lib/lv2
+}
+
+vst2() {
+	pkgdesc="$pkgdesc (vst2 plugins)"
+	depends="liblsp-r3d-glx-lib=$pkgver-r$pkgrel"
+
+	amove usr/lib/vst
+}
+
+sha512sums="
+6628c4aff680e02c925d4a5cf40345abffd9fe11a54c802d9a600073ddece61c266f34a35950986dec13e0db23ae399f61f72187407ec4ec51bbcf2bb2990c61  lsp-plugins-1.2.23.tar.gz
+"

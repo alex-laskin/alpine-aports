@@ -1,20 +1,18 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=tdb
-pkgver=1.3.15
-pkgrel=1
+pkgver=1.4.14
+pkgrel=0
 pkgdesc="The tdb library"
-url="http://tdb.samba.org/"
+url="https://tdb.samba.org/"
 arch="all"
 license="LGPL-3.0-or-later"
-depends_dev="python2"
-makedepends="$depends_dev python2-dev python3-dev docbook-xsl"
-subpackages="$pkgname-dev py2-$pkgname:_py2 py3-$pkgname:_py3
+depends_dev="python3"
+makedepends="$depends_dev python3-dev docbook-xsl"
+subpackages="$pkgname-dev py3-$pkgname:_py3
 	$pkgname-libs $pkgname-doc"
-source="http://samba.org/ftp/tdb/tdb-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://samba.org/ftp/tdb/tdb-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -25,28 +23,16 @@ build() {
 		--localstatedir=/var \
 		--disable-rpath \
 		--bundled-libraries=NONE \
-		--builtin-libraries=replace \
-		--extra-python=/usr/bin/python3
+		--builtin-libraries=replace
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
-}
-
-_py2() {
-	pkgdesc="Python 2 binding for the tdb library"
-	provides="py-tdb=$pkgver-r$pkgrel"  # for backward compatibility
-	replaces="py-tdb"  # for backward compatibility
-
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/python2* "$subpkgdir"/usr/lib/
 }
 
 _py3() {
@@ -61,4 +47,6 @@ libs() {
 	replaces="tdb"
 }
 
-sha512sums="553246d5e7a7c22ea1b00962ac635d608f6d2344201862e796cad3b1a20610da1f5652ec9dbcb0187867fbd25f36247fcc34e9b4b2c3488c15d7202c9fb13bbb  tdb-1.3.15.tar.gz"
+sha512sums="
+6bc9fe158ff6229d63338e83a6538b6370d82e68039756a8e43fa1afca76cfbfbf182b7cbbf7a3cfab51226b8de15a9fde94af2bb231ba265a83c27a660032eb  tdb-1.4.14.tar.gz
+"

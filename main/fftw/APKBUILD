@@ -1,50 +1,62 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Contributor: Magnus Sandin <magnus.sandin@valitron.se>
+# Maintainer: Magnus Sandin <magnus.sandin@valitron.se>
 pkgname=fftw
-pkgver=3.3.6p2
-pkgrel=2
-pkgdesc="fastest fourier transform in the west"
+pkgver=3.3.10
+_pkgver=${pkgver//p/-pl}
+pkgrel=7
+pkgdesc="Discrete Fourier transform (DFT) library"
 url="http://www.fftw.org/"
 arch="all"
-license="GPL-2.0+"
+license="GPL-2.0-or-later"
 makedepends="texinfo"
 # order of the libs split functions are important because of lib naming
-subpackages="$pkgname-dev $pkgname-doc $pkgname-single-libs:single
-	$pkgname-long-double-libs:long_double $pkgname-double-libs:double"
-srcpkgver=${pkgver//p/-pl}
-source="http://www.fftw.org/$pkgname-$srcpkgver.tar.gz
-	cycle.h.patch"
-builddir="$srcdir/$pkgname-$srcpkgver"
+subpackages="
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-single-libs:single
+	$pkgname-long-double-libs:long_double
+	$pkgname-double-libs:double
+	"
+source="http://www.fftw.org/fftw-$_pkgver.tar.gz
+	cycle.h.patch
+	"
 
 _precision="single double long-double"
 
+# disable tests for arm due to bug with gcc >= 9
+# see https://github.com/FFTW/fftw3/issues/213
+case "$CARCH" in
+	armhf|armv7) options="$options !check";;
+esac
+
 prepare() {
 	default_prepare
+	update_config_sub
 
-	cd "$builddir"
 	local i; for i in $_precision; do
 		cp -r "$builddir" $srcdir/$i
 	done
 }
 
 build() {
-	local _openmp=
-
+	export CFLAGS="$CFLAGS -O2"
+	export CXXFLAGS="$CXXFLAGS -O2"
+	local cf
 	local i; for i in $_precision; do
 		case "$i" in
-			single) _cf="--enable-single";;
-			double) _cf="";;
-			long-double) _cf="--enable-long-double";;
+		single) cf="--enable-single" ;;
+		double) cf="" ;;
+		long-double) cf="--enable-long-double" ;;
 		esac
 
 		case "$i--$CARCH" in
-			single--x86_64 | double--x86_64)
-				_cf="$_cf --enable-sse2 --enable-avx";;
-			single--arm* | single--aarch64)
-				_cf="$_cf --enable-neon";;
+		single--x86_64|double--x86_64) cf="$cf --enable-sse2 --enable-avx" ;;
+		single--x86|double--x86) cf="$cf --enable-sse2" ;;
+		single--arm*|single--aarch64) cf="$cf --enable-neon" ;;
 		esac
 
-		msg "Building for $i precision ($_cf)"
+		msg "Building for $i precision ($cf)"
 		cd "$srcdir"/$i
 		./configure \
 			--build=$CBUILD \
@@ -55,8 +67,7 @@ build() {
 			--infodir=/usr/share/info \
 			--enable-shared \
 			--enable-threads \
-			$_openmp \
-			$_cf
+			$cf
 		make
 	done
 }
@@ -76,22 +87,18 @@ package() {
 }
 
 single() {
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libfftw3f*.so* \
-		"$subpkgdir"/usr/lib/
+	amove usr/lib/libfftw3f*.so*
 }
 
 double() {
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libfftw3*.so* \
-		"$subpkgdir"/usr/lib/
+	amove usr/lib/libfftw3*.so*
 }
 
 long_double() {
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libfftw3l*.so* \
-		"$subpkgdir"/usr/lib/
+	amove usr/lib/libfftw3l*.so*
 }
 
-sha512sums="e130309856752a1555b6d151c4d0ce9eb4b2c208fff7e3e89282ca8ef6104718f865cbb5e9c4af4367b3615b69b0d50fd001a26d74fd5324ff2faabe14fe3472  fftw-3.3.6-pl2.tar.gz
-522b57654401372d219be58e4566c1d7b9f691ead8ae6c718ecff3edccb2a5b9db9afb763acb85ec63b26a17099b1826a0680b4010973ac84a66116c3f80422b  cycle.h.patch"
+sha512sums="
+2d34b5ccac7b08740dbdacc6ebe451d8a34cf9d9bfec85a5e776e87adf94abfd803c222412d8e10fbaa4ed46f504aa87180396af1b108666cde4314a55610b40  fftw-3.3.10.tar.gz
+7da269fc43dabd02ae6fad2ebad92b07e06825b6b7c6f8987fc6444f02e0d55080db4ba6e401760e071f5c33015faf8c710f643636cab7a79bdf1af5d434dbb4  cycle.h.patch
+"

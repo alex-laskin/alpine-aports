@@ -1,39 +1,48 @@
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+maintainer="Achill Gilgenast <achill@achill.org>"
 pkgname=eog
-pkgver=3.27.2
-pkgrel=0
-pkgdesc="An image viewer for GNOME"
-url="https://wiki.gnome.org/Apps/EyeOfGnome"
+pkgver=47.0
+pkgrel=2
+pkgdesc="Image viewer for GNOME"
+url="https://gitlab.gnome.org/GNOME/eog"
 arch="all"
-license="GPL"
-depends=""
-depends_dev="gtk+3.0-dev gvfs-dev libxml2-dev jpeg-dev libexif-dev lcms2-dev libpeas-dev librsvg-dev gnome-desktop-dev"
-makedepends="$depends_dev itstool libxml2-utils"
-install=""
+license="GPL-2.0-or-later"
+depends="gsettings-desktop-schemas"
+depends_dev="
+	exempi-dev
+	gnome-desktop-dev
+	jpeg-dev
+	lcms2-dev
+	libexif-dev
+	libpeas-dev
+	libportal-dev
+	librsvg-dev
+	libxml2-dev
+	"
+makedepends="
+	$depends_dev
+	itstool
+	libhandy1-dev
+	meson
+	"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="https://download.gnome.org/sources/eog/3.27/eog-$pkgver.tar.xz"
-builddir="$srcdir/eog-$pkgver"
+source="https://download.gnome.org/sources/eog/${pkgver%.*}/eog-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var
-	make
-}
-
-package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	abuild-meson \
+		-Db_lto=true \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
-sha512sums="172c87d9411dec689753ff72eb7bc1c4d8cc64c4fcda1beaca4db65e2b7cf657cee8dea659bf4a7712a635d9003d7e826ab1da0a4e00b29f33256319a80bd1de  eog-3.27.2.tar.xz"
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+5a3907988031360c53d7a2c9ba8c5e1c03c714f41f55bb980414e35591d522f32d9ae1c9e6c0ac6ca58e559074cd060572225417e30f39281a8f93473ec42159  eog-47.0.tar.xz
+"

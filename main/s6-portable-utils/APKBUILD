@@ -1,38 +1,36 @@
 # Maintainer: Laurent Bercot <ska-devel@skarnet.org>
-# Contributor: John Regan <john@jrjrtech.com>
 pkgname=s6-portable-utils
-pkgver=2.2.1.1
+pkgver=2.3.1.0
 pkgrel=0
 pkgdesc="skarnet.org's tiny portable generic utilities"
-url="http://skarnet.org/software/$pkgname/"
+url=https://skarnet.org/software/s6-portable-utils/
 arch="all"
 license="ISC"
-makedepends="skalibs-dev"
+_skalibs_version=2.14.4
+makedepends="skalibs-dev>=${_skalibs_version}"
 options="!check"
 subpackages="$pkgname-doc"
-source="http://skarnet.org/software/$pkgname/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://skarnet.org/software/s6-portable-utils/s6-portable-utils-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--enable-shared \
-		--enable-static \
 		--disable-allstatic \
 		--prefix=/usr \
-		--libdir=/usr/lib
+		--with-pkgconfig \
+		--enable-multicall
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
+	rm "$pkgdir/usr/include/s6-portable-utils/config.h"
+	rmdir -p "$pkgdir/usr/include/s6-portable-utils" || :
+
+	mkdir -p "$pkgdir/usr/share/doc"
+	cp -a "$builddir/doc" "$pkgdir/usr/share/doc/$pkgname"
 }
 
-doc() {
-	default_doc
-	mkdir -p "$subpkgdir/usr/share/doc"
-	cp -a "$builddir/doc" "$subpkgdir/usr/share/doc/$pkgname"
-}
-
-sha512sums="fba7a4d1f5e0c969dc254775f28c02f1b8673ead28022962175bd605125dc56012cfdeb177037c322780be93a5191a5292a47cb26cf5d466bb5eb081fa5a9657  s6-portable-utils-2.2.1.1.tar.gz"
+sha512sums="
+80ab6152d5c3f88449d77924ceb43ccef12a41918d2fd8042ded15423b8f65e612d582c6475d73c500380018a91f7adc48c71740c898015565a046a8fbef1cd5  s6-portable-utils-2.3.1.0.tar.gz
+"

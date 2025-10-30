@@ -1,0 +1,34 @@
+# Maintainer: Thiago Perrotta <tbperrotta@gmail.com>
+pkgname=zizmor
+pkgver=1.16.0
+pkgrel=0
+pkgdesc="A static analysis tool for GitHub Actions"
+url="https://github.com/zizmorcore/zizmor"
+arch="all"
+license="MIT"
+makedepends="cargo cargo-auditable"
+subpackages="$pkgname-doc"
+source="zizmor-$pkgver.tar.gz::https://github.com/zizmorcore/zizmor/archive/v$pkgver/zizmor-$pkgver.tar.gz"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+}
+
+check() {
+	cargo test --frozen
+}
+
+package() {
+	install -Dm 755 -t "$pkgdir/usr/bin" target/release/zizmor
+	install -Dm 644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname"
+}
+
+sha512sums="
+e7e6144c04c043e2139e4f1100b4dcfa40e393f2d31c5258403e0f04d4a6515053052b3ba05dacd13ff1995dac00e38af44ff74721fb124cd36ea61f6da41fea  zizmor-1.16.0.tar.gz
+"

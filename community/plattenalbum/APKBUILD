@@ -1,0 +1,40 @@
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=plattenalbum
+pkgver=2.3.1
+pkgrel=1
+pkgdesc="Browse music with MPD"
+url="https://github.com/SoongNoonien/plattenalbum"
+arch="noarch"
+license="GPL-3.0-only"
+depends="
+	gettext
+	libadwaita
+	py3-gobject3
+	py3-mpd2
+	python3
+	"
+makedepends="
+	desktop-file-utils
+	glib-dev
+	gtk-update-icon-cache
+	meson
+	"
+subpackages="$pkgname-lang"
+source="$pkgname-$pkgver.tar.gz::https://github.com/SoongNoonien/plattenalbum/archive/refs/tags/v$pkgver.tar.gz"
+
+build() {
+	abuild-meson . output
+	meson compile -C output
+}
+
+check() {
+	meson test -C output
+}
+
+package() {
+	meson install --no-rebuild --destdir "$pkgdir" -C output
+}
+
+sha512sums="
+a8b2ae5d7ffe8b04e5e66eeea960216c47561516e023399bed7c95c226873896c1aa512d8d5f17712115b096fa786c665277af1919ec55bc62924e70eceb5731  plattenalbum-2.3.1.tar.gz
+"

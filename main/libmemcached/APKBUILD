@@ -1,48 +1,47 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libmemcached
-pkgver=1.0.18
-pkgrel=2
-pkgdesc="Client library and command line tools for memcached server"
-url="http://libmemcached.org/"
+pkgver=1.1.4
+pkgrel=1
+pkgdesc="Client library and command line tools for memcached server (resurrected)"
+url="https://github.com/awesomized/libmemcached"
 arch="all"
-license="BSD"
-options="!check" # tests are broken
-depends=""
+license="BSD-3-Clause"
 depends_dev="cyrus-sasl-dev"
-makedepends="$depends_dev memcached-dev"
-install=""
-subpackages="$pkgname-dev $pkgname-doc $pkgname-libs"
-source="https://launchpad.net/${pkgname}/${pkgver%.*}/${pkgver}/+download/${pkgname}-${pkgver}.tar.gz
-	musl-fixes.patch"
-
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="
+	$depends_dev
+	bison
+	cmake
+	flex
+	libevent-dev
+	memcached-dev
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-libs"
+source="$pkgname-$pkgver.tar.gz::https://github.com/awesomized/libmemcached/archive/refs/tags/$pkgver.tar.gz"
+options="!check" # no tests built
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--disable-static \
-		--enable-sasl \
-		--enable-libmemcachedprotocol \
-		--enable-memaslap
-	make
+	CXXFLAGS="$CXXFLAGS -flto=auto" \
+	CFLAGS="$CFLAGS -flto=auto" \
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DBUILD_SHARED_LIBS=ON \
+		-DENABLE_SASL=ON
+	cmake --build build
 }
 
 check() {
-	cd "$builddir"
-	make check || { find . -name 'test-suite.log' -exec cat '{}' ';'; return 1; }
+	# make check
+	ctest --test-dir build
 }
 
 package() {
-	cd "$builddir"
-	make -j1 AM_MAKEFLAGS= DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
+	# just junk top-level readme/changelog files from repo
+	rm -r "$pkgdir"/usr/share/doc
 }
 
-md5sums="b3958716b4e53ddc5992e6c49d97e819  libmemcached-1.0.18.tar.gz
-de32e3cbd74c0bef8c49d50cf57ae764  musl-fixes.patch"
-sha256sums="e22c0bb032fde08f53de9ffbc5a128233041d9f33b5de022c0978a2149885f82  libmemcached-1.0.18.tar.gz
-188bc487122570ba681ec2781633a368abe5bb1613d0727235c767c25d3b155d  musl-fixes.patch"
-sha512sums="2d95fea63b8b6dc7ded42c3a88a54aad74d5a1d417af1247144dae4a88c3b639a3aabc0c2b66661ff69a7609a314efaaae236e10971af9c428a4bca0a0101585  libmemcached-1.0.18.tar.gz
-ff8f59d2b6d3b7d1d110ff3f1d03dbceba3a000271e69f465ffd02e77c0a092e6904b19ac4aea624a0622cec6a16ecd048f46107e011cb9011027ef71265aaf5  musl-fixes.patch"
+sha512sums="
+0a10a2431142ec6e4547f82fdd35b55c018264e5f8c39910a65252c3f53d862fb5945e7a671951915aac076767cc995740b3e499eb584017a38eb2d1e82171fb  libmemcached-1.1.4.tar.gz
+"

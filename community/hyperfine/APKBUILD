@@ -1,0 +1,51 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
+# Maintainer: Jakub Jirutka <jakub@jirutka.cz>
+pkgname=hyperfine
+pkgver=1.19.0
+pkgrel=0
+pkgdesc="Command-line benchmarking tool"
+url="https://github.com/sharkdp/hyperfine"
+arch="all"
+license="Apache-2.0 AND MIT"
+makedepends="cargo cargo-auditable"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	$pkgname-fish-completion
+	"
+source="https://github.com/sharkdp/hyperfine/archive/v$pkgver/hyperfine-$pkgver.tar.gz"
+
+export CARGO_PROFILE_RELEASE_OPT_LEVEL="z"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+}
+
+check() {
+	cargo test all --frozen
+}
+
+package() {
+	install -Dm755 target/release/hyperfine \
+		"$pkgdir"/usr/bin/hyperfine
+	install -Dm644 doc/hyperfine.1 \
+		"$pkgdir"/usr/share/man/man1/hyperfine.1
+
+	install -Dm644 target/release/build/hyperfine-*/out/hyperfine.bash \
+		"$pkgdir/usr/share/bash-completion/completions/hyperfine"
+	install -Dm644 target/release/build/hyperfine-*/out/_hyperfine \
+		"$pkgdir/usr/share/zsh/site-functions/_hyperfine"
+	install -Dm644 target/release/build/hyperfine-*/out/hyperfine.fish \
+		"$pkgdir/usr/share/fish/vendor_completions.d/hyperfine.fish"
+}
+
+sha512sums="
+91e3b497844944bc11afaba07488dac9803b145d69259064c9a510cf76039baa2e025751743bf3230d114b31d7eb46e017c99d38506f0b6fcf2b9a3623352e8e  hyperfine-1.19.0.tar.gz
+"

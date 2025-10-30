@@ -1,0 +1,51 @@
+# Contributor: Bart Ribbers <bribbers@disroot.org>
+
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=grantleetheme
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="KDE PIM mail related libraries"
+# armhf blocked by extra-cmake-modules
+# s390x and riscv64 blocked by knewstuff
+arch="all !armhf !s390x !riscv64"
+url="https://kontact.kde.org/"
+license="GPL-2.0-or-later AND LGPL-2.1-or-later"
+depends_dev="
+	grantlee-dev
+	ki18n-dev
+	knewstuff-dev
+	ktexttemplate-dev
+	qt6-qtbase-dev
+	"
+makedepends="$depends_dev
+	doxygen
+	extra-cmake-modules
+	graphviz
+	samurai
+	"
+checkdepends="xvfb-run"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/pim/grantleetheme.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/grantleetheme-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_QCH=ON
+	cmake --build build
+}
+
+check() {
+	xvfb-run -a ctest --test-dir build -E "grantleetheme-grantleethemetest"
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+sha512sums="
+8562f83cc624dd9e379f7772969931416b371b57336f6d840bad765bad8d3053ed3ed67972b1da65956e6c43367d1499155c1936fb87c9d60f0ba4ad4b7770c5  grantleetheme-25.08.1.tar.xz
+"

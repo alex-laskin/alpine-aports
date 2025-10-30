@@ -1,0 +1,36 @@
+# Contributor: Francesco Colista <fcolista@alpinelinux.org>
+# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
+pkgname=py3-colorful
+pkgver=0.5.7
+pkgrel=0
+pkgdesc="Terminal string styling done right, in Python"
+url="https://github.com/timofurrer/colorful"
+arch="noarch"
+license="MIT"
+depends="python3"
+makedepends="py3-gpep517 py3-setuptools py3-wheel"
+checkdepends="py3-pytest"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/timofurrer/colorful/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/colorful-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest tests/
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+012abac14f54a1aa69a311082d0dab6b66b4bbcf787955921a9942b3506a9f242b7e09a0d067b97736db53a81b07fb4b50543314858263894e7178f3786b0685  py3-colorful-0.5.7.tar.gz
+"

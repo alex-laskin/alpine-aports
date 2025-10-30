@@ -1,0 +1,37 @@
+# Contributor: Iztok Fister, Jr. <iztok@iztok-jr-fister.eu>
+# Maintainer: Iztok Fister, Jr. <iztok@iztok-jr-fister.eu>
+pkgname=py3-ordpy
+pkgver=1.2.0
+pkgrel=0
+pkgdesc="A Python package for data analysis with permutation entropy and ordinal network methods"
+url="https://github.com/arthurpessa/ordpy"
+arch="noarch"
+license="MIT"
+depends="python3 py3-numpy"
+makedepends="py3-setuptools py3-gpep517 py3-wheel"
+subpackages="$pkgname-doc $pkgname-pyc"
+source="https://github.com/arthurpessa/ordpy/archive/v$pkgver/ordpy-$pkgver.tar.gz"
+builddir="$srcdir/ordpy-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+# no tests provided by the upstream; use smoke tests
+check() {
+	PYTHONPATH=build/lib python3 -c "import ordpy"
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+
+	install -Dm644 README.rst -t "$pkgdir"/usr/share/doc/$pkgname
+	install -Dm644 CITATION.cff -t "$pkgdir"/usr/share/doc/$pkgname
+}
+
+sha512sums="
+0362d0009468dbda4d65c4c458aeb292428700008f7ef0f492ddf1b55a3796e52cd682bb6fe6df0e63b66da040662973c5e46d3ef0bd9dce0f9f2389a789bff4  ordpy-1.2.0.tar.gz
+"

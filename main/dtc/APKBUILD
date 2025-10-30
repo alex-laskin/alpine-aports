@@ -1,41 +1,59 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=dtc
-pkgver=1.4.4
+pkgver=1.7.2
 pkgrel=0
 pkgdesc="Device Tree Compiler"
-url="http://devicetree.org/Device_Tree_Compiler"
+url="https://git.kernel.org/pub/scm/utils/dtc/dtc.git/"
 arch="all"
 license="GPL-2.0-or-later"
-depends=""
-depends_dev=""
-makedepends="$depends_dev bison flex"
-install=""
-subpackages="$pkgname-dev libfdt"
-source="https://kernel.org/pub/software/utils/dtc/dtc-$pkgver.tar.xz
-	use-tx-as-the-type-specifier-instead-of-zx.patch
+depends_dev="$pkgname=$pkgver-r$pkgrel"
+makedepends="
+	bison
+	flex
+	py3-setuptools
+	python3-dev
+	swig
 	"
-builddir="$srcdir/dtc-$pkgver"
+checkdepends="coreutils"
+subpackages="$pkgname-dev libfdt py3-libfdt-pyc py3-libfdt:py3_libfdt"
+source="https://kernel.org/pub/software/utils/dtc/dtc-$pkgver.tar.xz
+	install-pylibfdt-to-destdir.patch
+	swig-4.3.patch
+	"
 
 prepare() {
 	default_prepare
 	sed -i s:-Werror::g "$builddir"/Makefile
+	sed -i "s|@VERSION@|$pkgver|" setup.py
 }
 
 build() {
-	cd "$builddir"
-	make || return 1
+	make -j1
+}
+
+check() {
+	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" PREFIX=/usr install || return 1
+	make -j1 DESTDIR="$pkgdir" PREFIX=/usr install
+	rm -f "$pkgdir"/usr/lib/*.a
 }
 
 libfdt() {
 	pkgdesc="Device tree library"
-	mkdir -p "$subpkgdir"/usr/lib/
-	mv "$pkgdir"/usr/lib/libfdt* "$subpkgdir"/usr/lib/
+	license="GPL-2.0-or-later OR BSD-2-Clause"
+	amove usr/lib/libfdt*
 }
 
-sha512sums="20689f7b0489fa945c4df4e27084dfd46fd5512a8dff9b28d60e0cd0e9e79bbd9944e4d70a1aba86a026481b35bb5441ed6b63d306a4a8f7581517f7359fa9bf  dtc-1.4.4.tar.xz
-b58959a60468a7b35e007ac13f8b9fb622d28175315b89122ba21a5f100440c55b431b9699e3441754e9cbe63f13d4c75ad4a1df9f66db6abb399fff03891041  use-tx-as-the-type-specifier-instead-of-zx.patch"
+py3_libfdt() {
+	pkgdesc="Device tree library for Python 3"
+	depends="python3"
+	amove usr/lib/python3*
+}
+
+sha512sums="
+30f3611175a5c29556282f3f2894701a5837eb869608d89d78c280af448bbc3a5b6c83f51c28f991847c0eb7c42aa57599bbc31433f1b3b2c8d162cb2169b91f  dtc-1.7.2.tar.xz
+1c43dfae8d15861c4f0170f0df9ba63d197ab3be50e39fe5748e547074c52dc7b042ca5e9c64d3d4bb0a8e8cde8df7e71660cde93e9512923405c38debcaa01c  install-pylibfdt-to-destdir.patch
+a615a9fb89691548e7c40e27dc6a06c371f76ee3945650c4bb21d36898aaf211a9cc90e2ba2a7710ae177f187f21d21eee6e77ad531eda49be1f89bef4371b75  swig-4.3.patch
+"

@@ -1,0 +1,94 @@
+# Contributor: Milan P. Stanić <mps@arvanta.net>
+# Contributor: Maxim Karasev <begs@disroot.org>
+# Maintainer: Antoine Martin (ayakael) <dev@ayakael.net>
+pkgname=arm-trusted-firmware
+pkgver=2.12.7
+pkgrel=0
+pkgdesc="ARM Trusted Firmware-A (TF-A)"
+url="https://github.com/ARM-software/arm-trusted-firmware"
+# no lld on s390x, but it doesn't matter anyway as this is arm firmware
+arch="all !s390x"
+license="BSD-3-Clause"
+makedepends="
+	clang
+	dtc
+	lld
+	llvm
+	openssl-dev
+	"
+subpackages="$pkgname-tools"
+source="$pkgname-$pkgver.tar.gz::https://github.com/ARM-software/arm-trusted-firmware/archive/refs/tags/lts-v$pkgver.tar.gz
+	0001-rk-3399-fix-build-with-alpine.patch
+	0002-fiptool-fix-build-on-musl.patch
+	0003-define-key-t-as-1.patch
+	1b65be5-fix-imx8mq-build-break.patch
+	3a36f70-fix-imx8mq-build-break-due-to-hab.patch
+	31265-rk3568-support-scmi-for-clock-reset-domain.patch
+	"
+options="!check" # No tests
+builddir="$srcdir/$pkgname-lts-v$pkgver"
+
+_plats="
+	imx8mq
+	rk3328
+	rk3399
+	rk3568
+	rk3588
+	sun50i_a64
+	sun50i_h6
+	"
+
+build() {
+	unset LDFLAGS
+	if [ "$CARCH" = "aarch64" ]; then
+		for plat in $_plats; do
+			case "$plat" in
+				sun50i_a64|sun50i_h6)
+					local opts="SUNXI_SETUP_REGULATORS=1 SUNXI_AMEND_DTB=1"
+					;;
+			esac
+
+			msg "Building ATF for $plat (opts='$opts')"
+			make E=0 PLAT=$plat bl31 $opts
+		done
+	fi
+
+	make -C tools/fiptool
+	make -C tools/cert_create
+}
+
+package() {
+	install -d "$pkgdir"/usr/share/$pkgname
+	if [ "$CARCH" = "aarch64" ]; then
+		for plat in $_plats; do
+			case $plat in
+			rk3*)
+				local path="$builddir"/build/$plat/release/bl31/bl31.elf
+				;;
+			*)
+				local path="$builddir"/build/$plat/release/bl31.bin
+				;;
+			esac
+			install -D $path -t "$pkgdir"/usr/share/$pkgname/$plat/
+		done
+	fi
+	install -Dm755 -t "$pkgdir"/usr/bin tools/fiptool/fiptool
+	install -Dm755 -t "$pkgdir"/usr/bin tools/cert_create/cert_create
+}
+
+tools() {
+	pkgdesc="$pkgdesc (tools)"
+
+	amove usr/bin/fiptool
+	amove usr/bin/cert_create
+}
+
+sha512sums="
+0a37bf0caecc4a164889cbafe34ae85a0b9d97ce18d0f4767770be91ebfd1485c15b5872930c3307235ae9da1e84590c971a9dc0192fdd63226b2b69def7ad49  arm-trusted-firmware-2.12.7.tar.gz
+fddb00980be8b5fa2562e6cca7a93900ae9dfd30a2c5d92e0af07f2f8e30c9f251912f17d093df95b36b5a14129fade1e393d0db83f46a33bc95380d4ebefdd0  0001-rk-3399-fix-build-with-alpine.patch
+8860d728baef70abdee808af7fd0a7530d736302edadb5438098bce84e2e6f6b8edf572f4f306afb5edf588492e6243334e7394b9ad64257416ef37037e55558  0002-fiptool-fix-build-on-musl.patch
+71f59abbb3c53d975afe0f20456e8bd943f005aeeb14633f609ad7b7617d51c479a505b54f9c49f77e02ecdea233bc8dffecd31b79b86a38d9ad39f6b0dc1129  0003-define-key-t-as-1.patch
+ceaf977f0a968d652a43dd53db721a311ba824cae4b19cada3af9e9054ec1fbaa5e566466957944191faa0563dc77cc1da2a157151e4516265cbf9961040f548  1b65be5-fix-imx8mq-build-break.patch
+1cf8bfa0844431a2dcb10427c1fd91cc78a7ee9aa53f20d32fcdfec6a73e57bc697133602cc786f209e5866e2b10546b4a9182f240f9466cf7f3f60eb6554bc1  3a36f70-fix-imx8mq-build-break-due-to-hab.patch
+e3230f8bc86d1baee2c871c8bc733d0735d097e76d8949c619e7ae1e576d94333e5974e8aca99a193fe229c454dd17869aa6c00474dae2262e78d51b4e2e69b9  31265-rk3568-support-scmi-for-clock-reset-domain.patch
+"

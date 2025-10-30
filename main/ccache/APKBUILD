@@ -1,54 +1,63 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=ccache
-pkgver=3.4.1
+pkgver=4.12.1
 pkgrel=0
-pkgdesc="A fast C/C++ compiler cache"
-url="http://ccache.samba.org/"
+pkgdesc="fast C/C++ compiler cache"
+url="https://ccache.dev/"
 arch="all"
 license="GPL-3.0-or-later"
-makedepends="zlib-dev"
-checkdepends="bash perl"
+makedepends="
+	asciidoctor
+	cmake
+	doctest-dev
+	hiredis-dev
+	linux-headers
+	perl
+	samurai
+	xxhash-dev
+	zstd-dev
+	"
+checkdepends="bash util-linux-misc python3"
 subpackages="$pkgname-doc"
-source="http://samba.org/ftp/$pkgname/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://github.com/ccache/ccache/releases/download/v$pkgver/ccache-$pkgver.tar.xz
+	"
 
 prepare() {
 	default_prepare
 
-	cd "$builddir"
-	update_config_sub
+	# The riscv64 builder seems to have setgid bit set,
+	# which causes tests 2, 22, and 34 to fail.
+	chmod -v -s .
 }
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var
-	make
+	cmake -B build -G Ninja \
+		-DCCACHE_DEV_MODE=OFF \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr
+	cmake --build build
 }
 
 check() {
-	cd "$builddir"
-	make test
+	case "$CARCH" in
+		s390x) ctest --test-dir build -E "(unittest)";;
+		*) ctest --test-dir build;;
+	esac
 }
 
 package() {
-	cd "$builddir"
-	install -Dm 755 ccache "$pkgdir"/usr/bin/ccache
-	install -Dm 644 ccache.1 "$pkgdir"/usr/share/man/man1/ccache.1
+	DESTDIR="$pkgdir" cmake --install build
 
 	local link=
 	mkdir -p "$pkgdir"/usr/lib/ccache/bin
 
-	for link in cc gcc g++ cpp c++ ${CHOST}-cc ${CHOST}-gcc \
-			${CHOST}-g++ ${CHOST}-cpp ${CHOST}-c++; do
-		ln -sf /usr/bin/ccache "$pkgdir"/usr/lib/ccache/bin/$link
+	for link in cc gcc g++ cpp c++ $CHOST-cc $CHOST-gcc \
+		$CHOST-g++ $CHOST-c++ c89 c99; do
+		ln -sf ../../../bin/ccache "$pkgdir"/usr/lib/ccache/bin/$link
 	done
 }
 
-sha512sums="ebfa65888c2d8ef87c2e86889723afcc88103af0e73e386ba39f474a7f542712b705a553611a5f51a057c5f056925f10492bb1f3d9b837c9d578d7a913a845de  ccache-3.4.1.tar.xz"
+sha512sums="
+f6618026b99d7352fc59d8233dd1cb307970baceb37b3c0c8f5360ca485141ca12da5bcf1e58deaa9e2c383cf40b56eb6fae70a51db90f54ae126596e841eb57  ccache-4.12.1.tar.xz
+"

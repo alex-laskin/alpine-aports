@@ -1,0 +1,86 @@
+maintainer="Hugo Osvaldo Barrera <hugo@whynothugo.nl>"
+pkgname=ruff
+pkgver=0.13.1
+pkgrel=0
+pkgdesc="Extremely fast Python linter"
+url="https://github.com/astral-sh/ruff"
+arch="all"
+license="MIT"
+makedepends="py3-gpep517 py3-maturin cargo py3-installer"
+subpackages="
+	$pkgname-pyc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	py3-$pkgname:_python:noarch
+	"
+source="https://github.com/astral-sh/ruff/archive/$pkgver/ruff-$pkgver.tar.gz
+	0001-Update-Rustix-to-1.1.1.patch
+	"
+# net: cargo
+options="net"
+[ "$CARCH" = "riscv64" ] && options="$options !check" # No file descriptors available (os error 24) on build-edge-riscv64
+
+export CARGO_PROFILE_RELEASE_OPT_LEVEL=2
+
+prepare() {
+	default_prepare
+
+	# shadow git repo for tests
+	git init -q
+
+	# Avoid downloading a different toolchain on systems with rustup installed.
+	rm rust-toolchain.toml
+
+	cargo fetch --locked
+}
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--config-json '{"build-args": "--frozen"}' \
+		--output-fd 3 3>&1 >&2
+
+	./target/release/ruff generate-shell-completion bash > $pkgname.bash
+	./target/release/ruff generate-shell-completion fish > $pkgname.fish
+	./target/release/ruff generate-shell-completion zsh > $pkgname.zsh
+
+	# Update ruff.schema.json as the pre-built one is generated
+	# using the '--all-features' Cargo flag which we don't pass.
+	cargo dev generate-all
+}
+
+check() {
+	unset CI_PROJECT_DIR
+
+	ulimit -n 4096
+
+	# See: https://github.com/astral-sh/ruff/pull/19652
+	case "$CARCH" in
+	x86|armv7|armhf) skip_tests="--skip test_multi_file_function_references" ;;
+	*) skip_tests="" ;;
+	esac
+
+	cargo test --frozen --workspace --exclude ruff_benchmark --exclude ty_server -- $skip_tests
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+
+	install -Dm644 $pkgname.bash \
+		"$pkgdir"/usr/share/bash-completion/completions/$pkgname
+	install -Dm644 $pkgname.fish \
+		"$pkgdir"/usr/share/fish/vendor_completions.d/$pkgname.fish
+	install -Dm644 $pkgname.zsh \
+		"$pkgdir"/usr/share/zsh/site-functions/_$pkgname
+}
+
+_python() {
+	amove usr/lib/python3.12/site-packages/
+}
+
+sha512sums="
+f6461b23743144d5c21f83dafed89561514f143d5acfbee1c453f445e27b4d6638299123bdd13031741c8cc410376b111e7c25aab9fec30e7f2f190760ffae04  ruff-0.13.1.tar.gz
+80e13fabc9bf0d3bdce32896dd91bdb72041febf6b7a68a82f3c89b0f0d03926b6b9afebaec8d69d84d2346f0720ee7abea47761fe8305790b9497a61306a892  0001-Update-Rustix-to-1.1.1.patch
+"

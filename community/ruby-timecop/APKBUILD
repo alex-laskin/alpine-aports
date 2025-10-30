@@ -2,7 +2,7 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=ruby-timecop
 _gemname=${pkgname#ruby-}
-pkgver=0.9.1
+pkgver=0.9.10
 pkgrel=1
 pkgdesc="A gem providing 'time travel' and 'time freezing' capabilities"
 url="https://github.com/travisjeffery/timecop"
@@ -14,14 +14,12 @@ source="$pkgname-$pkgver.tar.gz::https://github.com/travisjeffery/$_gemname/arch
 builddir="$srcdir/$_gemname-$pkgver"
 
 build() {
-	cd "$builddir"
 	gem build $_gemname.gemspec
 }
 
 package() {
 	local gemdir="$pkgdir/$(ruby -e 'puts Gem.default_dir')"
 
-	cd "$builddir"
 	gem install --local \
 		--install-dir "$gemdir" \
 		--ignore-dependencies \
@@ -33,7 +31,9 @@ package() {
 	cd "$gemdir"
 	rm -r cache/ build_info/ doc/
 	cd gems/$_gemname-$pkgver
-	rm -r test/ Rakefile README* LICENSE
+	rm -r Rakefile README* LICENSE
 }
 
-sha512sums="f50f53e2e12b6b01b6583485d0e0db7e1b678fd9c085cde18b1d2092a2194b303e8951efc35e7711ea835e4977323649a6f47f1c336d93829b56a4d26cd13453  ruby-timecop-0.9.1.tar.gz"
+sha512sums="
+17a10e5aa951cccd561ebb098eb2078e35b4bd4860bf9bfe865471eee6def4e724560905b133bfec840445eaac8b12ae8eeae01e460f25a9415c3c2748dcf8fd  ruby-timecop-0.9.10.tar.gz
+"

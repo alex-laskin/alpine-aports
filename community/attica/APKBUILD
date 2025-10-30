@@ -1,35 +1,56 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-frameworks
+maintainer="team/kde <bribbers@disroot.org>"
 pkgname=attica
-pkgver=0.4.2
+pkgver=6.19.0
 pkgrel=0
 pkgdesc="Freedesktop OCS binding for Qt"
-url="http://www.kde.org/"
+url="https://www.kde.org/"
 arch="all"
 license="LGPL-2.0-or-later"
-makedepends="qt-dev cmake automoc4"
+makedepends="
+	doxygen
+	extra-cmake-modules
+	kde-qdoc-common
+	qt6-qtbase-dev
+	qt6-qttools-dev
+	samurai
+	"
 subpackages="$pkgname-dev"
-source="http://download.kde.org/stable/attica/attica-$pkgver.tar.bz2"
-
-builddir="$srcdir"/$pkgname-$pkgver
-prepare() {
-	default_prepare
-	mkdir -p "$builddir"/build
-}
+_repo_url="https://invent.kde.org/frameworks/attica.git"
+source="https://download.kde.org/stable/frameworks/${pkgver%.*}/attica-$pkgver.tar.xz"
+case "$CARCH" in
+	armhf) ;;
+	*) subpackages="$subpackages $pkgname-doc" ;;
+esac
 
 build() {
-	cd "$builddir"/build
-	cmake -DCMAKE_INSTALL_PREFIX=/usr \
-	      -DCMAKE_BUILD_TYPE=Release \
-	      -DQT4_BUILD=ON \
-	      -Wno-dev \
-	      "$builddir"
-	make
+	export KDE_DOCS=/usr/share/kde/documentation
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_QCH=ON
+	cmake --build build
+
+	cmake --build build --target prepare_docs
+	cmake --build build --target generate_docs
+	cmake --build build --target generate_qch
+
+}
+
+check() {
+	# providertest requires network access
+	ctest --test-dir build -E "providertest"
 }
 
 package() {
-	cd "$builddir"/build
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
+
+	DESTDIR="$pkgdir" cmake --build build --target install_html_docs
+	DESTDIR="$pkgdir" cmake --build build --target install_qch_docs
 }
 
-sha512sums="cef5d5c4bf01ed45ed8b59db354a4ac7949de435a45e4f753c847cadc15855e25997dedf1ff20c7bc4a2724d2cdba15139c54f0682df7d8cc8750de5be6f716e  attica-0.4.2.tar.bz2"
+sha512sums="
+a8cefa6ded817d58c2eae41ea54f2d526610ab6d8196a14d448a2b1b9fdd52cab01c8443795d1f6403734298ca3b987967d2592b3f4a7b10d3c9c5bc3e6b051b  attica-6.19.0.tar.xz
+"

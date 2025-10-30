@@ -1,40 +1,31 @@
 # Contributor: André Klitzing <aklitzing@gmail.com>
 # Maintainer: André Klitzing <aklitzing@gmail.com>
 pkgname=tinyxml2
-pkgver=6.2.0
+pkgver=11.0.0
 pkgrel=0
 pkgdesc="Simple, small and efficient C++ XML parser"
-url="http://www.grinninglizard.com/tinyxml2"
+url="https://github.com/leethomason/tinyxml2"
 arch="all"
-license="zlib"
-makedepends="cmake"
+license="Zlib"
+makedepends="meson"
 subpackages="$pkgname-dev"
 source="$pkgname-$pkgver.tar.gz::https://github.com/leethomason/tinyxml2/archive/$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	if [ "$CBUILD" != "$CHOST" ]; then
-		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
-	fi
-	cmake \
-		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DCMAKE_INSTALL_LIBDIR=lib \
-		-DBUILD_SHARED_LIBS=True \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-		-DCMAKE_C_FLAGS="$CFLAGS" \
-		${CMAKE_CROSSOPTS}
-	make
+	abuild-meson \
+		-Dtests=true \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make test
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="ef784240aeb090ab04aad659352ad4b224c431feecf485f33aca7936bcaa0ef4ab9d0a2e0692d3cf6036ac3e8012019d65665e780a920bbad3d4820f736445b1  tinyxml2-6.2.0.tar.gz"
+sha512sums="
+8a6ddd48c96bc4287437d5b5ca62c131c4416c57310b664c9088ca9c1ac9f4d43d16c1bad03f82dc5588d9486752f510d631609a3930f1d4243f12184ad1c5f9  tinyxml2-11.0.0.tar.gz
+"

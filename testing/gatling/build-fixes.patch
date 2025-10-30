@@ -1,11 +1,21 @@
-diff -upr gatling-0.15.orig/ssl.c gatling-0.15/ssl.c
---- gatling-0.15.orig/ssl.c	2016-10-25 20:38:51.818531071 +0200
-+++ gatling-0.15/ssl.c	2016-10-25 20:39:10.235187184 +0200
-@@ -9,6 +9,7 @@
- #include <openssl/ssl.h>
- #include <openssl/engine.h>
- #include <ctype.h>
-+#include <alloca.h>
+--- gatling-0.16-origin/tryalloca.c
++++ gatling-0.16/tryalloca.c
+@@ -5,7 +5,7 @@
+ #include <malloc.h>
+ #endif
+ 
+-main() {
++int main() {
+   char* c=alloca(23);
+   return c!=NULL;
+ }
+--- gatling-0.16-origin/ssl.c
++++ gatling-0.16/ssl.c
+@@ -12,6 +12,7 @@
+ #include <sys/time.h>
+ #include <sys/stat.h>
+ #include "dirfd.h"
++#include "havealloca.h"
  
  static int library_inited;
  

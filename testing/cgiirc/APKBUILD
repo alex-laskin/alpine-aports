@@ -1,17 +1,15 @@
-# Contributor: Francesco Colista <francesco.colista@gmail.com>
-# Maintainer: Francesco Colista <francesco.colista@gmail.com>
+# Contributor: Francesco Colista <fcolista@alpinelinux.org>
+# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=cgiirc
 pkgver=0.5.12
-pkgrel=0
+pkgrel=1
 pkgdesc="A perl/CGI program to use IRC from a web browser"
 url="http://cgiirc.org/"
 arch="all"
 license="GPL"
 depends="perl"
-depends_dev=""
 makedepends="$depends_dev"
 install="$pkgname.post-install"
-subpackages=""
 source="http://cgiirc.org/releases/$pkgname-$pkgver.tar.gz
 	cgiirc.config"
 _builddir="$srcdir"/$pkgname-$pkgver

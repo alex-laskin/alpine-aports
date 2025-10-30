@@ -2,24 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-heimdal
 pkgver=0.6.0
-pkgrel=2
+pkgrel=5
 pkgdesc="ACF module for heimdal"
-url="http://git.alpinelinux.org/cgit/acf/$pkgname"
+url="https://gitlab.alpinelinux.org/acf/acf-heimdal"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core heimdal"
-makedepends=""
-install=
-subpackages=""
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-heimdal/-/archive/v$pkgver/acf-heimdal-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-        cd "$srcdir/$pkgname-$pkgver"
-
-        make DESTDIR="$pkgdir" install
-
+	make DESTDIR="$pkgdir" install
 }
 
-md5sums="bfdfdca3eac6f4f2b8de3ec1b5ec7ce1  acf-heimdal-0.6.0.tar.xz"
-sha256sums="90117437454899605b95c554967a8da1087b1e2351321c69472ea98f38923c12  acf-heimdal-0.6.0.tar.xz"
-sha512sums="8843c2f5b580f400c398826566bf4a5b3e8bd4d53f01ee8cf3c41972fc89d9bcf80fdc7e787c48fac25cbec2bc671821f63c5ab6453f9243d13b9674fd168af3  acf-heimdal-0.6.0.tar.xz"
+sha512sums="
+f5d2e376d68c2d04a2ae25437e0ca649a33405a6fa3d50114de6d1488bc0feb1f5e394c40ee990aa7585d39114b1b29a7ab1683518cbb0736ae03d66c579a54b  acf-heimdal-v0.6.0.tar.gz
+"

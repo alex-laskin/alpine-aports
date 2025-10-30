@@ -1,0 +1,53 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-frameworks
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=knotifyconfig
+pkgver=6.19.0
+pkgrel=0
+pkgdesc="Configuration system for KNotify"
+# armhf blocked by qt6-qtdeclarative -> ki18n
+arch="all !armhf"
+url="https://community.kde.org/Frameworks"
+license="LGPL-2.0-only"
+depends_dev="
+	kcompletion-dev
+	kconfig-dev
+	ki18n-dev
+	kio-dev
+	"
+makedepends="$depends_dev
+	doxygen
+	extra-cmake-modules
+	graphviz
+	kde-qdoc-common
+	qt6-qttools-dev
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/frameworks/knotifyconfig.git"
+source="https://download.kde.org/stable/frameworks/${pkgver%.*}/knotifyconfig-$pkgver.tar.xz"
+options="!check" # Has a tests folder but no actually usable tests
+
+build() {
+	export KDE_DOCS=/usr/share/kde/documentation
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+
+	cmake --build build --target prepare_docs
+	cmake --build build --target generate_docs
+	cmake --build build --target generate_qch
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	DESTDIR="$pkgdir" cmake --build build --target install_html_docs
+	DESTDIR="$pkgdir" cmake --build build --target install_qch_docs
+}
+
+sha512sums="
+25faf360192692efb2a0b4d03e9c28d7e33a995b6e482e900ac45b112364f97db67175aed3a7d1b18c42e0b4709fbc12f3334ce93231dc929b6be89f876df9f7  knotifyconfig-6.19.0.tar.xz
+"

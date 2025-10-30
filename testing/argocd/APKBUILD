@@ -1,0 +1,37 @@
+# Maintainer: Thiago Perrotta <tbperrotta@gmail.com>
+pkgname=argocd
+pkgver=3.1.4
+pkgrel=1
+pkgdesc="Declarative continuous deployment for Kubernetes"
+url="https://argo-cd.readthedocs.io/"
+arch="all !armhf !armv7 !x86"
+license="Apache-2.0"
+makedepends="go make"
+options="net"
+subpackages="$pkgname-doc $pkgname-bash-completion $pkgname-zsh-completion"
+source="argo-cd-$pkgver.tar.gz::https://github.com/argoproj/argo-cd/archive/v$pkgver.tar.gz"
+builddir="$srcdir/argo-cd-$pkgver"
+
+build() {
+	make CGO_FLAG=1 LDFLAGS="" cli-local
+
+	dist/argocd completion bash > argocd.bash
+	dist/argocd completion zsh > argocd.zsh
+}
+
+check() {
+	dist/argocd version | grep -q "argocd: v${pkgver}"
+}
+
+package() {
+	install -Dm755 "dist/argocd" "$pkgdir/usr/bin/argocd"
+
+	install -Dm644 argocd.bash "$pkgdir/usr/share/bash-completion/completions/argocd"
+	install -Dm644 argocd.zsh "$pkgdir/usr/share/zsh/site-functions/_argocd"
+
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+sha512sums="
+ce972074cb30cc16766f5f6a6ede870992cf2c9d0ecfdf5f830d4f00a2758d8d08ed5f03a304340a6aa033474bcd815dbc0f0bd59cbfb5018cb97bcc481c524a  argo-cd-3.1.4.tar.gz
+"

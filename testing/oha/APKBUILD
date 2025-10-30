@@ -1,0 +1,36 @@
+# Contributor: Guy Godfroy <guy.godfroy@gugod.fr>
+# Maintainer: Guy Godfroy <guy.godfroy@gugod.fr>
+pkgname=oha
+pkgver=1.10.0
+pkgrel=0
+pkgdesc="HTTP load generator with TUI animation"
+url="https://github.com/hatoo/oha/tree/master"
+arch="x86_64 aarch64" # aws-lc-sys is only supported on those archs
+license="MIT"
+subpackages="$pkgname-doc"
+makedepends="cargo cargo-auditable openssl-dev"
+source="$pkgname-$pkgver.tar.gz::https://github.com/hatoo/oha/archive/refs/tags/v$pkgver.tar.gz"
+options="net" # cargo crates
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+}
+
+check() {
+	cargo test --frozen
+}
+
+package() {
+	install -Dm755 target/release/$pkgname -t "$pkgdir"/usr/bin/
+	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+}
+
+sha512sums="
+8a1299fa0dc934922314e68011951ceac21548389479d22f6d324b770693683859ac5fbfd6e618ff2f7db0b3939ded00fcdfce093da97c17de10a2bbb2908356  oha-1.10.0.tar.gz
+"

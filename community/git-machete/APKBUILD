@@ -1,0 +1,47 @@
+# Contributor: Kevin Daudt <kdaudt@alpinelinux.org>
+# Maintainer: Kevin Daudt <kdaudt@alpinelinux.org>
+pkgname=git-machete
+pkgver=3.37.0
+pkgrel=0
+pkgdesc="git repository organizer & rebase/merge workflow automation tool"
+url="https://github.com/VirtusLab/git-machete"
+arch="noarch"
+license="MIT"
+depends="python3"
+makedepends="py3-gpep517 py3-setuptools py3-wheel"
+checkdepends="py3-pytest py3-pytest-mock zsh bash fish bash-completion"
+subpackages="
+	$pkgname-pyc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	$pkgname-fish-completion
+	"
+source="https://github.com/VirtusLab/git-machete/archive/refs/tags/v$pkgver/git-machete-$pkgver.tar.gz
+	"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	PATH="$PATH:$builddir/.testenv/bin" EDITOR=cat pytest -k 'not TestCompletionEndToEnd'
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+
+	install -Dm0644 "$builddir"/completion/git-machete.completion.bash \
+		"$pkgdir/usr/share/bash-completion/completions/git-machete"
+	install -Dm0644 "$builddir"/completion/git-machete.completion.zsh \
+		"$pkgdir/usr/share/zsh/site-functions/_git-machete"
+	install -Dm0644 "$builddir"/completion/git-machete.fish \
+		-t "$pkgdir/usr/share/fish/vendor_completions.d"
+}
+
+sha512sums="
+89bc8556c4493c4e54afd02644893ab9ba37532dc0f48092d9399a5139af648ed0090ce30497395bd8cdc70f7489371a7c873d8c5617f158770fe7c981cfc0a3  git-machete-3.37.0.tar.gz
+"

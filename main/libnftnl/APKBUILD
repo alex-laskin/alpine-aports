@@ -1,24 +1,23 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
-# Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
+# Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=libnftnl
-pkgver=1.1.1
+pkgver=1.3.0
 pkgrel=0
 pkgdesc="Netfilter library providing interface to the nf_tables subsystem"
 url="https://netfilter.org/projects/libnftnl"
 arch="all"
 license="GPL-2.0-or-later"
-depends_dev="libmnl-dev"
-makedepends="$depends_dev bash jansson-dev"
-subpackages="$pkgname-dev $pkgname-libs"
-source="https://netfilter.org/projects/libnftnl/files/$pkgname-$pkgver.tar.bz2"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="bash jansson-dev libmnl-dev"
+provides="$pkgname-libs=$pkgver-r$pkgrel"  # for backward compatibility (Alpine <3.15)
+replaces="$pkgname-libs"  # for backward compatibility (Alpine <3.15)
+subpackages="$pkgname-dev"
+source="https://netfilter.org/projects/libnftnl/files/libnftnl-$pkgver.tar.xz"
 
 case "$CARCH" in
-s390x) options="!check" ;; # FIXME
+	s390x) options="!check" ;; # FIXME
 esac
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -26,19 +25,19 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
-		--with-json-parsing
+		--enable-static
 	make
 }
 
 check() {
-	cd "$builddir"/tests
-	make check # builds test binaries
-	./test-script.sh
+	cd tests
+	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="87f092e2b6576121538c8ac7ce92d8c918723e36dd02e2fcfcb7dcaf2ae705bbcd62c79c9076574ef73f461f7df5d10e72bcaeda29e4a7e60ea1401d998424a6  libnftnl-1.1.1.tar.bz2"
+sha512sums="
+a2220dba97cc9a1bbd0d093a0bd0afd491120a814be6343aef35cbeba0e4781289fa84ced36510b6b9d76e99b3ba35f3964a9a40a21f38e2e0fad90c34fd3916  libnftnl-1.3.0.tar.xz
+"

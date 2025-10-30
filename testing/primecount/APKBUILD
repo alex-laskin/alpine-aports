@@ -1,0 +1,40 @@
+# Contributor: Hoang Nguyen <folliekazetani@protonmail.com>
+maintainer="Hoang Nguyen <folliekazetani@protonmail.com>"
+pkgname=primecount
+pkgver=7.19
+pkgrel=0
+pkgdesc="Fast prime counting C/C++ library"
+url="https://github.com/kimwalisch/primecount"
+arch="all"
+license="BSD-2-Clause"
+makedepends="
+	cmake
+	samurai
+	primesieve-dev
+	"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-libs"
+source="$pkgname-$pkgver.tar.gz::https://github.com/kimwalisch/primecount/archive/refs/tags/v$pkgver.tar.gz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DBUILD_SHARED_LIBS=ON \
+		-DBUILD_TESTS=ON \
+		-DBUILD_LIBPRIMESIEVE=OFF
+	cmake --build build
+}
+
+check() {
+	cd build
+	ctest
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+26558aaf3e4838463685a16610c2a7520aad64187694440647deac0202d8c330fe37a2cb795d95ff220e8d13011639563b1c880a8b6c87cf811a4aa2bb600caf  primecount-7.19.tar.gz
+"

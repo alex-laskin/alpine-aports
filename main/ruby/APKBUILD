@@ -1,8 +1,85 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
-#
+# Maintainer: Jakub Jirutka <jakub@jirutka.cz>
+pkgname=ruby
+# When upgrading, upgrade also each ruby-<name> aport listed in file
+# gems/bundled_gems. If some aport is missing or not in the main repo,
+# create/move it.
+pkgver=3.4.4
+_abiver="${pkgver%.*}.0"
+pkgrel=0
+pkgdesc="An object-oriented language for quick and easy programming"
+url="https://www.ruby-lang.org/"
+arch="all"
+license="Ruby AND BSD-2-Clause AND MIT"
+depends="ca-certificates"
+depends_dev="
+	$pkgname=$pkgver-r$pkgrel
+	$pkgname-rdoc=$pkgver-r$pkgrel
+	gmp-dev
+	libucontext-dev
+	"
+makedepends="$depends_dev
+	autoconf
+	cargo
+	gdbm-dev
+	libffi-dev
+	linux-headers
+	openssl-dev>3
+	readline-dev
+	yaml-dev
+	zlib-dev
+	"
+install="$pkgname.post-upgrade"
+subpackages="$pkgname-dbg $pkgname-doc $pkgname-dev
+	$pkgname-rdoc::noarch
+	$pkgname-libs
+	$pkgname-full::noarch
+	"
+source="https://cache.ruby-lang.org/pub/ruby/${pkgver%.*}/ruby-$pkgver.tar.gz
+	test_insns-lower-recursion-depth.patch
+	fix-get_main_stack.patch
+	dont-install-bundled-gems.patch
+	fix-riscv64-build.patch
+	"
+
 # secfixes:
+#   3.3.1-r0:
+#     - CVE-2024-27282
+#     - CVE-2024-27281
+#     - CVE-2024-27280
+#   3.1.4-r0:
+#     - CVE-2023-28755
+#     - CVE-2023-28756
+#   3.1.3-r0:
+#     - CVE-2021-33621
+#   3.1.2-r0:
+#     - CVE-2022-28738
+#     - CVE-2022-28739
+#   3.0.3-r0:
+#     - CVE-2021-41817
+#     - CVE-2021-41816
+#     - CVE-2021-41819
+#   2.7.4-r0:
+#     - CVE-2021-31799
+#     - CVE-2021-31810
+#     - CVE-2021-32066
+#   2.7.3-r0:
+#     - CVE-2021-28965
+#     - CVE-2021-28966
+#   2.7.2-r0:
+#     - CVE-2020-25613
+#   2.6.6-r0:
+#     - CVE-2020-10663
+#     - CVE-2020-10933
+#   2.6.5-r0:
+#     - CVE-2019-16255
+#     - CVE-2019-16254
+#     - CVE-2019-15845
+#     - CVE-2019-16201
+#   2.5.2-r0:
+#     - CVE-2018-16395
+#     - CVE-2018-16396
 #   2.5.1-r0:
 #     - CVE-2017-17742
 #     - CVE-2018-6914
@@ -21,83 +98,49 @@
 #     - CVE-2017-0902
 #   2.4.3-r0:
 #     - CVE-2017-17405
-#
-pkgname=ruby
-pkgver=2.5.1
-_abiver="${pkgver%.*}.0"
-pkgrel=2
-pkgdesc="An object-oriented language for quick and easy programming"
-url="http://www.ruby-lang.org/en/"
-arch="all"
-license="Ruby BSD-2-Clause"
-depends="ca-certificates"
-depends_dev="$pkgname=$pkgver-r$pkgrel gmp-dev"
-makedepends="$depends_dev zlib-dev libressl-dev gdbm-dev db-dev readline-dev
-	libffi-dev coreutils yaml-dev linux-headers autoconf"
-install="$pkgname.post-upgrade"
-subpackages="$pkgname-doc $pkgname-dev
-	$pkgname-bigdecimal
-	$pkgname-dbm
-	$pkgname-did_you_mean::noarch
-	$pkgname-etc
-	$pkgname-fiddle
-	$pkgname-gdbm
-	$pkgname-io-console:io_console
-	$pkgname-irb::noarch
-	$pkgname-json
-	$pkgname-minitest::noarch
-	$pkgname-net-telnet:net_telnet:noarch
-	$pkgname-power_assert::noarch
-	$pkgname-rake::noarch
-	$pkgname-rdoc::noarch
-	$pkgname-sdbm
-	$pkgname-test-unit:test_unit:noarch
-	$pkgname-webrick::noarch
-	$pkgname-xmlrpc::noarch
-	$pkgname-libs
-	$pkgname-full::noarch
-	"
-source="ftp://ftp.ruby-lang.org/pub/ruby/${pkgver%.*}/$pkgname-$pkgver.tar.bz2
-	rubygems-avoid-platform-specific-gems.patch
-	test_insns-lower-recursion-depth.patch
-	fix-get_main_stack.patch
-	libressl-2.7.patch
-	"
-replaces="ruby-gems"
-builddir="$srcdir/$pkgname-$pkgver"
 
-_gemdir="/usr/lib/ruby/gems/$_abiver"
-_rubydir="/usr/lib/ruby/$_abiver"
-_chost="${CHOST/-alpine-/-}"
-
-case "$CARCH" in
-	x86) _arch="i386";;
-	*) _arch="$CARCH";;
-esac
-
-_bundled_gems=""
-for _i in $subpackages; do
-	case "$_i" in
-		*-dev | *-doc | *-libs | *-full:*) continue;;
-		*) _bundled_gems="$_bundled_gems ${_i%%:*}";;
-	esac
-done
+_gemdir="usr/lib/ruby/gems/$_abiver"
+_rubydir="usr/lib/ruby/$_abiver"
 
 prepare() {
 	default_prepare
-
-	cd "$builddir"
 	autoconf
+
+	case "$CARCH" in
+		# v2.7.1 - Of all the bootstraptest only test_fiber fails on s390x:
+		#  test_fiber.rb bootstraptest.tmp.rb:8: [BUG] vm_call_cfunc: cfp consistency error (0x000003ffb63fefb0, 0x000003ffb42f5f58)
+		# v3.4.3 - and also one assert in test_reactor (FIXME):
+		#  bootstraptest.test_ractor.rb_1914_1381.rb:8:in 'block in <main>': uninitialized constant Benchmark (NameError)
+		s390x) rm bootstraptest/test_fiber.rb bootstraptest/test_ractor.rb;;
+
+		# v3.4.3 - One assert in test_reactor (#1287 test_ractor.rb:180) fails (FIXME):
+		#  => nil (expected "[:ok, :ok, :ok]")
+		riscv64) rm bootstraptest/test_ractor.rb;;
+	esac
+
+	local name ver; while read -r name ver _; do
+		case "$name=$ver" in
+			[a-z]*=[0-9]*.[0-9]*)
+				if ! apk add -qs "ruby-$name>=$ver" >/dev/null 2>&1; then
+					warning "bump package ruby-$name to version $ver"
+				fi
+				echo "ruby-$name>=$ver" >> "$srcdir"/.ruby-full.depends
+		esac
+	done < "$builddir"/gems/bundled_gems
 }
 
 build() {
-	cd "$builddir"
-
 	# -fomit-frame-pointer makes ruby segfault, see gentoo bug #150413
-	# In many places aliasing rules are broken; play it safe
-	# as it's risky with newer compilers to leave it as it is.
-	export CFLAGS="$CFLAGS -fno-omit-frame-pointer -fno-strict-aliasing"
-	export CPPFLAGS="$CPPFLAGS -fno-omit-frame-pointer -fno-strict-aliasing"
+	#  In many places aliasing rules are broken; play it safe
+	#  as it's risky with newer compilers to leave it as it is.
+	# -O2 - ruby is a language runtime, so performance is crucial. Moreover,
+	#  ruby 3.1.1 fails with Bus Error when compiled with -Os on armhf/armv7.
+	#  This makes ruby-libs 7% bigger (13.4 -> 14.4 MiB).
+	export CFLAGS="${CFLAGS/-Os/-O2} -fno-omit-frame-pointer -fno-strict-aliasing"
+	export CPPFLAGS="${CPPFLAGS/-Os/-O2} -fno-omit-frame-pointer -fno-strict-aliasing"
+
+	# Needed for coroutine stuff
+	export LIBS="-lucontext"
 
 	# ruby saves path to install. we want use $PATH
 	export INSTALL=install
@@ -113,8 +156,7 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
-		--with-sitedir='/usr/local/lib/site_ruby' \
-		--with-search-path="/usr/lib/site_ruby/\$(ruby_ver)/$_arch-linux" \
+		--with-sitedir=/usr/local/lib/site_ruby \
 		--enable-pthread \
 		--disable-rpath \
 		--enable-shared \
@@ -123,217 +165,85 @@ build() {
 }
 
 check() {
-	cd "$builddir"
-	make test
+	# https://bugs.ruby-lang.org/issues/18380
+	local disable_tests="-n !/TestAddressResolve#test_socket_getnameinfo_domain_blocking/"
+
+	case "$CARCH" in
+		x86 | armhf | armv7)
+			# TestReadline#test_interrupt_in_other_thread fails on 32 bit arches according
+			# to upstream, but the test is disabled just on Travis, not in test suite.
+			# https://bugs.ruby-lang.org/issues/18393
+			disable_tests="$disable_tests -n !/TestReadline#test_interrupt_in_other_thread/"
+		;;
+	esac
+
+	make test TESTS="$disable_tests" TESTOPTS="--verbose"
 }
 
 package() {
-	cd "$builddir"
+	make DESTDIR="$pkgdir" SUDO="" install
 
-	make DESTDIR="$pkgdir" install
+	install -m 644 -D COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
 
-	install -m 644 -D COPYING \
-		"$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	cd "$pkgdir"
 
-	rm -R "$pkgdir"$_gemdir/cache/*
+	# Remove bundled gem bundler; it's provided by a separate aport/package
+	# ruby-bundler.
+	rm -rf ./$_rubydir/bundler
+	rm ./$_rubydir/bundler.rb
+	rm -rf ./$_gemdir/gems/bundler-*
+	rm ./$_gemdir/specifications/default/bundler-*.gemspec
+	rm usr/bin/bundle usr/bin/bundler
 
-	if [ -d "$pkgdir"/usr/local ]; then
-		local f=$(cd "$pkgdir" ; find usr/local -type f)
+	# Remove bundled CA certificates; they are provided by ca-certificates.
+	rm ./$_rubydir/rubygems/ssl_certs/*/*.pem
+	rmdir ./$_rubydir/rubygems/ssl_certs/* || true
+
+	rm -Rf ./$_gemdir/cache/*
+
+	if [ -d usr/local ]; then
+		local f=$(find usr/local -type f)
 		if [ -n "$f" ]; then
 			error "Found files in /usr/local:"
 			echo "$f"
 			return 1
 		fi
-		rm -r "$pkgdir"/usr/local
+		rm -r usr/local
 	fi
-}
-
-bigdecimal() {
-	pkgdesc="Ruby arbitrary-precision floating point decimal arithmetic"
-	license="Ruby"
-	depends="$pkgname-libs"
-
-	_mvgem bigdecimal
-}
-
-dbm() {
-	pkgdesc="A Ruby wrapper for the UNIX-style Database Manager Library"
-	license="BSD-2-Clause"
-	depends=""
-
-	_mvgem dbm
-}
-
-did_you_mean() {
-	pkgdesc="Did you mean? experience in Ruby"
-	license="MIT"
-	depends="$pkgname-libs"
-
-	_mvgem did_you_mean
-}
-
-etc() {
-	pkgdesc="Provides access to information typically stored in UNIX /etc directory"
-	license="BSD-2-Clause"
-	depends=""
-
-	_mvgem etc
-}
-
-fiddle() {
-	pkgdesc="A libffi wrapper for Ruby"
-	license="BSD-2-Clause"
-	depends=""
-
-	_mvgem fiddle
-}
-
-gdbm() {
-	pkgdesc="Ruby extension for GNU dbm"
-	license="BSD-2-Clause"
-	depends=""
-
-	_mvgem gdbm
-}
-
-io_console() {
-	pkgdesc="Ruby simple console IO library"
-	license="BSD-2-Clause"
-	depends=""
-
-	_mvgem io-console
-	_mv $_rubydir/io \
-		$_rubydir/$_chost/io/console.so
-}
-
-irb() {
-	pkgdesc="The Interactive Ruby"
-	replaces="$pkgname"
-	depends="$pkgname"
-
-	cd "$pkgdir"
-	_mv usr/bin/irb \
-		usr/lib/ruby/$_abiver/irb*
-}
-
-json() {
-	pkgdesc="JSON implementation as a Ruby extension in C"
-	license="Ruby"
-	depends=""
-
-	_mvgem json
-}
-
-minitest() {
-	pkgdesc="Ruby suite of testing facilities"
-	license="MIT"
-	depends="$pkgname"
-
-	_mvgem minitest
-}
-
-net_telnet() {
-	pkgdesc="Telnet client functionality for Ruby"
-	depends="$pkgname-libs"
-
-	_mvgem net-telnet
-}
-
-power_assert() {
-	pkgdesc="Power Assert for Ruby"
-	depends="$pkgname-libs"
-
-	_mvgem power_assert
-}
-
-rake() {
-	pkgdesc="Ruby based make-like utility"
-	license="MIT"
-	depends="$pkgname"
-
-	_mvgem rake
-	_mv usr/bin/rake
 }
 
 rdoc() {
 	pkgdesc="Ruby documentation tool"
 	license="Ruby"
-	depends="$pkgname $pkgname-json $pkgname-io-console"
-
-	_mvgem rdoc
-	_mv usr/bin/ri \
-		usr/bin/rdoc
-}
-
-sdbm() {
-	pkgdesc="A simple file-based key-value store with String keys and values for Ruby"
-	license="BSD-2-Clause"
-	depends=""
-
-	_mvgem sdbm
-}
-
-test_unit() {
-	pkgdesc="An xUnit family unit testing framework for Ruby"
-	license="Ruby PSFL"
-	depends="$pkgname $pkgname-power_assert"
-
-	_mvgem test-unit
-}
-
-webrick() {
-	pkgdesc="HTTP server toolkit for Ruby"
-	license="BSD-2-Clause"
 	depends="$pkgname"
 
-	_mvgem webrick
-}
-
-xmlrpc() {
-	pkgdesc="XMLRPC library for Ruby"
-	license="Ruby"
-	depends="$pkgname-libs"
-
-	_mvgem xmlrpc
+	amove $_rubydir/rdoc
+	amove $_gemdir/gems/rdoc-*
+	amove $_gemdir/specifications/default/rdoc-*
+	amove usr/bin/ri
+	amove usr/bin/rdoc
 }
 
 libs() {
 	pkgdesc="Libraries necessary to run Ruby"
 	depends=""
 
-	mkdir -p "$subpkgdir"/usr
-	mv "$pkgdir"/usr/lib "$subpkgdir"/usr/
+	amove usr/lib
 }
 
 full() {
 	pkgdesc="Ruby with all bundled gems"
-	depends="ruby $_bundled_gems"
+	# bundler is bundled since Ruby 2.6, so include it in ruby-full despite
+	# that it's provided by a seprate aport/package.
+	depends="ruby ruby-rdoc ruby-bundler $(cat "$srcdir"/.ruby-full.depends)"
 
 	mkdir -p "$subpkgdir"
 }
 
-_mv() {
-	local i; for i in "$@"; do
-		mkdir -p "$subpkgdir"/${i%/*}
-		mv "$pkgdir"/${i} "$subpkgdir"/${i%/*}/
-	done
-}
-
-_mvgem() {
-	cd "$pkgdir"
-	local path; for path in ./$_rubydir/${1}.rb \
-			./$_rubydir/${1} \
-			./$_rubydir/$_chost/${1} \
-			./$_rubydir/$_chost/${1}.so \
-			./$_gemdir/gems/${1}-* \
-			./$_gemdir/specifications/${1}-* \
-			./$_gemdir/specifications/default/${1}-* ; do
-		[ ! -e "$pkgdir/$path" ] || _mv "$path"
-	done
-}
-
-sha512sums="82e799ecf7257a9f5fe8691c50a478b0f91bd4bdca50341c839634b0da5cd76c5556965cb9437264b66438434c94210c949fe9dab88cbc5b3b7fa34b5382659b  ruby-2.5.1.tar.bz2
-cfdc5ea3b2e2ea69c51f38e8e2180cb1dc27008ca55cc6301f142ebafdbab31c3379b3b6bba9ff543153876dd98ed2ad194df3255b7ea77a62e931c935f80538  rubygems-avoid-platform-specific-gems.patch
-814fe6359505b70d8ff680adf22f20a74b4dbd3fecc9a63a6c2456ee9824257815929917b6df5394ed069a6869511b8c6dce5b95b4acbbb7867c1f3a975a0150  test_insns-lower-recursion-depth.patch
-8d730f02f76e53799f1c220eb23e3d2305940bb31216a7ab1e42d3256149c0721c7d173cdbfe505023b1af2f5cb3faa233dcc1b5d560fa8f980c17c2d29a9d81  fix-get_main_stack.patch
-fc789c840af7812ce1796470e77f71cb321e1d74b2bce97a11b5b63db7f6f0fd23576acfa193e425a51e52c0aef1ab9157e4e8a54eef7d59e02541e844055b28  libressl-2.7.patch"
+sha512sums="
+ec52e338a9558e5fb0975be4249ff47a2d8c7926d8ae3af58f4e5a233f400f75da88ce8254bac7a8cd7a6b0b87fd4eb7315944c76be43719782bd0c16040197b  ruby-3.4.4.tar.gz
+16fc1f35aee327d1ecac420b091beaa53c675e0504d5a6932004f17ca68a2c38f57b053b0a3903696f2232c5add160d363e3972a962f7f7bcb52e4e998c7315d  test_insns-lower-recursion-depth.patch
+42cd45c1db089a1ae57834684479a502e357ddba82ead5fa34e64c13971e7ab7ad2919ddd60a104a817864dd3e2e35bdbedb679210eb41d82cab36a0687e43d4  fix-get_main_stack.patch
+a77da5e5eb7d60caf3f1cabb81e09b88dc505ddd746e34efd1908c0096621156d81cc65095b846ba9bdb66028891aefce883a43ddec6b56b5beb4aac5e4ee33f  dont-install-bundled-gems.patch
+000530316af1fca007fe8cee694b59e2e801674bcc1a2ebea95e67745d4afc0ce66c902fdbc88ee847a4fbf55115b183cd803cbf7c98ef685938efb3e2b7c991  fix-riscv64-build.patch
+"

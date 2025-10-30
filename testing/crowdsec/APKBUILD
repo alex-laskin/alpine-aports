@@ -1,0 +1,100 @@
+# Contributor: tetsumaki <yd-alpine@tetsumaki.net>
+# Contributor: Nicolas Lorin <androw95220@gmail.com>
+# Maintainer: Nicolas Lorin <androw95220@gmail.com>
+pkgname=crowdsec
+pkgver=1.7.3
+pkgrel=0
+pkgdesc="behavior detection engine, coupled with a global IP reputation network"
+url="https://crowdsec.net/"
+arch="all"
+license="MIT"
+makedepends="go sqlite-dev re2-dev"
+subpackages="
+	$pkgname-openrc
+	$pkgname-email-plugin:_plugin
+	$pkgname-file-plugin:_plugin
+	$pkgname-http-plugin:_plugin
+	$pkgname-sentinel-plugin:_plugin
+	$pkgname-slack-plugin:_plugin
+	$pkgname-splunk-plugin:_plugin
+	"
+options="!check" # no test suite identified
+source="$pkgname-$pkgver-2.tar.gz::https://github.com/crowdsecurity/crowdsec/archive/refs/tags/v$pkgver.tar.gz
+	system-sqlite.patch
+	crowdsec.initd
+	"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+build() {
+	make \
+		BUILD_VERSION=v$pkgver \
+		BUILD_TAG="aports"
+}
+
+package() {
+	install -dm 0755 \
+		"$pkgdir"/etc/crowdsec/acquis.d \
+		"$pkgdir"/etc/crowdsec/hub \
+		"$pkgdir"/etc/crowdsec/notifications \
+		"$pkgdir"/etc/crowdsec/patterns \
+		"$pkgdir"/usr/libexec/crowdsec/plugins \
+		"$pkgdir"/var/lib/crowdsec/data
+	install -Dm 0755 "$srcdir"/crowdsec.initd "$pkgdir"/etc/init.d/crowdsec
+	install -Dm 0755 cmd/crowdsec-cli/cscli "$pkgdir"/usr/bin/cscli
+	install -m 0755 cmd/crowdsec/crowdsec "$pkgdir"/usr/bin/crowdsec
+	install -m 0644 config/patterns/* "$pkgdir"/etc/crowdsec/patterns/
+	install -m 0644 \
+		config/acquis.yaml \
+		config/console.yaml \
+		config/profiles.yaml \
+		config/simulation.yaml \
+		"$pkgdir"/etc/crowdsec/
+	install -m 0600 \
+		config/local_api_credentials.yaml \
+		config/online_api_credentials.yaml \
+		"$pkgdir"/etc/crowdsec/
+	install -m 0600 \
+		cmd/notification-email/email.yaml \
+		cmd/notification-file/file.yaml \
+		cmd/notification-http/http.yaml \
+		cmd/notification-sentinel/sentinel.yaml \
+		cmd/notification-slack/slack.yaml \
+		cmd/notification-splunk/splunk.yaml \
+		cmd/notification-sentinel/sentinel.yaml \
+		"$pkgdir"/etc/crowdsec/notifications
+	install -m 0551 \
+		cmd/notification-email/notification-email \
+		cmd/notification-file/notification-file \
+		cmd/notification-http/notification-http \
+		cmd/notification-sentinel/notification-sentinel \
+		cmd/notification-slack/notification-slack \
+		cmd/notification-splunk/notification-splunk \
+		cmd/notification-sentinel/notification-sentinel \
+		"$pkgdir"/usr/libexec/crowdsec/plugins/
+	sed \
+		-e '/^\s*pid_dir:/d' \
+		-e 's/^\(\s*log_dir:\s*\)\(.*\)$/\1\/var\/log\/crowdsec\//' \
+		-e 's/^\(\s*plugin_dir:\s*\)\(.*\)$/\1\/usr\/libexec\/crowdsec\/plugins\//' \
+		-e 's/^\(\s*group:\s*\)\(\w*\)\(.*\)$/\1nobody\3/' \
+		config/config.yaml \
+		| install -m 0600 /dev/stdin "$pkgdir"/etc/crowdsec/config.yaml
+	sed 's/systemctl reload crowdsec/rc-service crowdsec reload/' config/crowdsec.cron.daily \
+		| install -Dm 0750 /dev/stdin "$pkgdir"/etc/periodic/daily/crowdsec
+}
+
+_plugin() {
+	_subpkgname="${subpkgname:9:(${#subpkgname}-16)}"
+	pkgdesc="$pkgname plugin: $_subpkgname"
+	depends="$pkgname=$pkgver-r$pkgrel"
+	amove etc/crowdsec/notifications/$_subpkgname.yaml
+	amove usr/libexec/crowdsec/plugins/notification-$_subpkgname
+}
+
+sha512sums="
+8533a241616c3d3b0fee7567592f4d8152c08ad4139c782e8eedb0d341c4d4c708e1c08d6e764776364db6f3a0c3fc32520982e55cebb26cac35aebc68f96dd4  crowdsec-1.7.3-2.tar.gz
+58dbdd1207eaf92627e5047cc610fd921cabd5c84eca05389d48dd608271ee09229f7e935d72f129365abcd0a0411143c0c6110f9809b89d33d5038a1b2ffe8a  system-sqlite.patch
+098db47afd457c9d68c69097c31fae29cd0c0dc98199b254f75b130ac228ac43c024182bebd7eae756ae4fa2f54682b7f0534cb04311468224d9df2ce4f67ec2  crowdsec.initd
+"

@@ -1,9 +1,9 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=lua5.3
 _pkgname=lua
-pkgver=5.3.4
+pkgver=5.3.6
 _luaver=${pkgname#lua}
-pkgrel=5
+pkgrel=6
 pkgdesc="Powerful light-weight programming language"
 url="https://www.lua.org/"
 arch="all"
@@ -12,7 +12,8 @@ ldpath="/usr/lib/$pkgname"
 depends_dev="$pkgname"
 makedepends="libtool autoconf automake linenoise-dev"
 provides="lua"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-libs"
+provider_priority=300
+subpackages="$pkgname-dbg $pkgname-dev $pkgname-doc $pkgname-libs"
 source="https://www.lua.org/ftp/$_pkgname-$pkgver.tar.gz
 	lua-5.3-make.patch
 	lua-5.3-module_paths.patch
@@ -20,10 +21,12 @@ source="https://www.lua.org/ftp/$_pkgname-$pkgver.tar.gz
 	"
 builddir="$srcdir/$_pkgname-$pkgver"
 
+# secfixes:
+#   5.3.5-r2:
+#     - CVE-2019-6706
+
 prepare() {
 	default_prepare
-	cd "$builddir"
-
 	# disable readline
 	sed -i '/#define LUA_USE_READLINE/d' src/luaconf.h
 
@@ -39,8 +42,6 @@ prepare() {
 }
 
 build() {
-	cd "$builddir"
-
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -48,7 +49,7 @@ build() {
 
 	cd src
 	make V=${pkgver%.*} \
-		CFLAGS="-DLUA_USE_LINUX -DLUA_COMPAT_5_2 -DLUA_USE_LINENOISE" \
+		CFLAGS="$CFLAGS -DLUA_USE_LINUX -DLUA_COMPAT_5_2 -DLUA_USE_LINENOISE" \
 		SYSLDFLAGS="$LDFLAGS" \
 		RPATH="/usr/lib" \
 		LIB_LIBS="-lpthread -lm -ldl -llinenoise" \
@@ -56,14 +57,11 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
 	local i
-	cd "$builddir"
-
 	make V=${pkgver%.*} \
 		INSTALL_TOP="$pkgdir"/usr \
 		INSTALL_INC="$pkgdir"/usr/include/$pkgname \
@@ -81,6 +79,10 @@ package() {
 	install -D -m 644 doc/lua.1 "$pkgdir"/usr/share/man/man1/lua$_luaver.1
 	install -D -m 644 doc/luac.1 "$pkgdir"/usr/share/man/man1/luac$_luaver.1
 
+	mkdir -p "$pkgdir"/usr/share/doc/$pkgname/
+	install -m644 doc/*.html doc/*.css doc/logo.gif doc/osi-certified-72x60.png \
+		"$pkgdir"/usr/share/doc/$pkgname/
+
 	install -d "$pkgdir"/usr/lib/pkgconfig
 	cat > "$pkgdir"/usr/lib/pkgconfig/lua$_luaver.pc <<-EOF
 		# lua.pc -- pkg-config data for Lua
@@ -88,18 +90,18 @@ package() {
 		# vars from install Makefile
 
 		# grep '^V=' ../Makefile
-		V= ${_luaver}
+		V=$_luaver
 		# grep '^R=' ../Makefile
-		R= ${pkgver}
+		R=$pkgver
 
 		# grep '^INSTALL_.*=' ../Makefile | sed 's/INSTALL_TOP/prefix/'
-		prefix= /usr
-		INSTALL_BIN= \${prefix}/bin
-		INSTALL_INC= \${prefix}/include
-		INSTALL_LIB= \${prefix}/lib
-		INSTALL_MAN= \${prefix}/man/man1
-		INSTALL_LMOD= \${prefix}/share/lua/\${V}
-		INSTALL_CMOD= \${prefix}/lib/lua/\${V}
+		prefix=/usr
+		INSTALL_BIN=\${prefix}/bin
+		INSTALL_INC=\${prefix}/include
+		INSTALL_LIB=\${prefix}/lib
+		INSTALL_MAN=\${prefix}/man/man1
+		INSTALL_LMOD=\${prefix}/share/lua/\${V}
+		INSTALL_CMOD=\${prefix}/lib/lua/\${V}
 
 		# canonical vars
 		exec_prefix=\${prefix}
@@ -108,7 +110,7 @@ package() {
 
 		Name: Lua
 		Description: An Extensible Extension Language
-		Version: \${R}
+		Version: ${pkgver}
 		Requires:
 		Libs: -L\${libdir} -llua -lm
 		Cflags: -I\${includedir}
@@ -116,6 +118,9 @@ package() {
 		# (end of lua$_luaver.pc)
 	EOF
 
+	# compat names since we are unique
+	# other distros name it lua-5.3 or lua53. pick the former as a compat name..
+	ln -sv lua5.3.pc "$pkgdir"/usr/lib/pkgconfig/lua-5.3.pc
 }
 
 dev() {
@@ -135,7 +140,9 @@ libs() {
 	mv "$pkgdir"/usr/lib "$subpkgdir"/usr/
 }
 
-sha512sums="739e31f82e6a60fa99910c2005e991b3a1e21339af52847f653cb190b30842054d189ca116ffcfdf9b36e07888c9ce5642b1dd2988cc7eff9f8789f9a2e34997  lua-5.3.4.tar.gz
+sha512sums="
+ccc380d5e114d54504de0bfb0321ca25ec325d6ff1bfee44b11870b660762d1a9bf120490c027a0088128b58bb6b5271bbc648400cab84d2dc22b512c4841681  lua-5.3.6.tar.gz
 1bc6c623024c1738155b30ff9c0edcce0f336edc25aa20c3a1400c859421ea2015d75175cce8d515e055ac3e96028426b74812e04022af18a0ed4c4601556027  lua-5.3-make.patch
 bc68772390dc8d8940176af0b9fbacc0af61891b5d27de5f1466a4e7f9b3291a1c08ba5add829bc96b789a53fa5ec2dadaa096ca6eabe54ec27724fa2810940f  lua-5.3-module_paths.patch
-49880d1131b7bd2a3169a26f401769a91d9a6a62cefe68aa5a89097139289588b7ef753535a2d0ba7f45c0369c760554940fd810716b7b1353deace32432fcfe  linenoise.patch"
+a2edcf5a41513492edff5fa6e97652e676ceb6c66bb2c6a7e6f345570248d7646167f0172ceb07a74fd9d4a43051ed8244fbd94706dd9f5593f174075592a527  linenoise.patch
+"

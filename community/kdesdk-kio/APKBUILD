@@ -1,0 +1,39 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kdesdk-kio
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="KIO workers useful for software development"
+# armhf blocked by qt6-qtdeclarative -> ki18n
+arch="all !armhf"
+url="https://kde.org/applications/development"
+license="GPL-2.0-or-later"
+makedepends="
+	extra-cmake-modules
+	ki18n-dev
+	kio-dev
+	perl-dev
+	qt6-qtbase-dev
+	samurai
+	"
+subpackages="$pkgname-lang"
+_repo_url="https://invent.kde.org/sdk/kdesdk-kio.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/kdesdk-kio-$pkgver.tar.xz"
+options="!check" # No tests
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+e2851d151bcc02b28fde8c5cdd1ffebed93e175b7ce6be8f2d6e585eb3d8ac83dc07c8af3304d8354158161ccf1fbe16d103d3e146705eab9a9df9d2b7aae1bb  kdesdk-kio-25.08.1.tar.xz
+"

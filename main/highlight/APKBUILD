@@ -1,30 +1,31 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
-_luaver=5.3
+_luaver=5.4
 pkgname=highlight
-pkgver=3.42
+pkgver=4.16
 pkgrel=0
 pkgdesc="Fast and flexible source code highlighter"
 url="http://www.andre-simon.de/doku/highlight/highlight.html"
 arch="all"
-options="!check"  # No test suite.
+options="!check" # No test suite.
 license="GPL-3.0-or-later"
-makedepends="lua${_luaver}-dev boost-dev"
-subpackages="$pkgname-doc"
-source="http://www.andre-simon.de/zip/$pkgname-$pkgver.tar.bz2
-        lua.patch
-       "
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="lua$_luaver-dev boost-dev"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	"
+source="http://www.andre-simon.de/zip/highlight-$pkgver.tar.bz2"
 
 build() {
-	cd "$builddir"
-	make cli LUAPC=lua${_luaver}
+	make cli LUA_PKG_NAME=lua5.4
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="362150ee396d2b203f11ecc3d011e23b6f8c7d93ff9f8cb0e9e980be6da21e7b3b1ea1e347e3f09129ab0fb1a0aab19ff19f021e643b93a163a99d3882f9bf80  highlight-3.42.tar.bz2
-3e1a8a4d770c0161f969fadd6fe309260470fa09d44453d6c582be34197bb751ae3422f16ecff46ab268bfe758bac7b3ef3a73d5afcb3c677458a41b323c0a97  lua.patch"
+sha512sums="
+d245ba1eea142b17990408dde15805c81eb1f627d3458cd6e9a0ccc02a7297ac5ca0726f2cbf758860b6bbfa1cbf177f54b0cce14c2d38332d18721df5e13308  highlight-4.16.tar.bz2
+"

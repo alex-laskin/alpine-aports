@@ -1,0 +1,35 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=joker
+pkgver=1.5.6
+pkgrel=2
+pkgdesc="Small Clojure interpreter, linter and formatter written in Go"
+url="https://joker-lang.org/"
+# armhf, armv7, x86: tests fail
+arch="all !armhf !armv7 !x86"
+license="EPL-1.0"
+makedepends="go"
+checkdepends="bash"
+source="https://github.com/candid82/joker/archive/v$pkgver/joker-$pkgver.tar.gz"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+build() {
+	go generate -v ./...
+	go vet -v ./...
+	go build -v
+}
+
+check() {
+	./all-tests.sh
+}
+
+package() {
+	install -Dvm755 joker -t "$pkgdir"/usr/bin/
+}
+
+sha512sums="
+53901f47a8498aa5d1549cf943a96f1643363c983aa309fd70ee76eab49d86dafd20392963d07fb5415d24b0127aeee04c6f7ccaa90e41fafe9467754489bbed  joker-1.5.6.tar.gz
+"

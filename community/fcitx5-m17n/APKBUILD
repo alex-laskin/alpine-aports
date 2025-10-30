@@ -1,0 +1,42 @@
+# Contributor: Lindsay Zhou <i@lin.moe>
+# Maintainer: Lindsay Zhou <i@lin.moe>
+pkgname=fcitx5-m17n
+pkgver=5.1.4
+pkgrel=0
+pkgdesc="m17n extra input method support for fcitx5"
+url="https://github.com/fcitx/fcitx5-m17n"
+arch="all"
+license="LGPL-2.1-or-later"
+makedepends="
+	cmake
+	extra-cmake-modules
+	gettext-dev
+	fcitx5-dev
+	fmt-dev
+	m17n-lib-dev
+	samurai
+	"
+subpackages="$pkgname-lang"
+source="$pkgname-$pkgver.tar.gz::https://github.com/fcitx/fcitx5-m17n/archive/refs/tags/$pkgver.tar.gz"
+# Upstream test makes defective assumptions.
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DENABLE_TEST="$(want_check && echo ON || echo OFF)"
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+ec81001da9b209cd832b4b8ac5c2269e8727dcb9500db1b973c6cd17bc194956fe9bdb9434ae76d2d594f458eaeed2b6c548c2b025dd25fb5a68bdfc808dc7c7  fcitx5-m17n-5.1.4.tar.gz
+"

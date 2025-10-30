@@ -6,11 +6,27 @@ local f = io.open("/proc/sys/kernel/hostname")
 hostname = f:read()
 f:close()
 
-local urlprefix=("http://build.alpinelinux.org/buildlogs/%s"):format(hostname)
+local function read_mosquitto_conf()
+	local cfg = {}
+	local f = io.open((os.getenv("XDG_CONFIG_HOME") or "").."/mosquitto_pub") or io.open((os.getenv("HOME") or "").."/.config/mosquitto_pub")
+	if f == nil then
+		return cfg
+	end
+	for line in f:lines() do
+		key,value = line:match("^%-%-([^ ]+)%s+(.*)")
+		if key and value then
+			cfg[key] = value
+		end
+	end
+	f:close()
+	return cfg
+end
+local mcfg = read_mosquitto_conf()
+publish.hostname = mcfg.hostname or "localhost"
+publish.username = mcfg.username
+publish.password = mcfg.pw
 
 local m = {}
-
---local logtarget="distfiles.alpinelinux.org:/var/cache/distfiles/buildlogs/"..hostname
 
 function shell_escape(args)
         local ret = {}
@@ -30,13 +46,17 @@ function run(args)
         return h:close(), outstr
 end
 
-function m.postbuild(aport, success, repodest, arch, logfile)
+function m.postbuild(conf, aport, success)
 	-- upload log
-	local loghost,logdirprefix = (logtarget or ""):match("(.*):(.*)")
-	if logfile and loghost and logdirprefix then
-		local logdir = logdirprefix.."/"..aport:get_repo_name().."/"..aport.pkgname.."/"
+	local loghost,logdirprefix = (conf.logtarget or ""):match("(.*):(.*)")
+	if aport.logfile and loghost and logdirprefix then
+		local logdir = logdirprefix.."/"..hostname.."/"..aport:get_repo_name().."/"..aport.pkgname.."/"
 		run{"ssh", loghost, "mkdir", "-p", logdir}
-		run{"scp", logfile, loghost..":"..logdir}
+		run{"scp", aport.logfile, loghost..":"..logdir}
+	end
+
+	if not conf.mqttbroker then
+		return
 	end
 
 	local topic = ("build/%s/errors"):format(hostname)
@@ -47,14 +67,15 @@ function m.postbuild(aport, success, repodest, arch, logfile)
 			pkgname = aport.pkgname,
 			hostname = hostname,
 			reponame = aport:get_repo_name(),
-			logurl = ("%s/%s/%s-%s-r%s.log"):format(
-					urlprefix,
+			logurl = ("%s/%s/%s/%s-%s-r%s.log"):format(
+					conf.logurlprefix or "https://build.alpinelinux.org/buildlogs",
+					hostname,
 					(string.match(aport.dir,"[^/]+/[^/]+$")),
 					aport.pkgname, aport.pkgver, aport.pkgrel),
 			status = success
 		}
 	end
-	publish.single(topic, payload, nil, true, "msg.alpinelinux.org")
+	publish.single(topic, payload, nil, true, conf.mqttbroker)
 end
 
 return m

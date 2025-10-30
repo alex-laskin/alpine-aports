@@ -1,41 +1,61 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Bart Ribbers <bribbers@disroot.org>
 pkgname=qt5-qtmultimedia
-_pkgname=${pkgname/qt5-//}-everywhere-src
-pkgver=5.10.1
-_ver=${pkgver/_p/-}
-_ver=${_ver/_/-}
-_ver=${_ver/beta0/beta}
-_ver=${_ver/rc0/rc}
-_V=${_ver/rc/RC}
+pkgver=5.15.10_git20230612
 pkgrel=1
+_module="${pkgname#qt5-}"
+_pkgver=78d05cfcec57a9e890cb5ddbea604f194e04315d
+_fullname=$_module-$_pkgver
 pkgdesc="Qt5 - Multimedia support"
-url="http://qt-project.org/"
+url="https://www.qt.io/developers/"
 arch="all"
-license="LGPL-2.0 with exceptions or GPL-3.0 with exceptions"
-makedepends="qt5-qtbase-dev qt5-qtdeclarative-dev
-	alsa-lib-dev libxv-dev gstreamer-dev gst-plugins-base-dev"
+license="LGPL-2.1-only AND LGPL-3.0-only AND GPL-3.0-only AND Qt-GPL-exception-1.0"
+makedepends="
+	alsa-lib-dev
+	gst-plugins-base-dev
+	gstreamer-dev
+	libxv-dev
+	qt5-qtbase-dev
+	qt5-qtdeclarative-dev
+	"
 subpackages="$pkgname-dev"
+source="https://dev.alpinelinux.org/archive/qt/$_fullname.tar.xz"
+builddir="$srcdir/$_fullname"
 
-case $pkgver in
-*_beta*|*_rc*) _rel=development_releases;;
-*) _rel=official_releases;;
-esac
-source="http://download.qt-project.org/$_rel/qt/${pkgver%.*}/$_ver/submodules/$_pkgname-$_V.tar.xz"
+_disturl="dev.alpinelinux.org:/archive/qt/"
+snapshot() {
+	clean
+	makedepends="git xz rsync tar" deps
+	mkdir -p "$srcdir" && cd "$srcdir"
+	git clone --filter=tree:0 https://invent.kde.org/qt/qt/$_module.git .
+	git archive --format tar --prefix=$_fullname/ $_pkgver > "$SRCDEST"/$_fullname.tar
+	xz -vv -T0 -9 -e "$SRCDEST"/$_fullname.tar
+	rsync --progress -La "$SRCDEST"/$_fullname.tar.xz $_disturl
+}
 
-builddir="$srcdir"/$_pkgname-${_V%-*}
+prepare() {
+	default_prepare
+
+	# We need to make the build system think we're running in a git repository
+	# so it correctly symlinks during the build
+	mkdir .git
+}
 
 build() {
-	cd "$builddir"
-	qmake-qt5 && make
+	qmake-qt5
+	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 package() {
-	cd "$builddir"
-	make install INSTALL_ROOT="$pkgdir"
+	make INSTALL_ROOT="$pkgdir" install
+
+	# Drop QMAKE_PRL_BUILD_DIR because reference the build dir
+	find "$pkgdir/usr/lib" -type f -name '*.prl' \
+		-exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 }
 
-sha512sums="cbab1907b68ec6fced251f04ea5f1dc519b55152f0f90bfa3f14c3011630a9611ae75bf1e7047538a2612358d3e1def3ad64eb2c18f11dda36e7e75d2b765a91  qtmultimedia-everywhere-src-5.10.1.tar.xz"
+sha512sums="
+62990d24cb68c473879c8eb1bc6a5968aea670585fb5a3e641a580083786efada24be12365a867c7478f6f80a3f2f92716631e4042a36f41342776a080ad5754  qtmultimedia-78d05cfcec57a9e890cb5ddbea604f194e04315d.tar.xz
+"

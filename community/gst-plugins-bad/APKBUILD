@@ -1,79 +1,149 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+maintainer="Krassy Boykinov <kboykinov@teamcentrixx.com>"
 pkgname=gst-plugins-bad
-pkgver=1.14.0
+pkgver=1.26.7
 pkgrel=1
-pkgdesc="GStreamer bad plugins"
+pkgdesc="GStreamer streaming media framework bad plug-ins"
 url="https://gstreamer.freedesktop.org/"
 arch="all"
 license="GPL-2.0-or-later LGPL-2.0-or-later"
+options="!check" # 4 out of 51 tests fail as of 1.20.1
 replaces="gst-plugins-bad1"
-options="!check" # most fail because: XDG_RUNTIME_DIR not set in the env.
+# chromaprint causes a circular dependency:
+# pipewire -> libcamera -> here -> chromaprint -> ffmpeg -> sdl2 -> pipewire
 makedepends="
 	alsa-lib-dev
+	aom-dev
 	bluez-dev
 	bzip2-dev
 	curl-dev
+	directfb-dev
 	faac-dev
 	faad2-dev
+	fdk-aac-dev
 	flite-dev
 	glib-dev
 	glu-dev
+	gobject-introspection-dev
 	gsm-dev
 	gst-plugins-base-dev
 	gstreamer-dev
+	gtk+3.0-dev
+	lcms2-dev
+	libass-dev
 	libdc1394-dev
+	libde265-dev
+	libdvdnav-dev
+	libdvdread-dev
 	libexif-dev
+	libfreeaptx-dev
+	libgudev-dev
 	libmms-dev
 	libmodplug-dev
-	libressl-dev>=2.7.0
+	libnice-dev
 	librsvg-dev
-	libvdpau-dev
-	libx11-dev
-	mesa-dev
-	neon-dev
-	orc-dev
-	directfb-dev
-	spandsp-dev
-	libwebp-dev
-	x265-dev
-	libass-dev
+	libsndfile-dev
+	libsrt-dev
 	libsrtp-dev
-	orc-compiler
+	libusrsctp-dev
+	libva-glx-dev
+	libvdpau-dev
+	libwebp-dev
+	libx11-dev
+	libxkbcommon-dev
+	mesa-dev
+	meson
+	neon-dev
+	openal-soft-dev
+	openexr-dev
+	openh264-dev
+	openjpeg-dev
+	openssl-dev>3
+	opus-dev
+	orc-dev
+	pango-dev
+	rtmpdump-dev
+	sbc-dev
+	soundtouch-dev
+	spandsp-dev
+	tiff-dev
+	vo-aacenc-dev
+	vo-amrwbenc-dev
+	vulkan-headers
+	vulkan-loader-dev
+	wayland-dev
+	wayland-protocols
+	x265-dev
+	zbar-dev
 	"
-subpackages="$pkgname-lang $pkgname-dev $pkgname-doc"
-source="https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-$pkgver.tar.xz
-	libressl270-dtsl_method.patch"
+subpackages="$pkgname-dbg $pkgname-lang $pkgname-dev"
+source="
+	https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-$pkgver.tar.xz
+	0001-jifmux-Make-copies-of-parsed-image-buffer-parts.patch
+	"
 ldpath="/usr/lib/gstreamer-1.0"
 
+case "$CARCH" in
+s390x)
+	;;
+*)
+	makedepends="$makedepends libldac-dev"
+	;;
+esac
+
+case "$CARCH" in
+x86|armhf|armv7)
+	;;
+*)
+	makedepends="$makedepends svt-av1-dev"
+	;;
+esac
+
+# secfixes:
+#   1.26.3-r0:
+#     - CVE-2025-6663
+#   1.26.1-r0:
+#     - CVE-2025-3887
+#   1.22.9-r0:
+#     - CVE-2024-0444
+#   1.22.8-r0:
+#     - ZDI-CAN-22300
+#   1.22.7-r0:
+#     - CVE-2023-44446
+#     - CVE-2023-44429
+#   1.22.6-r0:
+#     - CVE-2023-40476
+#     - CVE-2023-40475
+#     - CVE-2023-40474
+#   1.22.4-r0:
+#     - CVE-2023-37329
+#     - CVE-2023-37328
+
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--localstatedir=/var \
-		--disable-static \
-		--enable-experimental \
-		--disable-fatal-warnings \
-		--with-package-name="GStreamer Bad Plugins (Alpine Linux)" \
-		--with-package-origin="http://alpinelinux.org/"
-	make
+	CFLAGS="$CFLAGS -O2" \
+	CXXFLAGS="$CXXFLAGS -O2" \
+	CPPFLAGS="$CPPFLAGS -O2" \
+	abuild-meson \
+		-Db_lto=true \
+		-Dpackage-origin="https://alpinelinux.org" \
+		-Dpackage-name="GStreamer bad plug-ins (Alpine Linux)" \
+		-Dintrospection=enabled \
+		-Dsctp=enabled \
+		-Dsrt=enabled \
+		-Dtests="$(want_check && echo enabled || echo disabled)" \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	XDG_RUNTIME_DIR="$(mktemp -d)" \
+		meson test -C output --print-errorlogs
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-doc() {
-	default_doc
-	replaces="${pkgname}1-doc"
-}
-sha512sums="3f64dc428e2c1890f05d2c718215ff4b78a8262255ea61e746b436dc9ce1d3e0671db9cf3640f9a7453434297cac3a134272de7785818dfc5a6011ce8584842f  gst-plugins-bad-1.14.0.tar.xz
-82106a8fa7ac01c63c3298c33a3b6177a4115f380d475634ea8ba4c67654f96275ab4b35eb4ea712a997165fefa7e9b65fd6b14ed3cea478c200d7e8d61423c4  libressl270-dtsl_method.patch"
+sha512sums="
+cd74baae68089261dceea112fea41dd47b65ec4ee8a9ff90ca0c411243462b584195aa8498eff0821618491be3ecfc30957f47a4f37cc7974700fb842e196537  gst-plugins-bad-1.26.7.tar.xz
+0c79d4cf065656dc8d783c5aa11c44e4ee35ab9930cc9f2bfb0ac990a73818aaa0aa6788b3ae9a7182a79427027facb490ee26fefad4db3ec39437d67a54b2fb  0001-jifmux-Make-copies-of-parsed-image-buffer-parts.patch
+"

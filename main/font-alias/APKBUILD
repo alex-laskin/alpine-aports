@@ -1,29 +1,15 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-alias
-pkgver=1.0.3
-pkgrel=1
+pkgver=1.0.5
+pkgrel=0
 pkgdesc="X.org font alias files"
-url="http://xorg.freedesktop.org/"
+url="https://xorg.freedesktop.org/"
 arch="noarch"
 license="custom"
-depends=""
-makedepends="util-macros"
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
+source="https://www.x.org/releases/individual/font/font-alias-$pkgver.tar.xz"
+subpackages="$pkgname-doc"
 
-builddir="$srcdir"/$pkgname-$pkgver
-
-check() {
-	cd "$builddir"
-	make check
-}
-
-prepare() {
-	update_config_sub
-	default_prepare
-}
-
-build () {
-	cd "$builddir"
+build() {
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -32,9 +18,16 @@ build () {
 	make
 }
 
-package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+check() {
+	make check
 }
 
-sha512sums="05abfef4615722d8cf3f21ab1118494522553a75427140d9753b3d312f404735c20766ceacc1b53f9e783ea25ec8f2f6bdb8696525a4962afe29f524ed8b6552  font-alias-1.0.3.tar.bz2"
+package() {
+	make DESTDIR="$pkgdir" install
+
+	install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+}
+
+sha512sums="
+86bffa6b9ff789eeba715c079965157806ed633d44cd3dbf5e2a4bba2b390a0f48db65edc8e3264acbc2368d78a8d7e05bc2e2e3a86ddbf6b08bfe7f5e862bcc  font-alias-1.0.5.tar.xz
+"

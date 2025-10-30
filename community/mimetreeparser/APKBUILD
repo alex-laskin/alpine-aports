@@ -1,0 +1,59 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=mimetreeparser
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="Parser for MIME trees"
+# armhf blocked by qt6-qtdeclarative
+arch="all !armhf"
+url="https://community.kde.org/Frameworks"
+license="LGPL-2.0-or-later AND LGPL-2.0-only AND LGPL-2.1-or-later AND BSD-3-Clause AND GPL-2.0-or-later"
+makedepends="
+	doxygen
+	extra-cmake-modules
+	gpgme-dev
+	graphviz
+	kcalendarcore-dev
+	kcodecs-dev
+	kcolorscheme-dev
+	kconfig-dev
+	ki18n-dev
+	kmbox-dev
+	kmime-dev
+	kwidgetsaddons-dev
+	libkleo-dev
+	qt6-qt5compat-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-dev
+	qt6-qtdeclarative-private-dev
+	qt6-qttools-dev
+	samurai
+	"
+checkdepends="
+	gpg-agent
+	xwayland-run
+	"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/pim/mimetreeparser.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/mimetreeparser-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_QCH=ON
+	cmake --build build
+}
+
+check() {
+	wlheadless-run -- ctest --test-dir build -E "(core-attachment|core-cryptohelper|core-mimetreeparser|core-gpgerror|core-partmodel|widgets-messageviewer|widgets-messageviewerdialog)test"
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+sha512sums="
+eb28c88150b9aaf688d16712ef9af1a6994794d5544e5151a9443869cf3fa0cf61834b6997b0cba58cc5ee1d84f69ae772eed7eec07f229065df866302c956b4  mimetreeparser-25.08.1.tar.xz
+"

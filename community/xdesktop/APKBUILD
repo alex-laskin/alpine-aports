@@ -11,14 +11,11 @@ depends_dev="xcb-util-wm-dev"
 makedepends="$depends_dev"
 source="$pkgname-$pkgver.tar.gz::https://github.com/onodera-punpun/$pkgname/archive/$pkgver.tar.gz"
 
-builddir="$srcdir"/$pkgname-$pkgver
 build() {
-	cd "$builddir"
 	make
 }
 
 package() {
-	cd "$builddir"
 	make PREFIX=/usr DESTDIR="$pkgdir" install
 }
 

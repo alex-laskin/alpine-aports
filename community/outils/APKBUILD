@@ -1,16 +1,13 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
 pkgname=outils
-pkgver=0.7
+pkgver=0.14
 pkgrel=0
 pkgdesc="Port of some non-standard OpenBSD tools to Linux"
-url="https://github.com/chneukirchen/outils"
+url="https://github.com/leahneukirchen/outils"
 arch="all"
 license="BSD-3-Clause ISC"
-depends=""
-depends_dev=""
-makedepends="libressl-dev linux-headers"
-install=""
+makedepends="openssl-dev>3 linux-headers"
 options="!check" # upstream doesn't have a test suite
 subpackages="$pkgname-doc
 	$pkgname-sha256:_tool
@@ -28,18 +25,17 @@ subpackages="$pkgname-doc
 	$pkgname-vis:_tool
 	$pkgname-signify:_tool
 	$pkgname-jot:_tool
-	$pkgname-cksum:_tool"
-source="$pkgname-$pkgver.tar.gz::https://github.com/chneukirchen/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+	$pkgname-cksum:_tool
+	$pkgname-ts:_tool"
+source="$pkgname-$pkgver.tar.gz::https://github.com/leahneukirchen/outils/archive/v$pkgver.tar.gz
+	"
 
 build() {
-	make CC="$CC" CFLAGS="$CFLAGS" \
-		-C "$builddir"
+	make CC="$CC" CFLAGS="$CFLAGS"
 }
 
 package() {
-	make DESTDIR="$pkgdir" install \
-		-C "$builddir"
+	make DESTDIR="$pkgdir" install
 }
 
 _tool() {
@@ -64,4 +60,6 @@ _tool() {
 	rmdir "$pkgdir"/usr/ 2>/dev/null || true
 }
 
-sha512sums="e4dfafe1055e3c1161e489f67e433629833d256232ce07791eb169ae9ab54f5ec4c2236a33fc35a4a44fd42c9888145d6ca115cab9869593d5d42b11d4fea6d8  outils-0.7.tar.gz"
+sha512sums="
+615fc7678492efed47bde73f5589f39e3ca9a3019a9bdee2b48074155af0e692728d0bc80607c3ceb93bc6d3fc5fbfa47c3427e652da0e1a1610c08639a5ee33  outils-0.14.tar.gz
+"

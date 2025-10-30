@@ -1,36 +1,35 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=zenity
-pkgver=3.26.0
+pkgver=4.1.99
 pkgrel=0
-pkgdesc="A GTK+-based xdialog replacement"
-url="https://www.gnome.org/"
+pkgdesc="Display dialog boxes from the command line and shell scripts"
+url="https://gitlab.gnome.org/GNOME/zenity"
 arch="all"
-license="GPL-2.0-or-later"
-makedepends="gtk+3.0-dev intltool libxml2-utils libnotify-dev itstool"
-subpackages="$pkgname-lang $pkgname-doc"
-case $pkgver in
-*.*.*.*) _v=${pkgver%.*.*};;
-*.*.*) _v=${pkgver%.*};;
-*.*) _v=$pkgver;;
-esac
-source="https://download.gnome.org/sources/${pkgname}/${_v}/${pkgname}-${pkgver}.tar.xz"
-
-builddir="${srcdir}/${pkgname}-${pkgver}"
+license="LGPL-2.1-or-later"
+makedepends="
+	help2man
+	intltool
+	itstool
+	libadwaita-dev
+	libxml2-utils
+	meson
+	"
+options="!check" # no tests
+subpackages="$pkgname-dbg $pkgname-lang $pkgname-doc"
+source="https://download.gnome.org/sources/zenity/${pkgver%.*}/zenity-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc
-	make
+	abuild-meson \
+		-Db_lto=true \
+		. output
+	meson compile -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="b0cc080dbf8a2dcd78ffc0b6460c3b41ca728d62a564d2d49ee0a45cbeeb699c2be06575750a13340bc305efbf43b8ef55f1bbb8c75592b8e186a6f885bc4d5a  zenity-3.26.0.tar.xz"
+sha512sums="
+5bc448b581edfb1f9621c6dbf16c9bc139839864ce9c4da2fb0a7655d63a881025a281d0589c86aef75e26092e2824bee51fa1a430e805c0a97f08c7023b1646  zenity-4.1.99.tar.xz
+"

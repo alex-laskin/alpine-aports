@@ -1,20 +1,27 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libice
-pkgver=1.0.9
-pkgrel=2
+pkgver=1.1.2
+pkgrel=0
 pkgdesc="X11 Inter-Client Exchange library"
-url="http://xorg.freedesktop.org/"
+url="https://xorg.freedesktop.org/"
 arch="all"
-license="custom"
-depends=
-makedepends="xproto xtrans util-macros xmlto check-dev"
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://www.x.org/releases/individual/lib/libICE-$pkgver.tar.bz2"
-
+license="X11"
+makedepends="
+	check-dev
+	util-macros
+	xmlto
+	xorgproto
+	xtrans
+	"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc"
+source="https://www.x.org/releases/individual/lib/libICE-$pkgver.tar.xz"
 builddir="$srcdir/libICE-$pkgver"
 
+# secfixes:
+#   1.0.10-r0:
+#     - CVE-2017-2626
+
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -28,14 +35,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
-md5sums="addfb1e897ca8079531669c7c7711726  libICE-1.0.9.tar.bz2"
-sha256sums="8f7032f2c1c64352b5423f6b48a8ebdc339cc63064af34d66a6c9aa79759e202  libICE-1.0.9.tar.bz2"
-sha512sums="daa8126ee5279c08f801274a2754132762dea2a40f4733c4b0bf8e8bdad61cba826939a2e067beb3524e256a98a2b83f23c8d4643f3e75a284ab02cc73da41b7  libICE-1.0.9.tar.bz2"
+
+sha512sums="
+340f51ffa1f14ed442ab8bcea92dd63df147c48242e232e818cafe02f43de7ab6e99c5430b9cb8d0dc661295239d2b3f6bdb6a092ce51a98afa06235257e9b1f  libICE-1.1.2.tar.xz
+"

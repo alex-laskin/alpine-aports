@@ -1,45 +1,36 @@
 # Contributor: Olivier Mauras <olivier@mauras.ch>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=lmdb
-pkgver=0.9.22
-pkgrel=1
+pkgver=0.9.33
+pkgrel=0
 pkgdesc="Lightning Memory-Mapped Database"
-url="http://symas.com/mdb"
+url="https://symas.com/lmdb/"
 arch="all"
 license="OLDAP-2.8"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-tools"
-source="https://github.com/LMDB/lmdb/archive/LMDB_$pkgver.tar.gz
-	lmdb-make.patch"
-builddir="$srcdir/$pkgname-LMDB_$pkgver/libraries/liblmdb"
+source="https://git.openldap.org/openldap/openldap/-/archive/LMDB_$pkgver/openldap-LMDB_$pkgver.tar.gz
+	lmdb-make.patch
+	lmdb.pc
+	"
+builddir="$srcdir/openldap-LMDB_$pkgver/libraries/liblmdb"
+
+prepare() {
+	default_prepare
+	sed -i "s|@@VERSION@@|$pkgver|" -i "$srcdir"/*.pc
+}
 
 build() {
-	cd "$builddir"
-	make CFLAGS+="-fPIC"
+	make CC="${CC:-cc}" LDFLAGS="$LDFLAGS" CFLAGS="$CFLAGS -O2 -fPIC"
 }
 
 check() {
-	cd "$builddir"
 	LD_LIBRARY_PATH="$PWD" make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" prefix=/usr install
 
-	mkdir -p "$pkgdir"/usr/lib/pkgconfig
-	cat >"$pkgdir"/usr/lib/pkgconfig/lmdb.pc <<-EOF
-	prefix=/usr
-	exec_prefix=\${prefix}
-	libdir=\${exec_prefix}/lib
-	includedir=\${prefix}/include
-
-	Name: liblmdb
-	Description: Lightning Memory-mapped key-value database
-	URL: http://symas.com/mdb/
-	Version: @PACKAGE_VERSION@
-	Libs: -L\${libdir} -llmdb
-	Cflags: -I\${includedir}
-	EOF
+	install -Dm0644 "$srcdir"/*.pc -t "$pkgdir"/usr/lib/pkgconfig
 }
 
 tools() {
@@ -47,5 +38,8 @@ tools() {
 	mv "$pkgdir"/usr/bin "$subpkgdir"/usr
 }
 
-sha512sums="49afca13b9683ed571c274380bb5e111236903b12d19bcb8781d6bbc00f711766b0d62de0b36536c85309cc9ff9e9d0aaa708e27bae9be6cfcaed8ba91e5545d  LMDB_0.9.22.tar.gz
-1ae28e850a32694f81cb7bf4abaab9cd96ef6c963de91f96810de3afee4da41102e310a6fb0ed889e9e9e04e00342f25272c04a8b483615dccfc039e34538594  lmdb-make.patch"
+sha512sums="
+57404b35adb5136fcdf60552c2dd2626b9753868f2707d3279725e08145cee3be0d311189b2c6ef6879f25cf09962e6b423c70c8a2e09ef1b368948e873d92b5  openldap-LMDB_0.9.33.tar.gz
+2d964e250894cecd00a6b4f2f3dd3797ee1434c4299fcea0a4255f5f09cdfa2fe21bfb74d9e0816d79fd44bfa309697f1eb2709268a5376593bde901463852cf  lmdb-make.patch
+0cc194beedd8c1adc7cc1390eb131c800142c14120e47fc744d84f8225efecfa8d4854f4ed26021166b4b7cb021ffc4f068e0009958b1ce6247941fce9658233  lmdb.pc
+"

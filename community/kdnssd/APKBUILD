@@ -1,0 +1,56 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-frameworks
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kdnssd
+pkgver=6.19.0
+pkgrel=0
+arch="all"
+pkgdesc="Network service discovery using Zeroconf"
+url="https://community.kde.org/Frameworks"
+license="LGPL-2.0-or-later"
+depends="avahi"
+depends_dev="
+	avahi-dev
+	qt6-qtbase-dev
+	"
+makedepends="$depends_dev
+	doxygen
+	extra-cmake-modules
+	graphviz
+	kde-qdoc-common
+	qt6-qttools-dev
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-lang"
+_repo_url="https://invent.kde.org/frameworks/kdnssd.git"
+source="https://download.kde.org/stable/frameworks/${pkgver%.*}/kdnssd-$pkgver.tar.xz"
+options="!check" # No tests
+case "$CARCH" in
+	armhf) ;;
+	*) subpackages="$subpackages $pkgname-doc" ;;
+esac
+
+build() {
+	export KDE_DOCS=/usr/share/kde/documentation
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_QCH=ON
+	cmake --build build
+
+	cmake --build build --target prepare_docs
+	cmake --build build --target generate_docs
+	cmake --build build --target generate_qch
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	DESTDIR="$pkgdir" cmake --build build --target install_html_docs
+	DESTDIR="$pkgdir" cmake --build build --target install_qch_docs
+}
+
+sha512sums="
+04c227649e775f02a5cd83cede6d2709502523a650099d1e42321b5fa59de8c048c055862d7d238cc28c12a1e1905b48259510951064f42ac89462186a3a8b82  kdnssd-6.19.0.tar.xz
+"

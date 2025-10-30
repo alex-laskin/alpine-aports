@@ -1,40 +1,62 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=opentracker
-pkgver=0_cvs20100625
-pkgrel=4
+pkgver=0_git20210823
+pkgrel=2
 pkgdesc="an open and free bittorrent tracker"
 url="http://erdgeist.org/arts/software/opentracker/"
 arch="all"
-license="GPL"
-depends=
+license="Beerware"
 makedepends="libowfat-dev zlib-dev"
 install="$pkgname.pre-install"
-subpackages=
-source="http://dev.alpinelinux.org/opentracker/opentracker-$pkgver.tar.gz
-	opentracker.initd"
+subpackages="$pkgname-openrc ${pkgname}6"
+source="https://dev.alpinelinux.org/opentracker/opentracker-$pkgver.tar.gz
+	opentracker.initd
+	show-version.patch
+	"
 
-_builddir="$srcdir"/$pkgname
+builddir="$srcdir"
+
 prepare() {
-	cd "$_builddir"
+	default_prepare
+	# see show-version.patch
+	sed -i "s/%pkgver%/$pkgver/" opentracker/ot_stats.c
+	cp -r opentracker opentracker6
 }
 
 build() {
-	cd "$_builddir"
-	make || return 1
+	export FEATURES="-DWANT_IP_FROM_PROXY"
+	make -C opentracker PREFIX=/usr/include
+
+	export FEATURES="$FEATURES -DWANT_V6"
+	make -C opentracker6 PREFIX=/usr/include BINARY=opentracker6
+}
+
+check() {
+	opentracker/opentracker -v
+	opentracker6/opentracker6 -v
 }
 
 package() {
-	cd "$_builddir"
-	install -d "$pkgdir"/usr/bin
-	make BINDIR="$pkgdir"/usr/bin install || return 1
-	install -m644 -D opentracker.conf.sample \
+	install -Dm755 \
+		opentracker/opentracker \
+		opentracker6/opentracker6 \
+		-t "$pkgdir"/usr/bin
+
+	install -Dm644 opentracker/opentracker.conf.sample \
 		"$pkgdir"/etc/opentracker/opentracker.conf
-	install -m755 -D "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
+
+	install -Dm755 "$srcdir"/opentracker.initd "$pkgdir"/etc/init.d/opentracker
+	ln -s opentracker "$pkgdir"/etc/init.d/opentracker6
 }
 
-md5sums="8d02a6f7a241c6b8c98e2dbde086cfcf  opentracker-0_cvs20100625.tar.gz
-bb3cfa7597cd86e2987aafb4081c6d78  opentracker.initd"
-sha256sums="c2be547353c55be95f7b29a1efd551d44ebbe7f7bc9835a29cf742ea2c21199e  opentracker-0_cvs20100625.tar.gz
-9058d2df337dc9259cd92e99350889dddcd86f14b3ced8577f69a348339bd15c  opentracker.initd"
-sha512sums="85686782d8f4469b3bbcd67851b86bb43fc258b6f347a695cef83b2d1354880eaeca475b85cce475646cec5e118a5dd3cb27c664166d0f5a8158a8662f633f01  opentracker-0_cvs20100625.tar.gz
-80ae2f4f5a485df7e3dab982068f3b79457721fd87e00e6a3450003f1a7685ade3e0edd4ab341a822abd51f002d3a8f7b897b38e76ac360fd6a0551c91a56d77  opentracker.initd"
+opentracker6() {
+	pkgdesc="$pkgdesc (IPv6 version)"
+
+	amove usr/bin/opentracker6
+}
+
+sha512sums="
+53b9e163cf6ac349f94ef06075a7f9819e87e26501ae45a27fa0fd79d1bb0ede054739e6e9943f2e1cd51fed21e14c3da91f7a208ee2fcae87c2e659e36ece09  opentracker-0_git20210823.tar.gz
+d285ca8ed873e4bc6604a8814aad738459f444fe674379c0798287eb48f116dc84a01ed1c06ad7baf3a015e0eda65fb1f08cb0f220518d9a0b7e0261b481b7d6  opentracker.initd
+86b30cdb4a04d6d08c929c727e941f95134eb7707a3725a8779f2f69c3beb4eac2ec06a991236074e79798aab880223458360a4a5f4dd7e1a05ee9229e8a0c87  show-version.patch
+"

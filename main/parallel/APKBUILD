@@ -1,7 +1,8 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 # Contributor: Bartłomiej Piotrowski <bpiotrowski@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=parallel
-pkgver=20180422
+pkgver=20250922
 pkgrel=0
 pkgdesc="Shell tool for executing jobs in parallel"
 arch="noarch"
@@ -9,11 +10,10 @@ url="https://www.gnu.org/software/parallel"
 license="GPL-3.0-or-later"
 options="!check" # Test suite not part of src pkg
 depends="perl"
-subpackages="$pkgname-doc"
-source="https://ftp.gnu.org/gnu/$pkgname/$pkgname-$pkgver.tar.bz2"
+subpackages="$pkgname-doc $pkgname-bash-completion $pkgname-zsh-completion"
+source="https://ftp.gnu.org/gnu/parallel/parallel-$pkgver.tar.bz2"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -25,8 +25,9 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="e08ae2043122d5300f9c3d72ec3c16efb9da509e856bf5aad9a39f48584d6d51f761fefdf6313fff4e8f2f905f29dff506272cc0b4448bb3260a0c23d6a5a9a3  parallel-20180422.tar.bz2"
+sha512sums="
+addf3b3934fc5c6eb01273dc54d61ec9ba6afc4f2fc4b7fd6dd6e94e3f6fcce9a32881f89b0446664b1f0e011c4d156bd52fc1111b531912f57c71e627d3abd5  parallel-20250922.tar.bz2
+"

@@ -1,0 +1,40 @@
+# Contributor: Lindsay Zhou <i@lin.moe>
+# Maintainer: Lindsay Zhou <i@lin.moe>
+pkgname=fcitx5-kkc
+pkgver=5.1.7
+pkgrel=0
+pkgdesc="libkkc input method support for fcitx5"
+url="https://github.com/fcitx/fcitx5-kkc"
+arch="all"
+license="GPL-3.0-or-later"
+makedepends="
+	cmake
+	extra-cmake-modules
+	gettext-dev
+	fcitx5-dev
+	fcitx5-qt-dev
+	libkkc-dev
+	qt6-qttools-dev
+	samurai
+	"
+subpackages="$pkgname-lang"
+source="$pkgname-$pkgver.tar.gz::https://github.com/fcitx/fcitx5-kkc/archive/refs/tags/$pkgver.tar.gz
+	"
+options="!check" # no tests
+
+build() {
+	CFLAGS="$CFLAGS -flto=auto" \
+	CXXFLAGS="$CXXFLAGS -flto=auto" \
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+2fb20c34152b2e9025677b648534aee732342fb032d9c0f060060292644ced8770257cce0732422acd7936c92e60b4e54ced0884e918fd51879b09917fddd68c  fcitx5-kkc-5.1.7.tar.gz
+"

@@ -1,0 +1,62 @@
+# Maintainer: Cowington Post <cowingtonpost@gmail.com>
+pkgname=py3-flask-security
+pkgver=5.6.1
+pkgrel=0
+pkgdesc="Quick and simple security for Flask applications"
+url="https://github.com/pallets-eco/flask-security"
+arch="noarch"
+license="MIT"
+depends="
+	py3-email-validator
+	py3-flask
+	py3-flask-babel
+	py3-flask-login
+	py3-flask-mailman
+	py3-flask-principal
+	py3-flask-sqlalchemy
+	py3-flask-wtf
+	py3-itsdangerous
+	py3-passlib
+	py3-phonenumbers
+	"
+makedepends="
+	py3-flit-core
+	py3-gpep517
+	py3-setuptools
+	py3-wheel
+	"
+checkdepends="
+	py3-dateutil
+	py3-pytest
+	py3-pytest-xdist
+	"
+subpackages="$pkgname-pyc"
+source="https://github.com/pallets-eco/flask-security/archive/$pkgver/py3-flask-security-$pkgver.tar.gz
+	nowarnings.patch
+	remove_importlib_resources.patch
+	"
+builddir="$srcdir/flask-security-$pkgver"
+options="!check" # tests broken
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest -n auto
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+5d8d648a15df2d79ad648ae9bbbecc1a90410b7e56c6aee7c7c6eb35006b3d5abcc9d5fde1abc7b16ba513bad299670cd09be89994fa01425d38d5057f5e2cb7  py3-flask-security-5.6.1.tar.gz
+5d0367c29f69362b1df536f26a7f399c25a351c46572cc37ffc5526c124a860a8fc0a0b01b19483daded64990247a0e48761c25e6b2a9316fbd293088315d016  nowarnings.patch
+929cea510f4713df1a1b2f1038e9eb50bc2198b6865a431d753b3efe339cddf62b4e1ee75696db5dc619002228ee88aca70d084c567b02d2e91f7e162011c02e  remove_importlib_resources.patch
+"

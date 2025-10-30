@@ -1,39 +1,37 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=icinga2
-pkgver=2.8.4
+pkgver=2.15.0
 pkgrel=0
 pkgdesc="An open source host, service and network monitoring program"
-url="http://www.icinga.org"
-arch="all !armhf"
-license="GPL"
+url="https://icinga.com"
+arch="all !armhf !armv7"
+license="GPL-2.0-only"
 depends="monitoring-plugins"
-makedepends="$depends_dev cmake bison flex boost-dev yajl-dev
-	postgresql-dev mariadb-connector-c-dev libressl-dev libedit-dev"
+makedepends="cmake bison flex boost-dev yajl-dev
+	libpq-dev mariadb-connector-c-dev openssl-dev>3 libedit-dev samurai"
 install="$pkgname.pre-install $pkgname.post-install"
 pkgusers="icinga"
 pkggroups="icinga icingacmd"
 subpackages="$pkgname-doc $pkgname-bash-completion:bashcomp:noarch $pkgname-vim::noarch $pkgname-openrc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/Icinga/$pkgname/archive/v$pkgver.tar.gz
-	$pkgname.initd"
+source="$pkgname-$pkgver.tar.gz::https://github.com/Icinga/icinga2/archive/v$pkgver.tar.gz
+	$pkgname.initd
+	avoid-bash-in-scripts.patch
+	disable-failing-tests.patch
+	boost-1.81.patch
+	"
 
-builddir="$srcdir/$pkgname-$pkgver"
-
-prepare() {
-	cd "$builddir"
-	rm -r third-party/yajl
-	mkdir -p build
-	default_prepare
-}
-
-check() {
-	cd "$builddir"
-	make test
-}
+# secfixes:
+#   2.13.1-r0:
+#     - CVE-2021-37698
+#   2.11.3-r1:
+#     - CVE-2020-14001
 
 build() {
-	cd "$builddir"/build
-	cmake "$srcdir/$pkgname-$pkgver" \
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build \
 		-DCMAKE_BUILD_TYPE=None \
 		-DICINGA2_GIT_VERSION_INFO=OFF \
 		-DICINGA2_UNITY_BUILD=FALSE \
@@ -48,19 +46,26 @@ build() {
 		-DICINGA2_USER=icinga \
 		-DICINGA2_GROUP=icingacmd \
 		-DICINGA2_COMMAND_GROUP=icingacmd \
-		-DINSTALL_SYSTEMD_SERVICE_AND_INITSCRIPT=no
-	make
+		-DINSTALL_SYSTEMD_SERVICE_AND_INITSCRIPT=no \
+		-GNinja \
+		. $CMAKE_CROSSOPTS
+	ninja -C build
+}
+
+check() {
+	ninja -C build test
 }
 
 package() {
 	cd "$builddir"/build
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" ninja install
 	mv "$pkgdir/etc/icinga2/conf.d" "$pkgdir/etc/icinga2/conf.d.example"
 	mkdir "$pkgdir/etc/icinga2/conf.d"
 	rm "$pkgdir/etc/icinga2/features-enabled/checker.conf"
 	rm "$pkgdir/etc/icinga2/features-enabled/mainlog.conf"
 	rm "$pkgdir/etc/icinga2/features-enabled/notification.conf"
 	rm -r "$pkgdir/run"
+
 	mkdir -p "$pkgdir/usr/lib/tmpfiles.d"
 	cat > "$pkgdir/usr/lib/tmpfiles.d/icinga2.conf" <<- EOF
 d /run/icinga2 0750 icinga icingacmd -
@@ -73,18 +78,17 @@ EOF
 	install -Dm644 tools/syntax/nano/icinga2.nanorc "$pkgdir/usr/share/nano/icinga2.nanorc"
 
 	chmod 750 "$pkgdir/etc/icinga2" \
-            "$pkgdir/var/lib/icinga2" \
-            "$pkgdir/var/spool/icinga2" \
-            "$pkgdir/var/cache/icinga2" \
-            "$pkgdir/var/log/icinga2"
-
-	rm "$pkgdir"/etc/init.d/$pkgname
-
+		"$pkgdir/var/lib/icinga2" \
+		"$pkgdir/var/spool/icinga2" \
+		"$pkgdir/var/cache/icinga2" \
+		"$pkgdir/var/log/icinga2"
+	mkdir -p "$pkgdir/run/icinga2"
 	chown -R icinga:icinga "$pkgdir"/etc/icinga2
 	chown -R icinga:icinga "$pkgdir"/var/lib/icinga2
 	chown icinga:icinga "$pkgdir"/var/spool/icinga2
 	chown -R icinga:icingacmd "$pkgdir"/var/cache/icinga2
 	chown -R icinga:icingacmd "$pkgdir"/var/log/icinga2
+	chown -R icinga:icingacmd "$pkgdir"/run/icinga2
 
 	install -Dm755 "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
 	cat >"$pkgdir"/usr/share/doc/$pkgname/README.alpine <<EOF
@@ -93,13 +97,13 @@ Add the web server user to the icingacmd group in order to grant it write
 permissions to the external command pipe and livestatus socket:
 
 For nginx, as example:
-    # adduser nginx icingacmd
+# adduser nginx icingacmd
 
 For Apache:
-    # adduser apache icingacmd
+# adduser apache icingacmd
 
 For lighttpd:
-    # adduser lighttpd icingacmd
+# adduser lighttpd icingacmd
 EOF
 }
 
@@ -112,12 +116,17 @@ bashcomp() {
 }
 
 vim() {
-    pkgdesc="$pkgdesc (vim syntax)"
-    depends=
+	pkgdesc="$pkgdesc (vim syntax)"
+	depends=
 
-    mkdir -p "$subpkgdir"/usr/share/vim
-    cp -r "$builddir"/tools/syntax/vim "$subpkgdir"/usr/share/vim/vimfiles
+	mkdir -p "$subpkgdir"/usr/share/vim
+	cp -r "$builddir"/tools/syntax/vim "$subpkgdir"/usr/share/vim/vimfiles
 }
 
-sha512sums="b2cb5989962ac65da927cbdbac1b3345c913321d507b5113f32dd90bf969b2513478e68d52b9cd4cf255057d74428f9e42067288b7ddc59ad060ca7b84f4f114  icinga2-2.8.4.tar.gz
-f368ea15be7054503924696129fe6b413f9a5cb5344af89f9a0f84df98ac7ef8ab135de60845deced55a982b6b037ce1a00b437189c78fcab981d1e3babec2d5  icinga2.initd"
+sha512sums="
+247372464f48e87175ca86862f69c82ed204f133b7f012ec78ff63eefc105e1614b5434b9dd3f654479132a0b387e12c7b92efbfb22383ba83304dcc25beb281  icinga2-2.15.0.tar.gz
+46890756104563b1a4bc60b5952a2d63f5263883cfe702de7ccc4616dfe5b20d380ff1bc190482741a06bcfe7e662ad14a6965e26b9ce916ef56a1248d6b524c  icinga2.initd
+523f93ab661e43915241bce70fbecfd6834830a38f5b3dce6f2c856712e2e5a58fe1b5f970d5f23295a1c5e0d811f7e3a5b54acdd74e31112b309e31a9dc05a6  avoid-bash-in-scripts.patch
+b007fc0fbbbe6e7a03731df90d6c15f8eb57bcf8385a317a992b676e879c4c866c27c6479a4b41430d724b3749b19e6bb98d9de050c4808d001c1b0fb66d9665  disable-failing-tests.patch
+81ac38b64b49abf78f855ad7558afa1115175f7e84b20d407c402848bbd8484dcd76a3f4547fafc6b083b5e69927ee60a407a530e0fbd78a47ff73150a1a5fe8  boost-1.81.patch
+"

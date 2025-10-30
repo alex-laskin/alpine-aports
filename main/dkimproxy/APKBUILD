@@ -2,26 +2,24 @@
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=dkimproxy
 pkgver=1.4.1
-pkgrel=5
+pkgrel=9
 pkgdesc="SMTP-proxy that signs and/or verifies emails, using the Mail::DKIM module"
-url="http://dkimproxy.sourceforge.net/"
+url="https://dkimproxy.sourceforge.net/"
 arch="noarch"
-license="GPL"
+license="GPL-2.0-or-later"
+options="!check" # no testsuite
 depends="perl-mail-dkim perl-net-server perl-error"
-subpackages="$pkgname-doc"
+subpackages="$pkgname-doc $pkgname-openrc"
 install="$pkgname.pre-install"
-source="http://downloads.sourceforge.net/$pkgname/$pkgname-$pkgver.tar.gz
+source="https://downloads.sourceforge.net/dkimproxy/dkimproxy-$pkgver.tar.gz
 	dkimproxy_out.conf.patch
 	dkimproxy.in.initd
 	dkimproxy.out.initd
 	dkimproxy.in.confd
 	dkimproxy.out.confd
 	"
-builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
-	cd "$builddir"
-
 	local vendorlib=$(perl -V:vendorlib | sed -En "s|vendorlib='([^']+)';|\1|p")
 
 	perllibdir="$vendorlib" ./configure --prefix=/usr \
@@ -33,8 +31,6 @@ build() {
 }
 
 package() {
-	cd "$builddir"
-
 	make DESTDIR="$pkgdir" install
 
 	cd "$pkgdir"

@@ -2,37 +2,56 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=keepalived
-pkgver=1.4.4
-pkgrel=0
+pkgver=2.3.4
+pkgrel=1
 pkgdesc="Health Checking for Linux Virtual Server & High-Availability"
-url="http://www.keepalived.org/"
+url="https://www.keepalived.org/"
 arch="all"
-license="GPL"
-depends="$pkgname-common !$pkgname-snmp"
-makedepends="libressl-dev popt-dev linux-headers net-snmp-dev libnl-dev
-	libnfnetlink-dev automake autoconf"
+license="GPL-2.0-only"
+depends="$pkgname-common"
+makedepends="
+	autoconf
+	automake
+	libnfnetlink-dev
+	libnl3-dev
+	linux-headers
+	net-snmp-dev
+	openssl-dev>3
+	popt-dev
+	"
 install="$pkgname.post-upgrade"
-subpackages="$pkgname-doc $pkgname-sample-config:samples:noarch
-	$pkgname-common $pkgname-snmp"
-source="http://www.keepalived.org/software/$pkgname-$pkgver.tar.gz
+subpackages="
+	$pkgname-doc
+	$pkgname-sample-config:samples:noarch
+	$pkgname-openrc
+	$pkgname-common
+	$pkgname-snmp
+	"
+source="https://www.keepalived.org/software/keepalived-$pkgver.tar.gz
 	always-use-pid-dir.patch
+	fix-vrrp-notify-fifo-reload.patch
 	$pkgname.initd
 	$pkgname.confd
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+
+# secfixes:
+#   2.2.7-r0:
+#     - CVE-2021-44225
+#   2.0.11-r0:
+#     - CVE-2018-19044
+#     - CVE-2018-19045
+#     - CVE-2018-19046
 
 prepare() {
 	default_prepare
 
-	# The build scripts are somehow broken, so we must regenerate them.
-	autoreconf -fiv
-
+	./autogen.sh
 	cp -ar "$builddir" "$builddir-snmp"
 }
 
 build() {
 	cd "$builddir-snmp"
-	_build --enable-snmp
+	_build --enable-snmp --enable-snmp-rfc
 
 	cd "$builddir"
 	_build
@@ -46,10 +65,9 @@ _build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
-		--with-kernel-dir=/usr/include/linux \
 		--enable-vrrp \
 		--enable-sha1 \
-		$@
+		"$@"
 	make
 }
 
@@ -59,12 +77,11 @@ check() {
 }
 
 package() {
-	cd "$builddir"
+	provider_priority=100  # highest (other provider is keepalived-snmp)
 
 	make DESTDIR="$pkgdir" install
 
-	local f; for f in AUTHOR CONTRIBUTORS ChangeLog README INSTALL TODO \
-			genhash/README genhash/AUTHOR genhash/ChangeLog; do
+	local f; for f in AUTHOR CONTRIBUTORS ChangeLog README INSTALL TODO; do
 		install -m644 -D $f "$pkgdir"/usr/share/doc/$pkgname/$f
 	done
 
@@ -75,35 +92,45 @@ package() {
 	rm -rf "$pkgdir"/etc/rc.d "$pkgdir"/etc/sysconfig
 }
 
-common() {
+samples() {
+	pkgdesc="Sample configuration for keepalived"
 	depends=""
 
-	mkdir -p "$subpkgdir"/usr
+	amove etc/keepalived/
+}
 
-	mv "$pkgdir"/etc "$subpkgdir"/
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+openrc() {
+	default_openrc
+	install_if="openrc $pkgname-common=$pkgver-r$pkgrel"
+}
+
+# This is used only to install keepalived-openrc for both keepalived and
+# keepalived-snmp (direct methods didn't work, dunno why).
+common() {
+	depends=""
+	mkdir -p "$subpkgdir"
 }
 
 snmp() {
 	pkgdesc="$pkgdesc (with SNMP support)"
-	depends="$pkgname-common !$pkgname"
+	depends="$pkgname-common"
+	provides="$pkgname=$pkgver-r$pkgrel"
+	provider_priority=10  # lowest (other provider is keepalived)
 
 	cd "$builddir-snmp"
 
 	install -m700 -D bin/keepalived "$subpkgdir"/usr/sbin/keepalived
+	mkdir "$subpkgdir"/usr/bin
+	ln -s ../sbin/keepalived "$subpkgdir"/usr/bin/genhash
 
 	mkdir -p "$subpkgdir"/usr/share/snmp/mibs
 	install -m644 doc/*-MIB.txt "$subpkgdir"/usr/share/snmp/mibs/
 }
 
-samples() {
-	pkgdesc="Sample configuration for keepalived"
-
-	mkdir -p "$subpkgdir"/etc/keepalived/
-	mv "$pkgdir"/etc/keepalived/samples "$subpkgdir"/etc/keepalived/
-}
-
-sha512sums="93eae899e83c3f6efcfb4296a6f9889e7eae2883c085d7d5fa5573dfa111c82540575c708a87d29974e1e0fa778ad5271be067d9258ab438790f58c169efc391  keepalived-1.4.4.tar.gz
-469458b60c90948dff39fc587dbe076bece3ee5f834461110996c27802bd3690008e0034a9566648816f43cf8cc058cb7d1760358b81bbd070544e77f14391fa  always-use-pid-dir.patch
+sha512sums="
+25328f7c8905d35b40e8ca0d17ed33382bde91e3f848e450ff88c60f57868fbde9753957f310de5900ad740a975b4acb3e549991d5db0d5d70797ba1ff77a503  keepalived-2.3.4.tar.gz
+bfbe2232ecf328f23d5a230048214777207e44b27b2cb48d63f3042c0dd7b1c6c2937dc927debd93b1ec5c39eaccc0f26594a6a8ebd55e6fb2404fa45a656f54  always-use-pid-dir.patch
+c43155fddb74c6282d1290cce2092a8a1697c1faf19bc18ed549ebbacbfcde3c2614a9b8b2b327485a7a8b67dedf6f955dda00a2e136ea7284267123864692bf  fix-vrrp-notify-fifo-reload.patch
 4f1a3fdb0a936707a234efa063296f575fa8168551c87d2f9d43b7681d24605f852b4ddb2c674d1e311111f85232a708939a71cf128eb57c940ccb6927518dd4  keepalived.initd
-2e6a9411d78fb954b5ede75d04225bf3f37d9ef4773c2b3587e1de1a0795f61a1ed784fa229854c2ee97f153205c3f76b3ff79cd55ede07f211731f0d17569cb  keepalived.confd"
+2e6a9411d78fb954b5ede75d04225bf3f37d9ef4773c2b3587e1de1a0795f61a1ed784fa229854c2ee97f153205c3f76b3ff79cd55ede07f211731f0d17569cb  keepalived.confd
+"

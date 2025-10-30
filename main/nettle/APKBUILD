@@ -1,23 +1,25 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
 # Contributor: Fabian Affolter <fabian@affolter-engineering.ch>
-# Maintainer: Fabian Affolter <fabian@affolter-engineering.ch>
+# Maintainer: Patrycja Rosa <alpine@ptrcnull.me>
 pkgname=nettle
-pkgver=3.4
+pkgver=3.10.2
 pkgrel=0
-pkgdesc="A low-level cryptographic library"
-url="http://www.lysator.liu.se/~nisse/nettle/"
+pkgdesc="Low-level cryptographic library"
+url="https://www.lysator.liu.se/~nisse/nettle/"
 arch="all"
-license="LGPL-2.0-or-later"
-depends=""
+license="GPL-2.0-or-later OR LGPL-3.0-or-later"
 depends_dev="gmp-dev"
 makedepends="$depends_dev m4"
-subpackages="$pkgname-dev $pkgname-utils"
-source="http://ftp.gnu.org/gnu/$pkgname/$pkgname-$pkgver.tar.gz
-	nettle-2.4-makefile.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-static $pkgname-dev $pkgname-utils"
+source="https://ftp.gnu.org/gnu/nettle/nettle-$pkgver.tar.gz"
+
+# secfixes:
+#   3.7.3-r0:
+#     - CVE-2021-3580
+#   3.7.2-r0:
+#     - CVE-2021-20305
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,29 +29,29 @@ build() {
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
 		--localstatedir=/var \
+		--enable-fat \
 		--enable-shared \
-		--disable-openssl
+		--disable-openssl \
+		--enable-static
 	make
 	# strip comments in fields from .pc as it confuses pkgconf
-	sed -i -e 's/ \#.*//' *.pc
+	sed -i -e 's/ \#.*//' ./*.pc
 }
 
 check() {
-	cd "$builddir"
-	make -C examples  # required for rsa-encrypt
+	make -C examples # required for rsa-encrypt
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
 utils() {
 	pkgdesc="Utils for nettle"
-	mkdir -p "$subpkgdir"/usr
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+	amove usr/bin
 }
 
-sha512sums="3bea3aabd2c99cc42d084a94fd6b0b5dbdb24cd6c7020271a6ee87a81a904b21b21756f590cb1afdf2e85fd1cb59e5c3651c5c4032e30204e7ea6f8801d1ea3b  nettle-3.4.tar.gz
-c7d9741a7a37d225f3f0db16d355e13b04cc0f1ac56882a6ff31ef15c1a1a0aee7a70cf1ec8bbf2c46b9b0dcec153da7a7aa6b8909a72d76dd4d669cbbaceaa4  nettle-2.4-makefile.patch"
+sha512sums="
+bf37ddd7dca8e78488da2a5286dcf16761d527d620572b42f2ad27bb8ee8c12999d92b0272e06f53766e7155a3f4a1ab7ad9c4b1c3caec47c031878b6b1772fb  nettle-3.10.2.tar.gz
+"

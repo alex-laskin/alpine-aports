@@ -1,46 +1,88 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Contributor: Taner Tas <taner76@gmail.com>
+# Maintainer: Taner Tas <taner76@gmail.com>
 pkgname=deadbeef
-pkgver=0.7.2
-_ver=${pkgver/_rc/-rc}
-pkgrel=1
+pkgver=1.10.0
+pkgrel=2
 pkgdesc="fairly capable playlist-oriented audio player"
-url="http://deadbeef.sourceforge.net/"
-arch="all"
-license="GPL"
-depends=
-depends_dev="gtk+-dev libmad-dev alsa-lib-dev ffmpeg-dev libsamplerate-dev
-	gettext-dev flac-dev libvorbis-dev jansson-dev"
-makedepends="$depends_dev intltool gettext"
-install=""
-subpackages="$pkgname-dev $pkgname-lang $pkgname-doc"
-source="http://downloads.sourceforge.net/project/$pkgname/$pkgname-$_ver.tar.bz2
-	arm-buildfix.patch
-	ppc64le.patch"
-
-builddir="${srcdir}/${pkgname}-$_ver"
+url="https://deadbeef.sourceforge.net/"
+arch="all !s390x" #s390x build fails
+license="Zlib GPL-2.0-or-later LGPL-2.1-or-later"
+depends="desktop-file-utils hicolor-icon-theme"
+depends_dev="
+	alsa-lib-dev
+	curl-dev
+	faad2-dev
+	ffmpeg-dev
+	flac-dev
+	gtk+2.0-dev
+	gtk+3.0-dev
+	jansson-dev
+	libcddb-dev
+	libcdio-dev
+	libdispatch-dev
+	libjpeg-turbo-dev
+	libmad-dev
+	libnotify-dev
+	libpng-dev
+	libsamplerate-dev
+	libsndfile-dev
+	libvorbis-dev
+	libzip-dev
+	minizip-ng-dev
+	mpg123-dev
+	opusfile-dev
+	pipewire-dev
+	pipewire-jack-dev
+	pulseaudio-dev
+	wavpack-dev
+	zlib-dev
+	"
+makedepends="
+	$depends_dev
+	bsd-compat-headers
+	clang
+	gettext
+	intltool
+	yasm
+	"
+subpackages="$pkgname-doc $pkgname-dev $pkgname-lang"
+source="https://downloads.sourceforge.net/sourceforge/deadbeef/deadbeef-$pkgver.tar.bz2
+	strdupa.patch
+	"
+options="!check" # No test suite
 
 prepare() {
-	update_config_guess || return 1
 	default_prepare
+	update_config_sub
+	update_config_guess
 }
 
 build() {
-	cd "$builddir"
-	CXXFLAGS="$CXXFLAGS -std=gnu++98" \
-        ./configure --prefix=/usr \
+	case "$CARCH" in
+		x86)
+			build_options="--disable-soundtouch --disable-ffap"
+		;;
+	esac
+
+	LDFLAGS=-lintl \
+	CC=clang \
+	CFLAGS="$CFLAGS -Wno-error" \
+	./configure \
+		--prefix=/usr \
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
-		--infodir=/usr/share/info || return 1
-	make || return 1
+		--infodir=/usr/share/info \
+		--disable-libretro \
+		$build_options
+	make
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="9ea61a3820d9d57f038b80652ce63bd87e6781259c0f58a93b70607b02e71debbf5598f4a06d607d3840a804c3b7fc5039a4c4b0a8bb01e8e5107bba3f0bd980  deadbeef-0.7.2.tar.bz2
-57e25e3478b5516f0ebc34fa561c619bdca4cdf7e9f6dc1d81317c972b10bd073a4a761dfc2327047fd56433e79ff57bf501c9cfe77079c450b46f5a0315555b  arm-buildfix.patch
-682629f5b677df106083d7187a01a832b92c6474f5a0a2e66e9aac36248aeb8c136fe8b13469e319df08e3eac634330aa62a2dea73f58a524254a6b3d1e92e09  ppc64le.patch"
+sha512sums="
+dc9afc4b1d0d0edbe1d2859b66a3e1be83dc01738ee84cb5e7980c2c2b66a665d816d1fe2335a556540a969b416d5b7baf344881d59f8c82a394267e0d2161aa  deadbeef-1.10.0.tar.bz2
+1f20f63880b6b43a7980e4f5d3423a4b6d5e33a72c9f5b673e6be3647ede793c87fc48e33e3cbe2af70e0ee115aa41f6a56daee6035dedf6c2d2038e6d207da6  strdupa.patch
+"

@@ -1,5 +1,5 @@
 # Group which owns the shared socket, used for unpriviledged containers
-#LXD_OPTIONS=" --group lxd"
+LXD_OPTIONS=" --group lxd"
 
 # Enable cpu profiling into the specified file
 #LXD_OPTIONS="${LXD_OPTIONS} --cpuprofile /tmp/lxc_cpu_profile"
@@ -21,3 +21,9 @@
 
 # Enables syslog logging
 #LXD_OPTIONS="${LXD_OPTIONS} --syslog"
+
+# Timeout waiting for instances to stop (clean exit)
+#LXD_TIMEOUT=60
+
+# Immediately stop all instances (dirty exit, possible data loss/corruption!)
+#LXD_FORCE_STOP=no

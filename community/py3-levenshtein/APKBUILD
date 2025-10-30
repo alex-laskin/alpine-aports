@@ -1,0 +1,46 @@
+# Contributor: Galen Abell <galen@galenabell.com>
+# Maintainer: Galen Abell <galen@galenabell.com>
+pkgname=py3-levenshtein
+pkgver=0.27.1
+pkgrel=0
+pkgdesc="Python extension for computing string edit distances and similarities"
+url="https://github.com/rapidfuzz/Levenshtein"
+arch="all"
+license="GPL-2.0-only"
+depends="py3-rapidfuzz"
+makedepends="
+	cmake
+	cython
+	py3-gpep517
+	py3-scikit-build
+	py3-scikit-build-core
+	python3-dev
+	rapidfuzz
+	samurai
+	"
+checkdepends="py3-pytest"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/maxbachmann/Levenshtein/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/Levenshtein-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer \
+		.dist/levenshtein*.whl
+	.testenv/bin/python3 -m pytest
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/levenshtein*.whl
+}
+
+sha512sums="
+900614697dc6456223ac99d9a7eed007b605da44239806d9e7b736142c3e2ab2544abc5d206a03d99b8d1e24f7efb837fa1782477bf7854ad71d8d6f37c8e6c2  py3-levenshtein-0.27.1.tar.gz
+"

@@ -1,83 +1,149 @@
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: team/gnome <pabloyoyoista@postmarketos.org>
 pkgname=glib
-pkgver=2.56.1
+pkgver=2.86.1
+_gi_version=1.84.0
 pkgrel=0
+# NOTE: Upgrade only to even-numbered versions (e.g. 1.18.x, 1.20.x)!
 pkgdesc="Common C routines used by Gtk+ and other libs"
 url="https://developer.gnome.org/glib/"
 arch="all"
-license="GPL"
-depends=
-triggers="$pkgname.trigger=/usr/share/glib-2.0/schemas:/usr/lib/gio/modules"
-depends_dev="perl python2 gettext-dev zlib-dev bzip2-dev libffi-dev
-	util-linux-dev"
-makedepends="$depends_dev pcre-dev"
-source="https://download.gnome.org/sources/$pkgname/${pkgver%.*}/$pkgname-$pkgver.tar.xz
-	0001-gquark-fix-initialization-with-c-constructors.patch
+license="LGPL-2.1-or-later"
+triggers="$pkgname.trigger=/usr/share/glib-2.0/schemas:/usr/lib/gio/modules:/usr/lib/gtk-4.0"
+depends_dev="
+	bzip2-dev
+	docbook-xml
+	docbook-xsl
+	gettext-dev
+	libxml2-utils
+	libxslt
+	python3
+	py3-packaging
 	"
-subpackages="$pkgname-dbg $pkgname-doc $pkgname-static $pkgname-dev $pkgname-lang $pkgname-bash-completion:bashcomp:noarch"
-builddir="$srcdir"/$pkgname-$pkgver
+makedepends="$depends_dev
+	bash
+	bison
+	flex
+	libffi-dev
+	meson
+	pcre2-dev
+	py3-setuptools
+	python3-dev
+	util-linux-dev
+	zlib-dev
+	py3-docutils
+	"
+subpackages="
+	$pkgname-dbg
+	$pkgname-doc
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-lang
+	$pkgname-bash-completion
+	"
+source="https://download.gnome.org/sources/glib/${pkgver%.*}/glib-$pkgver.tar.xz
+	https://download.gnome.org/sources/gobject-introspection/${_gi_version%.*}/gobject-introspection-$_gi_version.tar.xz
+	tests-machine-id.patch
+	flaky-tests.patch
+	"
 
-prepare() {
-	default_prepare
-	cd "$builddir"
+# 2.80 moves gir here
+replaces="gobject-introspection<1.80.0"
 
-	# workaround packaging issue. gtk-doc.make timestamp was newer than
-	# Makefile.am, which triggers automake re-run
-	touch -r docs/reference/glib/Makefile.am gtk-doc.make
-}
+[ "$CARCH" = "ppc64le" ] && options="$options !check" # https://gitlab.gnome.org/GNOME/glib/-/issues/3474
+[ "$CARCH" = "riscv64" ] && options="$options !check" # fails on builder because of SIGABRT/SIGTRAP, but not on CI
+
+# secfixes:
+#   2.80.1-r0:
+#     - CVE-2024-34397
+#   2.66.6-r0:
+#     - CVE-2021-27219 GHSL-2021-045
+#   2.62.5-r0:
+#     - CVE-2020-6750
+#   2.60.4-r0:
+#     - CVE-2019-12450
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--mandir=/usr/share/man \
-		--disable-gtk-doc \
-		--disable-compile-warnings \
-		--disable-selinux \
-		--with-pcre=system \
-		--with-pic \
-		--enable-static
-	make
+	export CFLAGS="$CFLAGS -ffat-lto-objects -O2"
+	export CXXFLAGS="$CXXFLAGS -O2"
+	export CPPFLAGS="$CPPFLAGS -O2"
+	local _prefix="$PWD/boostrap-glib"
+
+	msg "build bootstrap glib"
+	meson setup \
+		--default-library=shared \
+		--prefix="$_prefix" \
+		-Dman-pages=disabled \
+		-Dlibmount=disabled \
+		-Dtests=false \
+		-Dintrospection=disabled \
+		-Dnls=disabled \
+		. output
+	meson compile -C output
+	meson install --no-rebuild -C output
+
+	msg "build bootstrap gobject-introspection"
+	meson setup \
+		--pkg-config-path="$_prefix"/lib/pkgconfig \
+		--prefix="$_prefix" \
+		-Dbuild_introspection_data=false \
+		-Dcairo=disabled \
+		-Ddoctool=disabled \
+		"$srcdir"/gobject-introspection-$_gi_version \
+		gioutput
+	meson compile -C gioutput
+	meson install --no-rebuild -C gioutput
+
+	msg "re-build glib with introspection"
+	PATH="$_prefix/bin:$PATH" LD_LIBRARY_PATH="$_prefix/lib" \
+		abuild-meson \
+		--reconfigure \
+		--pkg-config-path="$_prefix"/lib/pkgconfig \
+		--default-library=both \
+		-Dman-pages=enabled \
+		-Dlibmount=enabled \
+		-Dtests="$(want_check && echo true || echo false)" \
+		-Dintrospection=enabled \
+		-Dnls=enabled \
+		. output
+	PATH="$_prefix/bin:$PATH" LD_LIBRARY_PATH="$_prefix/lib" \
+		meson compile -C output
+}
+
+check() {
+	# riscv64 and armhf may time out with the standard timeout
+	meson test --timeout-multiplier 10 --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	rm -rf "$pkgdir"/usr/lib/charset.alias
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
 dev() {
+	# 2.80 moves gir here
+	replaces="gobject-introspection-dev<1.80.0"
 	default_dev
 	mkdir -p "$subpkgdir"/usr/bin "$subpkgdir"/usr/share
-		find "$pkgdir"/usr/bin ! -name "glib-compile-schemas" -a \( \
+	find "$pkgdir"/usr/bin ! -name "glib-compile-schemas" -a \( \
 		-name "gdbus-codegen" -o \
 		-name "gobject-query" -o \
 		-name "gresource" -o \
 		-name "gtester*" -o \
 		-name "glib-*" \) \
 		-exec mv {} "$subpkgdir"/usr/bin \;
-	mv "$pkgdir"/usr/share/gdb "$pkgdir"/usr/share/glib-2.0 \
-		"$subpkgdir"/usr/share
+
+	amove usr/share/gdb usr/share/glib-2.0
 }
 
 static() {
-	pkgdesc="glib static libraries"
+	default_static
 	depends="gettext-static"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/*.a "$subpkgdir"/usr/lib/
 }
 
-bashcomp() {
-	pkgdesc="Bash completion for $pkgname"
-	depends=
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
-	mkdir -p "$subpkgdir"/usr/share
-	mv "$pkgdir"/usr/share/bash-completion "$subpkgdir"/usr/share
-	[ "$(ls -A "$pkgdir"/usr/share)" ] || rmdir "$pkgdir"/usr/share
-}
-
-sha512sums="7e96cc23f3fa42a41b1974ae8fa2a7b123449643f265763d464620afcb011668e2de013ed2a6e5f13b6bd1bf3ab8eab43c05bf4a8ee0d99b7808767ab4fa69f4  glib-2.56.1.tar.xz
-32e5aca9a315fb985fafa0b4355e4498c1f877fc1f0b58ad4ac261fb9fbced9f026c7756a5f2af7d61ce756b55c8cd02811bb08df397040e93510056f073756b  0001-gquark-fix-initialization-with-c-constructors.patch"
+sha512sums="
+b2e9a3a35cd4cbe0bb6ca493a4250df480eeb0570a0877880ff4ec6d7f1f98d828249b3b60f839b81f17a33494d95be9d42b5f20fa6bb1acb15bcf5734adba51  glib-2.86.1.tar.xz
+764b5071472f93ed62bd64983c16fc4f73d4e20575d31eb475b40f4c6643080249aec4c5e9536d0ade719a99844cefa5a6e902b4d58e5644d0c0793212da3e5b  gobject-introspection-1.84.0.tar.xz
+4f561bfede4a559b314195aa4b7b5923a52c62063e6dd33b4933ad53b29c32ef789d69b9f7b17d8d701323006366e6b7acbb083a68674c1c535c185d35cc5d1f  tests-machine-id.patch
+268cf6f089274f29285242f1e29bf5650e85f9fcb5744df884deb139493cc25792ad78487113732665f1c5393c94b2f76f97093a1a003e3caaf65c07960a1bf9  flaky-tests.patch
+"

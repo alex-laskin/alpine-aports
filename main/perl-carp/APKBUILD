@@ -2,39 +2,33 @@
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=perl-carp
 _pkgreal=Carp
-pkgver=1.38
-pkgrel=0
+pkgver=1.50
+pkgrel=3
 pkgdesc="alternative warn and die for modules"
-url="http://search.cpan.org/dist/Carp/"
+url="https://metacpan.org/release/Carp"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/R/RJ/RJBS/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/X/XS/XSAWYERX/Carp-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
-	cd "$builddir"
+	default_prepare
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
@@ -44,4 +38,4 @@ doc() {
 	replaces="perl-doc"
 }
 
-sha512sums="da59e6df490599ee8a83b18c9767438d29b18e4fdd291f2a432be6e7610bf312ddb40f1f2d6892787720ae0133e2b50c47d1fde122094e69114165ebd5b98920  Carp-1.38.tar.gz"
+sha512sums="624e5fe41492d1d5de840d56a648168f2e6066717efaa20d257b277219ea2cd3b73e5bc2bd46a3e37e060cb3e35b4cccc560bdd169c2e252e861d441e90df4b6  Carp-1.50.tar.gz"

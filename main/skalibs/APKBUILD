@@ -1,43 +1,43 @@
 # Maintainer: Laurent Bercot <ska-devel@skarnet.org>
-# Contributor: John Regan <john@jrjrtech.com>
 pkgname=skalibs
-pkgver=2.6.4.0
+# NOTE: If you're upgrading to a new version that fixes some security
+# vulnerability in the APIs used by utmps (mainly timed ipcs),
+# rebuild the following aports:
+# - busybox
+# - mingetty
+# - openssh
+# - util-linux
+pkgver=2.14.4.0
 pkgrel=0
-pkgdesc="A set of general-purpose C programming libraries for skarnet.org software."
-url="http://skarnet.org/software/skalibs/"
+pkgdesc="Set of general-purpose C programming libraries for skarnet.org software."
+url=https://skarnet.org/software/skalibs/
 arch="all"
 license="ISC"
 options="!check"
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://skarnet.org/software/$pkgname/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-static $pkgname-libs $pkgname-dev $pkgname-doc"
+source="https://skarnet.org/software/skalibs/skalibs-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
-		--enable-shared \
-		--enable-static \
-		--libdir=/usr/lib \
-                --enable-clock
+		--prefix=/usr \
+		--enable-pkgconfig \
+		--with-sysdep-devurandom=yes \
+		--with-sysdep-posixspawnearlyreturn=no \
+		--with-sysdep-procselfexe=/proc/self/exe
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
+	mkdir -p "$pkgdir/usr/share/doc"
+	cp -a "$builddir/doc" "$pkgdir/usr/share/doc/$pkgname"
 }
 
 dev() {
 	default_dev
-	mv "$pkgdir/usr/lib/$pkgname"/sysdeps/* \
-		"$subpkgdir/usr/lib/$pkgname"/sysdeps/
-	rm -rf "$pkgdir"/usr
+	amove usr/lib/skalibs/sysdeps
 }
 
-doc() {
-	default_doc
-	mkdir -p "$subpkgdir/usr/share/doc"
-	cp -a "$builddir/doc" "$subpkgdir/usr/share/doc/$pkgname"
-}
-
-sha512sums="19062853bd9df0dadeceaab96aca9d2a68d93aada7552d306902d1b13c55d421bbff7fd37dccaf1a81d66bbecf43ed2242961fdb7bd51ff22e9b6114c1b2bb77  skalibs-2.6.4.0.tar.gz"
+sha512sums="
+a97c9ecd62e4d751a6613c01831bff5856c5d23f8fd295d539c3280c6ffa2379e67789c728552cb4d85aa03b30af7e2499b80cb8025b52ca6d1c1746b48102b1  skalibs-2.14.4.0.tar.gz
+"

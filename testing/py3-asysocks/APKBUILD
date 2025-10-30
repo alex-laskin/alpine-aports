@@ -1,0 +1,48 @@
+# Contributor: Jonas <spameier+alpine@proton.me>
+# Maintainer: Jonas <spameier+alpine@proton.me>
+pkgname=py3-asysocks
+_pyname="asysocks"
+pkgver=0.2.17
+pkgrel=1
+pkgdesc="Socks5 / Socks4 client and server library"
+url="https://github.com/skelsec/asysocks"
+arch="noarch"
+license="MIT"
+depends="
+	py3-asn1crypto
+	py3-cryptography
+	py3-h11
+	"
+makedepends="
+	py3-gpep517
+	py3-wheel
+	py3-setuptools
+	"
+subpackages="
+	$pkgname-pyc
+	$pkgname-examples
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/skelsec/asysocks/archive/refs/tags/$pkgver.tar.gz"
+builddir="$srcdir/$_pyname-$pkgver"
+options="!check" # no tests provided
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+}
+
+examples() {
+	pkgdesc="$pkgdesc (example scripts)"
+	depends="$pkgname=$pkgver-r$pkgrel"
+	amove usr/lib/python*/site-packages/asysocks/examples
+	amove usr/bin
+}
+
+sha512sums="
+f424e05091db4860505d80996c58368bac2d7d38e1fbddc7f782be8898035b2364c1a30a9bbaf860566c4ba471909ae70a38ff8f7f6ae4c3e0b15ef5c0276c4f  py3-asysocks-0.2.17.tar.gz
+"

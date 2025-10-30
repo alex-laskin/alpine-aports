@@ -3,22 +3,23 @@
 # Maintainer: Matt Smith <mcs@darkregion.net>
 pkgname=apache2-mod-perl
 _pkgreal=mod_perl
-pkgver=2.0.10
-pkgrel=1
+pkgver=2.0.13
+pkgrel=2
 pkgdesc="Perl Module for Apache2"
-url="http://perl.apache.org/"
+url="https://perl.apache.org/"
 arch="all"
 license="Apache-2.0"
 depends="apache2"
 depends_dev="$pkgname"
 makedepends="apache2-dev perl-dev perl-linux-pid apr-dev apr-util-dev"
-subpackages="$pkgname-doc $pkgname-dev"
-source="http://www-eu.apache.org/dist/perl/$_pkgreal-$pkgver.tar.gz
+options="!check" # fails to start test server
+subpackages="$pkgname-dbg $pkgname-doc $pkgname-dev"
+source="https://archive.apache.org/dist/perl/$_pkgreal-$pkgver.tar.gz
+	32-bit-incompatible-pointer-types.patch
 	$pkgname.conf"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 build() {
-	cd "$builddir"
 	perl Makefile.PL \
 		INSTALLDIRS=vendor \
 		MP_APXS=/usr/bin/apxs
@@ -26,13 +27,10 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
-
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 	install -Dm644 "$srcdir"/$pkgname.conf \
@@ -50,9 +48,8 @@ dev() {
 		"$subpkgdir"/usr/lib/perl5/vendor_perl/auto/Apache2
 }
 
-md5sums="cef55e715b5770a63b3becbe9d271121  mod_perl-2.0.10.tar.gz
-326cad2b2324c4a59fde4c232e8465b1  apache2-mod-perl.conf"
-sha256sums="d1cf83ed4ea3a9dfceaa6d9662ff645177090749881093051020bf42f9872b64  mod_perl-2.0.10.tar.gz
-02b359afff4da0c4a94cc2c253505f301f8b4fca5a14655fdd846f07cbd33530  apache2-mod-perl.conf"
-sha512sums="0bf1a885cb32a3393e95f87e71983097613e263b9052dbf22494663b506e36a25d0256afed24285232276d9f43ebd3adaa18b91129bfb62116a8ccb023855bca  mod_perl-2.0.10.tar.gz
-15a430ce597e370997a08d6aa1b5e55d4fa723ecac031fe39906c8cc767b90d5bf63e3026dfaa8b10ae8b09a17832f4f07cb8b2fdcd6c9ef427edfaf4e8a48b0  apache2-mod-perl.conf"
+sha512sums="
+453c789743487e2d1167d005f21ef9780f36488db8830103e4ea0a0656f685bf5ec423cd1baa68ee30efc75d9e2b845c9656458203b9f48de81a315a91d587c9  mod_perl-2.0.13.tar.gz
+c2590b016dfccd06f3151682cc5ff3ed9d9c41f90f1e3ff42b0d40342dac1662a83b75162deaa66c3b2511bb3d02540189b3b9c04bfdc1fb058b0f65e6397e9b  32-bit-incompatible-pointer-types.patch
+15a430ce597e370997a08d6aa1b5e55d4fa723ecac031fe39906c8cc767b90d5bf63e3026dfaa8b10ae8b09a17832f4f07cb8b2fdcd6c9ef427edfaf4e8a48b0  apache2-mod-perl.conf
+"

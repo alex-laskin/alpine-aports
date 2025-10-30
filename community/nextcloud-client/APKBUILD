@@ -1,36 +1,90 @@
-# Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=nextcloud-client
-pkgver=2.3.3
+pkgver=3.17.3
 pkgrel=1
 pkgdesc="Nextcloud Desktop Client"
-url="https://github.com/nextcloud/client_theming"
-arch="all"
-license="GPL-2.0"
-makedepends="$depends_dev cmake qt5-qttools-dev qt5-qtwebkit-dev
-	qt5-qtkeychain-dev"
-subpackages="$pkgname-dev"
-options="!check" # no testsuite
-source="owncloud-client-$pkgver.tar.gz::https://github.com/owncloud/client/archive/v$pkgver.tar.gz
-	$pkgname-$pkgver.tar.gz::https://github.com/nextcloud/client_theming/archive/v$pkgver.tar.gz"
-builddir="$srcdir"/client-$pkgver
+url="https://github.com/nextcloud/desktop"
+# s390x, ppc64le, riscv64, x86 blocked by qt6-qtwebengine
+# armhf blocked by extra-cmake-modules
+# armv7 have tests that fails
+arch="all !s390x !ppc64le !armhf !riscv64 !armv7 !x86"
+license="GPL-2.0-only"
+depends="dbus:org.freedesktop.Secrets"
+makedepends="
+	cmake
+	doxygen
+	extra-cmake-modules
+	graphviz
+	inkscape
+	karchive-dev
+	kio-dev
+	libcloudproviders-dev
+	libp11-dev
+	openssl-dev>3
+	qtkeychain-dev
+	qt6-qtsvg-dev
+	qt6-qttools-dev
+	qt6-qtwebengine-dev
+	qt6-qtwebsockets-dev
+	samurai
+	"
+checkdepends="cmocka-dev xvfb-run"
+subpackages="$pkgname-dev $pkgname-dolphin"
+source="$pkgname-$pkgver.tar.gz::https://github.com/nextcloud/desktop/archive/refs/tags/v$pkgver.tar.gz
+	lfs64.patch
+	Nextcloud.conf"
+builddir="$srcdir/desktop-$pkgver"
+
+# secfixes:
+#   3.8.1-r0:
+#     - CVE-2023-28999
+#   3.6.6-r0:
+#     - CVE-2023-23942
+#     - CVE-2023-28997
+#     - CVE-2023-28998
+#   3.6.2-r0:
+#     - CVE-2022-41882
+#     - CVE-2023-22472
 
 build() {
-	cd "$builddir"
-	# mkdir _build.tmp && cd _build.tmp
-	cmake \
-		-DCMAKE_BUILD_TYPE="Release" \
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
 		-DCMAKE_INSTALL_LIBDIR=lib \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_INSTALL_SYSCONFDIR=/etc/$pkgname \
-		-DOEM_THEME_DIR="$srcdir/client_theming-$pkgver/nextcloudtheme"
-	make all
+		-DMIRALL_VERSION_SUFFIX=""
+	cmake --build build
+}
+
+check() {
+	case "$CARCH" in
+		aarch64|arm*)
+			# SyncXAttrTest fails on aarch64 & armv7 package builders
+			xvfb-run -a ctest --test-dir build -E "(SyncEngineTest|SyncXAttrTest)"
+			;;
+		*)
+			xvfb-run -a ctest --test-dir build -E "(SyncEngineTest)"
+			;;
+	esac
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
+
+	install -Dm644 "$srcdir"/Nextcloud.conf "$pkgdir"/etc/Nextcloud/Nextcloud.conf
 }
 
-sha512sums="f037987307cc0f66e7135114557b91bfae7e66ab9b3cf97d7b4f3a28de53fe651ae306a27fe01d14d6505da55eddb540b4e8ec2636c4b25f628da8d873ed2b0e  owncloud-client-2.3.3.tar.gz
-fd02c61a7a92b77f9063e4f15be426be84d02033bead4b176d876134f8b85d7385e4a361959b68c332f1ccb55d43e2a8b55e0d5c8e5a54f645a5816a37790bde  nextcloud-client-2.3.3.tar.gz"
+dolphin() {
+	pkgdesc="$pkgdesc - KDE Dolphin integration"
+	install_if="$pkgname=$pkgver-r$pkgrel dolphin"
+
+	amove usr/lib/qt6
+	amove usr/lib/libnextclouddolphinpluginhelper.so
+}
+
+sha512sums="
+827de1fec1ca9874eb89bb8614a82f2ae6ba6f40f32dce59218204b449b3490469d30d2d3b5fc369720fa5acf38b8a254d1f33be50f97b801ae6911b29756aff  nextcloud-client-3.17.3.tar.gz
+48ceddb9dfff72e3b4a4e76b2c5289712c15f3d4651afe3cd59e8518e3d3d16f241374b671bde5f0bee31fc6474ca5c8aace570b00bf71049b18cd9e28757230  lfs64.patch
+28faf643e3ba22f3e1f45a96acfba1b3c53c49d4e923974e58e5ad2fdda612f52300608f0e0219e61d3478403fe3c59a9a2c70c3db1c93fbccda1e0638ecbc22  Nextcloud.conf
+"

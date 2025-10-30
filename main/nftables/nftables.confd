@@ -1,14 +1,26 @@
 # Configuration for /etc/init.d/nftables
 
-# Location of file with nftables rules to restore on service start,
-# and save rules to on service stop when $save_on_stop is enabled.
-#rules_file="/etc/firewall.nft"
+# Location of the nftables rules file to load on the service start.
+#rules_file="/etc/nftables.nft"
+
+# Whether to save the state of stateful objects (or full ruleset, see
+# $save_objects) on the service stopping.
+#save_on_stop="no"
+
+# File path where to save the nftables state on the service stopping.
+# Defaults to $rules_file if $save_objects is "ruleset".
+#save_file="/var/lib/nftables/state.nft"
+
+# A space-separated list of stateful objects to save on the service stop.
+#
+# If you want to save the full ruleset, set it to "ruleset" (that's the default
+# value, for backward compatibility). Please note that this is discouraged;
+# it's highly recommended to write nftable rules by hand and organize them in
+# files /etc/nftables.d/<name>.nft (included by /etc/nftables.nft).
+save_objects="counters limits quotas"
 
 # Options to pass to nft on save.
-#save_options="-n"
-
-# Save state on stopping nftables.
-#save_on_stop="yes"
+#save_options=""
 
 # Enable IPv4/IPv6 forwarding with the rules?
 # Note: If you want to enable forwarding only on selected interfaces,

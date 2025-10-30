@@ -1,82 +1,95 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=git-lfs
-pkgver=2.4.2
-pkgrel=0
+pkgver=3.7.0
+pkgrel=3
 pkgdesc="Git extension for versioning large files"
 url="https://git-lfs.github.io/"
 arch="all"
 license="MIT"
 depends="git"
-checkdepends="bash coreutils git-daemon perl-utils"
-makedepends="go ronn"
-# Go doesn't play well with strip tool. http://bit.ly/2jlJsSU
-options="!strip"
-subpackages="$pkgname-doc"
+makedepends="asciidoctor go"
+checkdepends="bash coreutils curl git-daemon perl-utils"
 install="$pkgname.post-install $pkgname.pre-deinstall"
-source="$pkgname-$pkgver.tar.gz::https://github.com/git-lfs/$pkgname/archive/v$pkgver.tar.gz
-	fix-test-locks.patch"
-builddir="$srcdir/src/github.com/git-lfs/$pkgname"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	"
+source="git-lfs-$pkgver.tar.gz::https://github.com/git-lfs/git-lfs/archive/v$pkgver.tar.gz
+	makefile-extra_go_flags.patch
+	fix-test-branch-name.patch
+	"
+#[ "$CARCH" = "x86" ] && options="!check" # tests broken on x86
+options="!check net" # tests are failing during the Go 1.22.2 rebuild, downloading go modules
 
-export GOPATH="$srcdir:$builddir"
+# secfixes:
+#   3.1.2-r4:
+#     - CVE-2022-27191
+#   3.1.2-r3:
+#     - CVE-2021-38561
+#   0:
+#     - CVE-2020-27955 # (only affect windows)
+
+# -tags netcgo - use system's DNS resolver by default. Go's built-in DNS
+#   resolver is buggy; it resolved localhost to totally wrong IP
+#   address on ARM builders and so caused test failures.
+_goflags="$GOFLAGS -v -tags netcgo"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
 
 prepare() {
-	mkdir -p "${builddir%/*}"
-	ln -s "$srcdir"/$pkgname-$pkgver "$builddir"
-
 	default_prepare
+
+	# upgrade golang.org/x/text - CVE-2021-38561
+	go get golang.org/x/text
+
+	# CVE-2022-27191
+	go get golang.org/x/crypto/ssh
 }
 
 build() {
-	cd "$builddir"
+	make \
+		EXTRA_GO_FLAGS="$_goflags" \
+		GIT_LFS_SHA="v$pkgver" \
+		VERSION="v$pkgver"
+	make man
 
-	# Build manpages first (some embedding in the executable is done).
-	cd docs
-	ronn man/*.ronn
-	go run man/mangen.go
-	cd -
-
-	# Build git-lfs executable.
-	_gobuild -o bin/$pkgname
-
-	# Build test executables.
-	local file; for file in test/cmd/*.go; do
-		_gobuild -o bin/$(basename $file .go) $file
-	done
-	_gobuild -o bin/git-lfs-test-server-api \
-		test/git-lfs-test-server-api/*.go
+	./bin/git-lfs completion bash > $pkgname.bash
+	./bin/git-lfs completion fish > $pkgname.fish
+	./bin/git-lfs completion zsh > $pkgname.zsh
 }
 
 check() {
-	cd "$builddir"
-
-	GIT_LFS_TEST_MAXPROCS=$JOBS SKIPCOMPILE=1 ./script/integration
+	make integration EXTRA_GO_FLAGS="$_goflags" TEST_SKIP_LFS_TRANSFER=true
 }
 
 package() {
 	local docdir="$pkgdir/usr/share/doc/$pkgname"
 	local mandir="$pkgdir/usr/share/man"
 
-	cd "$builddir"
-
 	install -Dm755 bin/$pkgname "$pkgdir"/usr/bin/$pkgname
 
-	mkdir -p "$mandir"/man1 "$mandir"/man5
-	install -m 644 docs/man/*.1 "$mandir"/man1/
-	install -m 644 docs/man/*.5 "$mandir"/man5/
+	install -Dm644 man/man1/*.1 -t "$mandir"/man1/
+	install -Dm644 man/man5/*.5 -t "$mandir"/man5/
 
 	mkdir -p "$docdir"
 	cp -r docs/*.md docs/api "$docdir"/
 	rm -r "$docdir"/api/schemas
+
+	install -Dm644 $pkgname.bash \
+		"$pkgdir"/usr/share/bash-completion/completions/$pkgname
+	install -Dm644 $pkgname.fish \
+		"$pkgdir"/usr/share/fish/vendor_completions.d/$pkgname.fish
+	install -Dm644 $pkgname.zsh \
+		"$pkgdir"/usr/share/zsh/site-functions/_$pkgname
 }
 
-_gobuild() {
-	# -tags netcgo - use system's DNS resolver by default. Go's built-in DNS
-	#   resolver is buggy; it resolved localhost to totally wrong IP
-	#   address on ARM builders and so caused test failures.
-	# -ldflags - omit symbol and debug tables (strip).
-	go build -tags netcgo -ldflags='-s -w' -v "$@"
-}
-
-sha512sums="c89a15c36b9d52091eb6e89f8e1db23b03f35333794467432ee49728ba83fc5d25d238f5df49bf736a4a3079778d70a527db01c2299ecd96a7b5f70059616967  git-lfs-2.4.2.tar.gz
-66927aa462cb7b5061442e5ffaf7c9e4a5d97179482dc00de3f4abfad5959a9c55df3e88c211067bf15b5b0ea3ef29b249ca32290cc9839280266de5c6854b3f  fix-test-locks.patch"
+sha512sums="
+36488760310fa9124ed4db5d10de5bee2d413afbc67cd137f3f842c8ca549b35ad9e2da60c5f501c23c67dc663414ee97d7ad3b3245e7d51689020940fdee393  git-lfs-3.7.0.tar.gz
+62ffca5f062694f69ed3a39411df0c6f022d14d0cddf8105691fe184965cdff070cecf2ec5a129b19dd6c651ed33454ee368aff11c9b7511bb07bf87fa29b4ce  makefile-extra_go_flags.patch
+f727579710e3c486dd9000ba8f59739b90a34ce93ff76542a45ada223ecc6236ad6561f7f91241fb7a7a30d0ea3af838518aadb476cb26608a3998e8af04eab8  fix-test-branch-name.patch
+"

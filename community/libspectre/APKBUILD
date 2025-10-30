@@ -1,28 +1,21 @@
 # Contributor: Andrew Hills <ahills@ednos.net>
-# Contributor: Jean-Louis Fuchs <ganwell@fangorn.ch>
-# Maintainer: Jean-Louis Fuchs <ganwell@fangorn.ch>
+# Contributor: Jean-Louis Fuchs <safe.pen2857@rhizoome.ch>
+# Maintainer: Jean-Louis Fuchs <safe.pen2857@rhizoome.ch>
 pkgname=libspectre
-pkgver=0.2.8
-pkgrel=1
+pkgver=0.2.12
+pkgrel=2
 pkgdesc="A small library for rendering Postscript documents"
-url="http://www.freedesktop.org/wiki/Software/libspectre"
+url="https://www.freedesktop.org/wiki/Software/libspectre"
 arch="all"
-license="GPL-2.0"
-# file, cairo-dev for tests only
-makedepends="ghostscript-dev doxygen graphviz cairo-dev file"
+license="LGPL-2.0-or-later"
+makedepends="ghostscript-dev doxygen graphviz"
+checkdepends="cairo-dev file"
 subpackages="$pkgname-dev $pkgname-doc"
-source="http://libspectre.freedesktop.org/releases/$pkgname-$pkgver.tar.gz
-	test.ps"
-
-builddir="$srcdir/$pkgname-$pkgver"
-
-prepare() {
-	update_config_sub | true
-	default_prepare
-}
+source="https://libspectre.freedesktop.org/releases/libspectre-$pkgver.tar.gz
+	test.ps
+	"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -35,27 +28,30 @@ build() {
 	make doc
 }
 
-package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-}
-
-doc() {
-	mkdir -m 0755 -p "$subpkgdir"/usr/share/doc/libspectre
-	install -m 0644 "$builddir"/doc/html/* "$subpkgdir"/usr/share/doc/libspectre/
-}
-
 check() {
 	cd "$builddir/test"
 	make
 	mkdir work
 	./parser-test "$srcdir/test.ps" work
 	./spectre-test "$srcdir/test.ps" work
-	file work/output.ps | grep -q "PostScript document text conforming DSC level 3.0, Level 2"
-	file work/output.pdf | grep -q "PDF document, version 1.5"
-	file work/document.png | grep -q "PNG image data"
-	rm -r work
+	file work/output.ps |
+		grep -q "PostScript document text conforming DSC level 3.0, Level 2" || \
+		error "Failed PostScript test"
+	file work/output.pdf | grep -q "PDF document, version 1.7" || error "Failed PDF test"
+	file work/document.png | grep -q "PNG image data" || error "Failed png test"
 }
 
-sha512sums="ebbe7f6adcbc7f7d6af61f24e23b114116c878755dbe90f1163546c1284a005b4d539be01986c1f940611e84141ca19768b8effc2abf1013606da7c93547da86  libspectre-0.2.8.tar.gz
-c5148d38da69ebd125f66bb92204f2c7c79797d60a137d431122792c4e4cdcdb3a6a20cfadadd2821536449b1d638258f4596e43154e1ad2307bffa97af4908b  test.ps"
+package() {
+	make DESTDIR="$pkgdir" install
+}
+
+doc() {
+	mkdir -p "$subpkgdir/usr/share/doc/$pkgname"
+	install -m644 "$builddir"/doc/html/* \
+		"$subpkgdir/usr/share/doc/$pkgname/"
+}
+
+sha512sums="
+3a4045c1e94e7de23b437393389397dd2448363458023b5aa8e43fa0553a160216f038e157374cefc1d09fa74711ad4899aac1fc353c482bd5fe970d9a97461f  libspectre-0.2.12.tar.gz
+c5148d38da69ebd125f66bb92204f2c7c79797d60a137d431122792c4e4cdcdb3a6a20cfadadd2821536449b1d638258f4596e43154e1ad2307bffa97af4908b  test.ps
+"

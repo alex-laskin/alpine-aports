@@ -2,44 +2,52 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=maven
-pkgver=3.5.3
+pkgver=3.9.11
 _pkgname="$pkgname-${pkgver%%.*}"
 pkgrel=0
-pkgdesc="A Java project management and project comprehension tool."
-url="http://maven.apache.org"
+pkgdesc="Java project management and project comprehension tool"
+url="https://maven.apache.org/"
 arch="noarch"
 license="Apache-2.0"
-depends="openjdk8-jre"
-source="http://mirror.hosting90.cz/apache/$pkgname/$_pkgname/$pkgver/binaries/apache-$pkgname-$pkgver-bin.tar.gz"
+options="!check" # repackaged release without a test suite
+depends="java-jdk"
+source="https://archive.apache.org/dist/maven/$_pkgname/$pkgver/binaries/apache-maven-$pkgver-bin.tar.gz"
 builddir="$srcdir/apache-$pkgname-$pkgver"
+
+# We need to explicitly set openjdk package instead of java-jdk provider for
+# correct build order resolution.
+case "$CARCH" in
+	# openjdk8 is the latest JDK available on 32-bit arches.
+	armhf | armv7 | x86) makedepends="openjdk8";;
+	*) makedepends="openjdk21";;
+esac
 
 package() {
 	local m2_home="/usr/share/java/$_pkgname"
-	local destdir="${pkgdir}${m2_home}"
-
-	cd "$builddir"
+	local destdir="${pkgdir}$m2_home"
 
 	local dir; for dir in bin boot lib; do
-		mkdir -p -m755 "$destdir/$dir"
+		mkdir -p "$destdir/$dir"
 	done
 
-	install -m644 -Dt "$destdir"/bin ./bin/*.conf || return 1
-	install -m644 -Dt "$destdir"/boot ./boot/*.jar || return 1
-	install -m644 -Dt "$destdir"/lib ./lib/*.jar || return 1
-	cp -Rp ./conf "$destdir"/ || return 1
+	install -m644 -Dt "$destdir"/bin ./bin/*.conf
+	install -m644 -Dt "$destdir"/boot ./boot/*.jar
+	install -m644 -Dt "$destdir"/lib ./lib/*.jar
+	cp -Rp ./conf "$destdir"/
 
-	mkdir -p "$pkgdir"/usr/bin || return 1
+	mkdir -p "$pkgdir"/usr/bin
 
 	local file; for file in mvn mvnDebug mvnyjp; do
-		install -m755 -Dt "$destdir"/bin ./bin/$file || return 1
-		ln -sf "$m2_home"/bin/$file "$pkgdir"/usr/bin/$file || return 1
+		install -m755 -Dt "$destdir"/bin ./bin/$file
+		ln -sf "$m2_home"/bin/$file "$pkgdir"/usr/bin/$file
 	done
 
-	mkdir "$pkgdir"/etc || return 1
+	mkdir "$pkgdir"/etc
 	cat > "$pkgdir"/etc/mavenrc <<-EOF
 		M2_HOME="$m2_home"
-		MAVEN_OPTS="\$MAVEN_OPTS -Xmx512m"
 	EOF
 }
 
-sha512sums="5b36a2289606cfaf9177991f889993742a485a48b9fb7ca43b67fbbe1a978a258fc971e0dce3b63d51d235abdf49f771c99900b2e77ee2a793825913ea32971b  apache-maven-3.5.3-bin.tar.gz"
+sha512sums="
+bcfe4fe305c962ace56ac7b5fc7a08b87d5abd8b7e89027ab251069faebee516b0ded8961445d6d91ec1985dfe30f8153268843c89aa392733d1a3ec956c9978  apache-maven-3.9.11-bin.tar.gz
+"

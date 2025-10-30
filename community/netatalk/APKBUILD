@@ -1,69 +1,93 @@
 # Contributor: Alexander Rigbo <alex@dnb.nu>
-# Maintainer: Alexander Rigbo <alex@dnb.nu>
+# Contributor: Daniel Markstedt <daniel@mindani.net>
+# Maintainer: Daniel Markstedt <daniel@mindani.net>
 pkgname=netatalk
-pkgver=3.1.11
+pkgver=4.3.2
 pkgrel=0
-pkgdesc="Netatalk is a freely-available Open Source AFP fileserver"
-url="http://netatalk.sourceforge.net/"
-arch="all"
-license="GPL-2.0"
-makedepends="acl-dev attr-dev db-dev libevent-dev libgcrypt-dev tdb-dev file"
-subpackages="$pkgname-doc $pkgname-dev"
-source="http://downloads.sourceforge.net/$pkgname/$pkgname-$pkgver.tar.gz
-	netatalk.initd"
-builddir="$srcdir/$pkgname-$pkgver"
+pkgdesc="Open Source AFP fileserver"
+url="https://netatalk.io/"
+# disable on riscv64 since bstring is not yet available on builders
+arch="all !riscv64"
+license="GPL-2.0-or-later"
 options="suid"  # needed for /usr/bin/afppasswd
+makedepends="
+	acl-dev
+	attr-dev
+	bstring-dev
+	cmark
+	db-dev
+	file
+	iniparser-dev
+	libevent-dev
+	libgcrypt-dev
+	libtirpc-dev
+	linux-headers
+	mariadb-dev
+	meson
+	ninja
+	"
+subpackages="$pkgname-doc $pkgname-dev $pkgname-openrc"
+source="https://github.com/Netatalk/netatalk/releases/download/netatalk-${pkgver//./-}/netatalk-$pkgver.tar.xz"
+
+# secfixes:
+#   3.1.19-r0:
+#     - CVE-2024-38439
+#     - CVE-2024-38440
+#     - CVE-2024-38441
+#   3.1.18-r0:
+#     - CVE-2022-22995
+#   3.1.17-r0:
+#     - CVE-2023-42464
+#   3.1.15-r0:
+#     - CVE-2022-43634
+#     - CVE-2022-45188
+#   3.1.13-r0:
+#     - CVE-2021-31439
+#     - CVE-2022-23121
+#     - CVE-2022-23123
+#     - CVE-2022-23122
+#     - CVE-2022-23125
+#     - CVE-2022-23124
+#     - CVE-2022-0194
+#   3.1.12-r0:
+#     - CVE-2018-1160
 
 build() {
-	cd "$builddir"
-
-	# Notes:
-	#  --without-libevent - don't use *bundled* libevent
-	#  --without-tdb - don't use *bundled* tdb
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var \
-		--disable-silent-rules \
-		--disable-zeroconf \
-		--disable-tcp-wrappers \
-		--enable-overwrite \
-		--without-libiconv \
-		--without-pam \
-		--with-shadow \
-		--without-kerberos \
-		--without-ldap \
-		--with-acls \
-		--without-libevent \
-		--with-libevent-header=/usr/include \
-		--with-libevent-lib=/usr/lib \
-		--with-bdb=/usr \
-		--without-tdb \
-		--without-dtrace \
-		--without-afpstats \
-		--with-lockfile=/var/lock/netatalk
-	make
+	abuild-meson \
+		-Ddefault_library=shared \
+		-Dwith-acls=true \
+		-Dwith-afpstats=false \
+		-Dwith-appletalk=true \
+		-Dwith-cracklib=false \
+		-Dwith-docs=man \
+		-Dwith-dtrace=false \
+		-Dwith-init-style=openrc \
+		-Dwith-kerberos=false \
+		-Dwith-krbV-uam=false \
+		-Dwith-init-hooks=false \
+		-Dwith-install-hooks=false \
+		-Dwith-ldap=false \
+		-Dwith-ldsoconf=false \
+		-Dwith-libiconv=false \
+		-Dwith-lockfile-path=/run/lock \
+		-Dwith-overwrite=true \
+		-Dwith-pam=false \
+		-Dwith-statedir-path=/var/lib \
+		-Dwith-tcp-wrappers=false \
+		-Dwith-tests=true \
+		-Dwith-zeroconf=false \
+		. build
+	meson compile -C build
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test -C build
 }
 
 package() {
-	cd "$builddir"
-
-	make DESTDIR="$pkgdir" install
-
-	# We don't build with dbug support.
-	rm "$pkgdir"/etc/dbus-session.conf
-	rm "$pkgdir"/usr/bin/afpstats
-
-	install -m 755 -D "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
+	meson install -C build --destdir "$pkgdir"
 }
 
-sha512sums="24d475f6eb2977e83bcbfb05c7284987a5f4aac56925c7d654df1728115259131a3fb090d07f64951f31fb313b79d912ad50e948ad400435bf3c9ff6f5d8f677  netatalk-3.1.11.tar.gz
-c4dc6b1967f4b86ee2f1cfc480edab5467fb1f67fd0cbbed23c8454568d0aaceeedaa23db90f8ca5b47f24d346f72d5e12307557edfeeefcbee003f85c56cced  netatalk.initd"
+sha512sums="
+9b2c36b7e850e1680766f7c9b0b262062484c236c8ea06b0122f25043688214f9c724aa4acc275a30a27d86f83821cdb522d01131a90d7afe2f9e81a6151cc97  netatalk-4.3.2.tar.xz
+"

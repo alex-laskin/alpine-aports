@@ -1,0 +1,35 @@
+# Maintainer: team/phosh <achill@achill.org>
+pkgname=gmobile
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="Functions useful in mobile related, glib based projects"
+url="https://gitlab.gnome.org/World/Phosh/gmobile"
+arch="all"
+license="GPL-3.0-only"
+makedepends="
+	meson
+	glib-dev
+	json-glib-dev
+	gobject-introspection-dev
+	vala
+	"
+subpackages="$pkgname-dev"
+replaces="phoc"
+source="https://sources.phosh.mobi/releases/gmobile/gmobile-$pkgver.tar.xz"
+
+build() {
+	abuild-meson build
+	meson compile -C build
+}
+
+check() {
+	meson test -C build
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C build
+}
+
+sha512sums="
+210e969c99766e311821ba71df564905955c88f2efa74df32e740d816f145cfe18ecaa8cb44f034faca88e100d11a962f0eef1d56b6cba6c54e0207e0c052825  gmobile-0.4.0.tar.xz
+"

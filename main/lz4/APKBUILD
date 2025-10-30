@@ -1,41 +1,48 @@
 # Contributor: Stuart Cardall <developer@it-offshore.co.uk>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=lz4
-pkgver=1.8.2
+pkgver=1.10.0
 pkgrel=0
 pkgdesc="LZ4 is lossless compression algorithm with fast decoder @ multiple GB/s per core."
 url="https://github.com/lz4/lz4"
 arch="all"
-license="BSD-2-Clause GPL-2.0-only"
+license="BSD-2-Clause AND GPL-2.0-or-later"
 checkdepends="diffutils"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-libs $pkgname-tests:tests"
-source="$pkgname-$pkgver.tar.gz::https://github.com/$pkgname/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc $pkgname-libs $pkgname-tests:tests"
+source="$pkgname-$pkgver.tar.gz::https://github.com/lz4/lz4/archive/v$pkgver.tar.gz"
 
-case "$CARCH" in
-armhf) options="!check" ;; # FIXME
-esac
+# secfixes:
+#   1.9.3-r1:
+#     - CVE-2021-3520
+#   1.9.2-r0:
+#     - CVE-2019-17543
 
 build() {
-	cd "$builddir"
+	export CFLAGS="$CFLAGS -O2 -flto=auto"
+	export CPPFLAGS="$CPPFLAGS -O2 -flto=auto"
 	make PREFIX="/usr"
 }
 
 check() {
-	cd "$builddir"
-	make test
-}
-
-tests() {
-	cd "$builddir"/tests
-	mkdir -p "$subpkgdir"/usr/share/$pkgname
-	rm -f *.c COPYING Makefile .gitignore
-	cp -rf "$builddir"/tests "$subpkgdir"/usr/share/$pkgname
+	make check
 }
 
 package() {
-	cd "$builddir"
 	make PREFIX="/usr" DESTDIR="$pkgdir" install
+
+	(
+		cd tests/
+		rm -f ./*.c COPYING Makefile .gitignore
+	)
+	mkdir -p "$pkgdir"/usr/share/$pkgname
+	cp -rf tests "$pkgdir"/usr/share/$pkgname/
 }
 
-sha512sums="5fadc79334d37739c947d6dfc24f48ce82989fc5ee4f2bb8201ccf7ee3230b9e6e7c8488beb64050a035369f4247161d258bdb539578bec224ccebfef1b8a763  lz4-1.8.2.tar.gz"
+tests() {
+	pkgdesc="$pkgdesc (tests)"
+	amove usr/share/$pkgname
+}
+
+sha512sums="
+8c4ceb217e6dc8e7e0beba99adc736aca8963867bcf9f970d621978ba11ce92855912f8b66138037a1d2ae171e8e17beb7be99281fea840106aa60373c455b28  lz4-1.10.0.tar.gz
+"

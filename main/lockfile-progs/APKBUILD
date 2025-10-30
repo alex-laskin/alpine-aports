@@ -1,40 +1,34 @@
-# Contributor: Duane Hughes <duanejevon@gmail.com
+# Contributor: Duane Hughes <duanejevon@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=lockfile-progs
-pkgver=0.1.17
+pkgver=0.2.0
 pkgrel=0
 pkgdesc="Programs for locking and unlocking files and mailboxes"
-url="http://packages.debian.org/sid/lockfile-progs"
+url="https://packages.debian.org/sid/lockfile-progs"
 arch="all"
-license="GPL"
-depends="liblockfile"
-makedepends="liblockfile-dev"
-install=
+license="GPL-2.0-or-later"
+makedepends="liblockfile-dev bash"
 subpackages="$pkgname-doc"
-source="http://ftp.debian.org/debian/pool/main/l/lockfile-progs/${pkgname}_$pkgver.tar.gz"
-
-_builddir="$srcdir"/lockfile-progs-$pkgver
-prepare() {
-	cd "$_builddir"
-	# allow us to verride CFLAGS by using 'CFLAGS ?= ...' instead of
-	# 'CFLAGS := ...' in the Makefile
-	sed -i -e '/^CFLAGS/s/:=/?=/' Makefile || return 1
-}
+source="https://deb.debian.org/debian/pool/main/l/lockfile-progs/lockfile-progs_$pkgver.tar.xz
+	musl.patch
+	"
 
 build() {
-	cd "$_builddir"
-	make || return 1
+	make
+}
+
+check() {
+	make check
 }
 
 package() {
-	cd "$_builddir"
-
 	install -d "$pkgdir"/usr/bin
-	install -d "$pkgdir"/usr/share/man
-	install -m 755 "$_builddir"/bin/* "$pkgdir"/usr/bin
-	install -m 644 "$_builddir"/man/* "$pkgdir"/usr/share/man
+	install -d "$pkgdir"/usr/share/man/man1
+	install -m 755 "$builddir"/bin/* "$pkgdir"/usr/bin
+	install -m 644 "$builddir"/man/* "$pkgdir"/usr/share/man/man1
 }
 
-md5sums="64424a766fbc8cf6d613fcc14a096e14  lockfile-progs_0.1.17.tar.gz"
-sha256sums="03fb05d25499532f497775b1747b61fa6beebf12d3bcc951e125349ae166c511  lockfile-progs_0.1.17.tar.gz"
-sha512sums="9d912e1a518fe9c02054beb25c4591df6db55cc2fe9b7049fb85368465bd9ced9660bb0a809ee60a7effbdc6524613c40fa69d9d27fc2cfc964f41b7486c3596  lockfile-progs_0.1.17.tar.gz"
+sha512sums="
+ff5c6b9ac7835dbd0912baa5ee9e076a85a34d5c6708b5e71d0b64b5ab43e46107d8b43a40e8af29d1b921aa18df99cb095d4022667ee39e25be800c2e7991a7  lockfile-progs_0.2.0.tar.xz
+1bf713991c8a037c4178665049abe0227d670dd99bfd5e5646d93b31a4ec9bb1705a7343049c027ebdfca93313bf127f6c3ca3d698441d05c814944dd6f8009a  musl.patch
+"

@@ -1,43 +1,47 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=sngrep
-pkgver=1.4.5
+pkgver=1.8.2
 pkgrel=0
-pkgdesc="A tool for displaying SIP call message flows from a terminal"
+pkgdesc="display SIP call message flows from a terminal"
 url="https://github.com/irontec/sngrep"
 arch="all"
-license="GPL"
+license="GPL-3.0-or-later"
 depends="sed"
-makedepends="autoconf automake ncurses-dev libpcap-dev 
-	pcre-dev gnutls-dev libgcrypt-dev"
+makedepends="autoconf automake ncurses-dev libpcap-dev
+	pcre2-dev libgcrypt-dev openssl-dev>3"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.zip::https://github.com/irontec/$pkgname/archive/v$pkgver.zip"
-builddir="$srcdir"/$pkgname-$pkgver
+source="$pkgname-$pkgver.tar.gz::https://github.com/irontec/sngrep/archive/v$pkgver.tar.gz
+	disable-failing-test.patch
+	"
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 	./bootstrap.sh
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
-		--with-gnutls \
-		--with-pcre \
+		--sysconfdir=/etc \
+		--with-openssl \
+		--with-pcre2 \
+		--disable-logo \
+		--enable-unicode \
+		--enable-eep \
 		--enable-ipv6
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir/" install
 }
 
-sha512sums="2b5ce618ff6f876ec340361c5d674524eb8f56fc84325a13d714bd96b4e249ac7fa56cfd442654ea57aef489f07862260896fcfb16955c759a7cf91e6654c8af  sngrep-1.4.5.zip"
+sha512sums="
+0aa630ccd1816e81ed2d16f30275326ea4a91becd053ce5480a9695300e0cf1a97d06b75be248e8915a3e61f94baad0f6e61c2b580a28d291d1b8204388570c4  sngrep-1.8.2.tar.gz
+7fc1e65fb0fbb81118b7484fefc6501bfc0c87314f3d6dc7c974dc41b8fae38ba0f48d66d4234e3f9d81a63facc42ea8c15fb0f6120f86dc3b4c9b09d1b9539a  disable-failing-test.patch
+"

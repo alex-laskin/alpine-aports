@@ -1,20 +1,18 @@
 # Contributor: ScrumpyJack <scrumpyjack@st.ilet.to>
 # Maintainer: ScrumpyJack <scrumpyjack@st.ilet.to>
 pkgname=xcalc
-pkgver=1.0.6
+pkgver=1.1.2
 pkgrel=0
 pkgdesc="Calculator for the X Window System"
-url="http://www.x.org"
+options="!check" # No testsuite
+url="https://www.x.org"
 arch="all"
 license="MIT"
 makedepends="libx11-dev libxaw-dev libxt-dev"
 subpackages="$pkgname-doc"
-source="http://www.x.org/releases/individual/app/${pkgname}-${pkgver}.tar.bz2"
-
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://www.x.org/releases/individual/app/xcalc-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -24,8 +22,9 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="61b921b6a3fefea20bd9e7ad0b308f589f2aeaafe9316df94cc739a005be6c180bdafc981b8957230f46c9fc1c0e266829a55b473ae26b1377c705796175c908  xcalc-1.0.6.tar.bz2"
+sha512sums="
+51da677dc88bcd7299ed8d678cb26b048fdb82a1983e1496a06253ee2dceefca4ac87d1a74432b4a76dcc11921a61339bb3d292607be46228164140b430bbad2  xcalc-1.1.2.tar.xz
+"

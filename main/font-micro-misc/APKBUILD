@@ -1,42 +1,34 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-micro-misc
-pkgver=1.0.3
-pkgrel=0
+pkgver=1.0.4
+pkgrel=1
 pkgdesc="X.org misc font"
-url="http://xorg.freedesktop.org/"
-arch="all"
-license="custom"
-depends="encodings font-alias mkfontscale mkfontdir fontconfig"
+url="https://xorg.freedesktop.org/"
+arch="noarch"
+license="Public Domain"
+options="!check"
+depends="encodings font-alias mkfontscale fontconfig"
 makedepends="font-util-dev bdftopcf"
-install=
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$srcdir"/$pkgname-$pkgver
-	update_config_sub || return 1
-}
+source="https://www.x.org/releases/individual/font/font-micro-misc-$pkgver.tar.xz"
 
 build() {
-	cd "$srcdir"/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-mapfiles=/usr/share/fonts/util \
-		--with-fontdir=/usr/share/fonts/misc \
-		|| return 1
-	make || return 1
+		--with-fontdir=/usr/share/fonts/mis
+	make
 }
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-	make -j1 DESTDIR="$pkgdir" \
+	make DESTDIR="$pkgdir" \
 		MKFONTDIR=: \
 		MKFONTSCALE=: \
 		FCCACHE=: \
-		install || return 1
+		install
 }
 
-md5sums="143c228286fe9c920ab60e47c1b60b67  font-micro-misc-1.0.3.tar.bz2"
-sha256sums="9a3381c10f32d9511f0ad4179df395914c50779103c16cddf7017f5220ed8db6  font-micro-misc-1.0.3.tar.bz2"
-sha512sums="7a546432225c22ae0aacf9ce88b617a7d1d6678ee1f5eb4b3a93e33764fb752f27bca3feda1312182517bbf7babd5f3700bb9b8de0ef6c35b1ae6e2ce7ab0b69  font-micro-misc-1.0.3.tar.bz2"
+sha512sums="
+e9a402a5042eef0b618bc30b319256cae9f71f546c167c8b638a780f93cbdc2d61c472203efaee7077acedfac3b3981feefbc1017cfee8512077e61deff42ed3  font-micro-misc-1.0.4.tar.xz
+"

@@ -1,0 +1,41 @@
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=manuals
+pkgver=49.0
+pkgrel=0
+pkgdesc="Install, Browse, and Search developer documentation"
+url="https://gitlab.gnome.org/chergert/manuals"
+arch="all !armhf" # foundry
+license="GPL-3.0-or-later"
+depends="flatpak"
+makedepends="
+	desktop-file-utils
+	flatpak-dev
+	foundry-dev
+	glib-dev
+	gom-dev
+	gtk4.0-dev
+	libadwaita-dev
+	libdex-dev
+	libpanel-dev
+	meson
+	webkit2gtk-6.0-dev
+	"
+source="https://gitlab.gnome.org/chergert/manuals/-/archive/$pkgver/manuals-$pkgver.tar.gz"
+
+build() {
+	abuild-meson \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+00e0405ec9e5bfeed1a523d8a0d9b4fdbbfb73e9644f40a190761a73f2aa0a28a47c6f18b255a63656259d53130f01dc3845f26310b8c234aa65070ff25e268f  manuals-49.0.tar.gz
+"

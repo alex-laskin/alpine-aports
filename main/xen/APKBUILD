@@ -1,22 +1,54 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
 # Contributor: Roger Pau Monne <roger.pau@entel.upc.edu>
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=xen
-pkgver=4.10.1
+pkgver=4.20.1
 pkgrel=2
 pkgdesc="Xen hypervisor"
-url="http://www.xen.org/"
-arch="x86_64 armhf aarch64"
-license="GPL"
+url="https://www.xenproject.org/"
+arch="x86_64 armv7 aarch64"
+license="GPL-2.0-only"
 depends="bash iproute2 logrotate"
-depends_dev="libressl-dev python2-dev e2fsprogs-dev gettext zlib-dev ncurses-dev
-	dev86 texinfo perl pciutils-dev glib-dev yajl-dev libnl3-dev
-	spice-dev gnutls-dev curl-dev libaio-dev lzo-dev xz-dev util-linux-dev
-	e2fsprogs-dev linux-headers argp-standalone perl-dev"
-makedepends="$depends_dev autoconf automake libtool dnsmasq"
+depends_dev="
+	argp-standalone
+	attr-dev
+	bison
+	curl-dev
+	dev86
+	e2fsprogs-dev
+	flex
+	gnutls-dev
+	libaio-dev
+	libcap-ng-dev
+	libnl3-dev
+	linux-headers
+	lzo-dev
+	ncurses-dev
+	openssl-dev>3
+	pciutils-dev
+	perl
+	perl-dev
+	py3-setuptools
+	python3-dev
+	spice-dev
+	texinfo
+	util-linux-dev
+	xz-dev
+	yajl-dev
+	zlib-dev
+	zstd-dev
+	"
+makedepends="$depends_dev autoconf automake libtool dnsmasq samurai"
 options="!strip"
 
+# Follow security issues on: https://xenbits.xen.org/xsa/
+
 # secfixes:
+#   0:
+#     - CVE-2020-29568 XSA-349
+#     - CVE-2020-29569 XSA-350
+#     - CVE-2022-21127
+#     - CVE-2023-46840 XSA-450
+#     - CVE-2025-58146 XSA-474
 #   4.7.0-r0:
 #     - CVE-2016-6258 XSA-182
 #     - CVE-2016-6259 XSA-183
@@ -106,7 +138,7 @@ options="!strip"
 #     - XSA-249
 #     - XSA-250
 #     - XSA-251
-#     - XSA-253
+#     - CVE-2018-5244 XSA-253
 #     - XSA-254
 #   4.10.0-r2:
 #     - CVE-2018-7540 XSA-252
@@ -115,14 +147,260 @@ options="!strip"
 #   4.10.1-r0:
 #     - CVE-2018-10472 XSA-258
 #     - CVE-2018-10471 XSA-259
-#   4.10-1-r1:
+#   4.10.1-r1:
 #     - CVE-2018-8897 XSA-260
 #     - CVE-2018-10982 XSA-261
 #     - CVE-2018-10981 XSA-262
+#   4.11.0-r0:
+#     - CVE-2018-3639 XSA-263
+#     - CVE-2018-12891 XSA-264
+#     - CVE-2018-12893 XSA-265
+#     - CVE-2018-12892 XSA-266
+#     - CVE-2018-3665 XSA-267
+#   4.11.1-r0:
+#     - CVE-2018-15469 XSA-268
+#     - CVE-2018-15468 XSA-269
+#     - CVE-2018-15470 XSA-272
+#     - CVE-2018-3620 XSA-273
+#     - CVE-2018-3646 XSA-273
+#     - CVE-2018-19961 XSA-275
+#     - CVE-2018-19962 XSA-275
+#     - CVE-2018-19963 XSA-276
+#     - CVE-2018-19964 XSA-277
+#     - CVE-2018-18883 XSA-278
+#     - CVE-2018-19965 XSA-279
+#     - CVE-2018-19966 XSA-280
+#     - CVE-2018-19967 XSA-282
+#   4.12.0-r2:
+#     - CVE-2018-12126 XSA-297
+#     - CVE-2018-12127 XSA-297
+#     - CVE-2018-12130 XSA-297
+#     - CVE-2019-11091 XSA-297
+#   4.12.1-r0:
+#     - CVE-2019-17349 CVE-2019-17350 XSA-295
+#   4.13.0-r0:
+#     - CVE-2019-18425 XSA-298
+#     - CVE-2019-18421 XSA-299
+#     - CVE-2019-18423 XSA-301
+#     - CVE-2019-18424 XSA-302
+#     - CVE-2019-18422 XSA-303
+#     - CVE-2018-12207 XSA-304
+#     - CVE-2019-11135 XSA-305
+#     - CVE-2019-19579 XSA-306
+#     - CVE-2019-19582 XSA-307
+#     - CVE-2019-19583 XSA-308
+#     - CVE-2019-19578 XSA-309
+#     - CVE-2019-19580 XSA-310
+#     - CVE-2019-19577 XSA-311
+#   4.13.0-r3:
+#     - CVE-2020-11740 CVE-2020-11741 XSA-313
+#     - CVE-2020-11739 XSA-314
+#     - CVE-2020-11743 XSA-316
+#     - CVE-2020-11742 XSA-318
+#   4.13.1-r0:
+#     - XSA-312
+#   4.13.1-r3:
+#     - CVE-2020-0543 XSA-320
+#   4.13.1-r4:
+#     - CVE-2020-15566 XSA-317
+#     - CVE-2020-15563 XSA-319
+#     - CVE-2020-15565 XSA-321
+#     - CVE-2020-15564 XSA-327
+#     - CVE-2020-15567 XSA-328
+#   4.13.1-r5:
+#     - CVE-2020-14364 XSA-335
+#   4.14.0-r1:
+#     - CVE-2020-25602 XSA-333
+#     - CVE-2020-25598 XSA-334
+#     - CVE-2020-25604 XSA-336
+#     - CVE-2020-25595 XSA-337
+#     - CVE-2020-25597 XSA-338
+#     - CVE-2020-25596 XSA-339
+#     - CVE-2020-25603 XSA-340
+#     - CVE-2020-25600 XSA-342
+#     - CVE-2020-25599 XSA-343
+#     - CVE-2020-25601 XSA-344
+#   4.14.0-r2:
+#     - CVE-2020-27674 XSA-286
+#     - CVE-2020-27672 XSA-345
+#     - CVE-2020-27671 XSA-346
+#     - CVE-2020-27670 XSA-347
+#     - CVE-2020-28368 XSA-351
+#   4.14.0-r3:
+#     - CVE-2020-29040 XSA-355
+#   4.14.1-r0:
+#     - CVE-2020-29480 XSA-115
+#     - CVE-2020-29481 XSA-322
+#     - CVE-2020-29482 XSA-323
+#     - CVE-2020-29484 XSA-324
+#     - CVE-2020-29483 XSA-325
+#     - CVE-2020-29485 XSA-330
+#     - CVE-2020-29566 XSA-348
+#     - CVE-2020-29486 XSA-352
+#     - CVE-2020-29479 XSA-353
+#     - CVE-2020-29567 XSA-356
+#     - CVE-2020-29570 XSA-358
+#     - CVE-2020-29571 XSA-359
+#   4.14.1-r2:
+#     - CVE-2021-3308 XSA-360
+#   4.14.1-r3:
+#     - CVE-2021-26933 XSA-364
+#   4.15.0-r0:
+#     - CVE-2021-28687 XSA-368
+#   4.15.0-r1:
+#     - CVE-2021-28693 XSA-372
+#     - CVE-2021-28692 XSA-373
+#     - CVE-2021-0089 XSA-375
+#     - CVE-2021-28690 XSA-377
+#   4.15.0-r2:
+#     - CVE-2021-28694 XSA-378
+#     - CVE-2021-28695 XSA-378
+#     - CVE-2021-28696 XSA-378
+#     - CVE-2021-28697 XSA-379
+#     - CVE-2021-28698 XSA-380
+#     - CVE-2021-28699 XSA-382
+#     - CVE-2021-28700 XSA-383
+#   4.15.0-r3:
+#     - CVE-2021-28701 XSA-384
+#   4.15.1-r1:
+#     - CVE-2021-28702 XSA-386
+#     - CVE-2021-28703 XSA-387
+#     - CVE-2021-28710 XSA-390
+#   4.15.1-r2:
+#     - CVE-2021-28704 XSA-388
+#     - CVE-2021-28707 XSA-388
+#     - CVE-2021-28708 XSA-388
+#     - CVE-2021-28705 XSA-389
+#     - CVE-2021-28709 XSA-389
+#   4.16.1-r0:
+#     - CVE-2022-23033 XSA-393
+#     - CVE-2022-23034 XSA-394
+#     - CVE-2022-23035 XSA-395
+#     - CVE-2022-26356 XSA-397
+#     - XSA-398
+#     - CVE-2022-26357 XSA-399
+#     - CVE-2022-26358 XSA-400
+#     - CVE-2022-26359 XSA-400
+#     - CVE-2022-26360 XSA-400
+#     - CVE-2022-26361 XSA-400
+#   4.16.1-r2:
+#     - CVE-2022-26362 XSA-401
+#     - CVE-2022-26363 XSA-402
+#     - CVE-2022-26364 XSA-402
+#   4.16.1-r3:
+#     - CVE-2022-21123 XSA-404
+#     - CVE-2022-21125 XSA-404
+#     - CVE-2022-21166 XSA-404
+#   4.16.1-r4:
+#     - CVE-2022-26365 XSA-403
+#     - CVE-2022-33740 XSA-403
+#     - CVE-2022-33741 XSA-403
+#     - CVE-2022-33742 XSA-403
+#   4.16.1-r5:
+#     - CVE-2022-23816 XSA-407
+#     - CVE-2022-23825 XSA-407
+#     - CVE-2022-29900 XSA-407
+#   4.16.1-r6:
+#     - CVE-2022-33745 XSA-408
+#   4.16.2-r1:
+#     - CVE-2022-42327 XSA-412
+#     - CVE-2022-42309 XSA-414
+#   4.16.2-r2:
+#     - CVE-2022-23824 XSA-422
+#   4.17.0-r0:
+#     - CVE-2022-42311 XSA-326
+#     - CVE-2022-42312 XSA-326
+#     - CVE-2022-42313 XSA-326
+#     - CVE-2022-42314 XSA-326
+#     - CVE-2022-42315 XSA-326
+#     - CVE-2022-42316 XSA-326
+#     - CVE-2022-42317 XSA-326
+#     - CVE-2022-42318 XSA-326
+#     - CVE-2022-33747 XSA-409
+#     - CVE-2022-33746 XSA-410
+#     - CVE-2022-33748 XSA-411
+#     - CVE-2022-33749 XSA-413
+#     - CVE-2022-42310 XSA-415
+#     - CVE-2022-42319 XSA-416
+#     - CVE-2022-42320 XSA-417
+#     - CVE-2022-42321 XSA-418
+#     - CVE-2022-42322 XSA-419
+#     - CVE-2022-42323 XSA-419
+#     - CVE-2022-42324 XSA-420
+#     - CVE-2022-42325 XSA-421
+#     - CVE-2022-42326 XSA-421
+#   4.17.0-r2:
+#     - CVE-2022-42330 XSA-425
+#     - CVE-2022-27672 XSA-426
+#   4.17.0-r5:
+#     - CVE-2022-42332 XSA-427
+#     - CVE-2022-42333 CVE-2022-43334 XSA-428
+#     - CVE-2022-42331 XSA-429
+#     - CVE-2022-42335 XSA-430
+#   4.17.1-r1:
+#     - CVE-2022-42336 XSA-431
+#   4.17.1-r3:
+#     - CVE-2023-20593 XSA-433
+#   4.17.1-r5:
+#     - CVE-2023-34320 XSA-436
+#   4.17.2-r0:
+#     - CVE-2023-20569 XSA-434
+#     - CVE-2022-40982 XSA-435
+#   4.17.2-r1:
+#     - CVE-2023-34321 XSA-437
+#     - CVE-2023-34322 XSA-438
+#   4.17.2-r2:
+#     - CVE-2023-20588 XSA-439
+#   4.17.2-r3:
+#     - CVE-2023-34323 XSA-440
+#     - CVE-2023-34326 XSA-442
+#     - CVE-2023-34325 XSA-443
+#     - CVE-2023-34327 XSA-444
+#     - CVE-2023-34328 XSA-444
+#   4.17.2-r4:
+#     - CVE-2023-46835 XSA-445
+#     - CVE-2023-46836 XSA-446
+#   4.18.0-r2:
+#     - CVE-2023-46837 XSA-447
+#   4.18.0-r3:
+#     - CVE-2023-46839 XSA-449
+#   4.18.0-r4:
+#     - CVE-2023-46841 XSA-451
+#   4.18.0-r5:
+#     - CVE-2023-28746 XSA-452
+#     - CVE-2024-2193 XSA-453
+#   4.18.2-r0:
+#     - CVE-2023-46842 XSA-454
+#     - CVE-2024-31142 XSA-455
+#     - CVE-2024-2201 XSA-456
+#   4.19.0-r0:
+#     - CVE-2024-31143 XSA-458
+#     - CVE-2024-31145 XSA-460
+#     - CVE-2024-45817 XSA-462
+#   4.19.0-r1:
+#     - CVE-2024-45818 XSA-463
+#     - CVE-2024-45819 XSA-464
+#   4.19.1-r1:
+#     - CVE-2025-1713 XSA-467
+#   4.20.0-r1:
+#     - CVE-2024-28956 XSA-469
+#   4.20.1-r0:
+#     - CVE-2025-27465 XSA-470
+#     - CVE-2024-36350 XSA-471
+#     - CVE-2024-36357 XSA-471
+#   4.20.1-r1:
+#     - CVE-2025-27466 XSA-472
+#     - CVE-2025-58142 XSA-472
+#     - CVE-2025-58143 XSA-472
+#     - CVE-2025-58144 XSA-473
+#     - CVE-2025-58145 XSA-473
+#   4.20.1-r2:
+#     - CVE-2025-58147 XSA-475
+#     - CVE-2025-58148 XSA-475
+#     - CVE-2025-58149 XSA-476
 
 case "$CARCH" in
 x86*)
-	depends="$depends syslinux"
 	makedepends="$makedepends iasl seabios-bin"
 	;;
 arm*)
@@ -133,62 +411,33 @@ aarch64)
 	;;
 esac
 
-install=""
-
 #if [ "$CARCH" != "armhf" ]; then
 #	subpackages="$pkgname-dbg"
 #fi
 subpackages="$subpackages $pkgname-doc $pkgname-dev $pkgname-libs
-	$pkgname-hypervisor $pkgname-bridge"
-
-# grep _VERSION= stubdom/configure
-_ZLIB_VERSION="1.2.3"
-_LIBPCI_VERSION="2.2.9"
-_NEWLIB_VERSION="1.16.0"
-_LWIP_VERSION="1.3.0"
-_GRUB_VERSION="0.97"
-_OCAML_VERSION="3.11.0"
-_GMP_VERSION="4.3.2"
-_POLARSSL_VERSION="1.1.4"
-_TPMEMU_VERSION="0.7.4"
+	$pkgname-hypervisor $pkgname-pyc $pkgname-bridge
+	$pkgname-bridge-openrc:bridge_openrc $pkgname-qemu
+	$pkgname-qemu-openrc:qemu_openrc $pkgname-bash-completion"
 
 # grep ^IPXE_GIT_TAG tools/firmware/etherboot/Makefile
-_IPXE_GIT_TAG=356f6c1b64d7a97746d1816cef8ca22bdd8d0b5d
+_IPXE_GIT_TAG=1d1cf74a5e58811822bee4b3da3cff7282fcdfca
 
-source="https://downloads.xenproject.org/release/$pkgname/$pkgver/$pkgname-$pkgver.tar.gz
-	http://xenbits.xen.org/xen-extfiles/gmp-$_GMP_VERSION.tar.bz2
-	http://xenbits.xen.org/xen-extfiles/grub-$_GRUB_VERSION.tar.gz
-	http://xenbits.xen.org/xen-extfiles/lwip-$_LWIP_VERSION.tar.gz
-	http://xenbits.xen.org/xen-extfiles/newlib-$_NEWLIB_VERSION.tar.gz
-	http://xenbits.xen.org/xen-extfiles/pciutils-$_LIBPCI_VERSION.tar.bz2
-	http://xenbits.xen.org/xen-extfiles/polarssl-$_POLARSSL_VERSION-gpl.tgz
-	http://xenbits.xen.org/xen-extfiles/tpm_emulator-$_TPMEMU_VERSION.tar.gz
-	http://xenbits.xen.org/xen-extfiles/zlib-$_ZLIB_VERSION.tar.gz
-	http://xenbits.xen.org/xen-extfiles/ipxe-git-$_IPXE_GIT_TAG.tar.gz
+source="https://downloads.xenproject.org/release/xen/$pkgver/xen-$pkgver.tar.gz
 
 	qemu-xen_paths.patch
 
 	hotplug-vif-vtrill.patch
 
-	musl-hvmloader-fix-stdint.patch
-	stdint_local.h
-	elf_local.h
-
-	xen-hotplug-lockfd.patch
-	xen-fd-is-file.c
-
-	xenstore_client_transaction_fix.patch
-
-	xenqemu-xattr-size-max.patch
-
 	hotplug-Linux-iscsi-block-handle-lun-1.patch
 
-	xsa260-1.patch
-	xsa260-2.patch
-	xsa260-3.patch
-	xsa260-4.patch
-	xsa261.patch
-	xsa262-4.10.patch
+	xsa472-1.patch
+	xsa472-2.patch
+	xsa472-3.patch
+	xsa473-1.patch
+	xsa473-2.patch
+	xsa475-1.patch
+	xsa475-2.patch
+	xsa476-4.20.patch
 
 	xenstored.initd
 	xenstored.confd
@@ -204,18 +453,17 @@ source="https://downloads.xenproject.org/release/$pkgname/$pkgver/$pkgname-$pkgv
 	xen-pci.confd
 	"
 
-builddir="$srcdir"/$pkgname-$pkgver
 _seabios=/usr/share/seabios/bios-256k.bin
 
 # Override wrong arch detection from xen-$pkgver/Config.mk.
 case "$CARCH" in
-armhf) export XEN_TARGET_ARCH="arm32";;
+armv7) export XEN_TARGET_ARCH="arm32";;
 aarch64) export XEN_TARGET_ARCH="arm64";;
 esac
 
 prepare() {
-	local i _failed= _series=
-	cd "$builddir"
+	default_prepare
+	local i
 
 	for i in $source; do
 		case $i in
@@ -226,41 +474,22 @@ prepare() {
 			cp "$srcdir"/$p tools/firmware/etherboot/patches/
 			echo "$p" >> tools/firmware/etherboot/patches/series
 			;;
-		*.patch) msg $i; patch -s -N -p1 -i "$srcdir"/$i \
-				|| _failed="$_failed $i"
-			;;
 		*/ipxe-git-*)
 			ln -s "$srcdir"/${i##*/} \
-				tools/firmware/etherboot/ipxe.tar.gz || return 1
-			;;
-		*/xen-extfiles/*)
-			ln -s "$srcdir"/${i##*/} stubdom/ || return 1
+				tools/firmware/etherboot/ipxe.tar.gz
 			;;
 		esac
 	done
-	if [ -n "$_failed" ]; then
-		error "Patches failed:"
-		for i in $_failed; do
-			echo $i
-		done
-		return 1
-	fi
-
-	# install our stdint_local.h and elf_local.h
-	install "$srcdir"/stdint_local.h "$srcdir"/elf_local.h \
-		"$builddir"/tools/firmware/ || return 1
-	ln -s ../firmware/stdint_local.h "$builddir"/tools/libxl/
 
 	# remove all -Werror
 	msg "Eradicating -Werror..."
-	find . -name '*.mk' -o -name 'Make*' | xargs sed -i -e 's/-Werror//g' \
-		|| return 1
+	find . \( -name '*.mk' -o -name 'Make*' \) -exec sed -i -e 's/-Werror//g' {} +
 
 	msg "Updating config.sub..."
-	update_config_sub || return 1
+	update_config_sub
 
 	msg "Autoreconf..."
-	autoreconf || return 1
+	autoreconf --install
 
 	unset CFLAGS
 	unset LDFLAGS
@@ -276,39 +505,33 @@ munge_cflags() {
 	unset LDFLAGS
 	unset LANG
 	unset LC_ALL
-
-	case "$CARCH" in
-	armhf) export CFLAGS="-mcpu=cortex-a15";;
-	aarch64) export CFLAGS="-mcpu=cortex-a53";;
-	esac
 }
 
 # These tasks are added as separate tasks to enable a packager
 # to invoke specific tasks like building the hypervisor.  i.e.
 #    $ abuild configure build_tools
 configure() {
-	cd "$builddir"
-
 	msg "Running configure..."
 	./configure --prefix=/usr \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--with-system-seabios=$_seabios \
-		|| return 1
+		--enable-9pfs \
+		--disable-golang
 }
 
 build_hypervisor() {
 	munge_cflags
 
 	msg "Building hypervisor..."
-	make xen || return 1
+	make xen
 }
 
 build_tools() {
 	munge_cflags
 
 	msg "Building tools..."
-	make tools || return 1
+	NO_WERROR=1 make tools
 }
 
 build_docs() {
@@ -318,37 +541,19 @@ build_docs() {
 	make docs
 }
 
-build_stubdom() {
-	munge_cflags
-
-	msg "Building stub domains..."
-	make stubdom || return 1
-}
-
 build() {
-	cd "$builddir"
-	configure || return 1
-	build_hypervisor || return 1
-	build_tools || return 1
-	build_docs || return 1
-	case "$CARCH" in
-	x86*) build_stubdom || return 1;;
-	esac
-
-	${CC:-gcc} -o xen-fd-is-file "$srcdir"/xen-fd-is-file.c
+	configure
+	build_hypervisor
+	build_tools
+	build_docs
 }
 
 package() {
-	cd "$builddir"
+	munge_cflags
 
-	unset CFLAGS
-	unset LDFLAGS
-
-	make -j1 DESTDIR="$pkgdir" install-xen install-tools install-docs \
-		|| return 1
-	case "$CARCH" in
-	x86*) make -j1 DESTDIR="$pkgdir" install-stubdom || return 1;;
-	esac
+	make DESTDIR="$pkgdir" EFI_DIR=/usr/lib/efi \
+		BASH_COMPLETION_DIR=/usr/share/bash-completion/completions \
+		install-xen install-tools install-docs
 
 	# remove default xencommons
 	rm -rf "$pkgdir"/etc/init.d/xencommons
@@ -366,19 +571,16 @@ package() {
 	install -Dm644 "$srcdir"/xen-consoles.logrotate \
 		"$pkgdir"/etc/xen/xen-consoles.logrotate
 
-	install -m755 xen-fd-is-file "$pkgdir"/usr/lib/xen/bin/xen-fd-is-file
-
 	# we need to exclude /usr/share when stripping
-        msg "Stripping binaries"
+	msg "Stripping binaries"
 	scanelf --recursive --nobanner --etype "ET_DYN,ET_EXEC" "$pkgdir"/usr/lib \
 		"$pkgdir"/usr/bin \
 		"$pkgdir"/usr/sbin \
-                | sed -e 's:^ET_DYN ::' -e 's:^ET_EXEC ::' \
-                | xargs strip
+		| sed -e 's:^ET_DYN ::' -e 's:^ET_EXEC ::' \
+		| xargs strip
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
@@ -388,7 +590,7 @@ libs() {
 	depends=
 	mkdir -p "$subpkgdir"/usr/lib
 	mv "$pkgdir"/usr/lib/*.so.* \
-		"$pkgdir"/usr/lib/fs \
+		"$pkgdir"/usr/lib/xenfsimage \
 		"$subpkgdir"/usr/lib/
 }
 
@@ -397,14 +599,32 @@ hypervisor() {
 	depends=
 	mkdir -p "$subpkgdir"
 	mv "$pkgdir"/boot "$subpkgdir"/
+	if [ -d "$pkgdir"/usr/lib/efi ]; then
+		mkdir -p "$subpkgdir"/usr/lib
+		mv "$pkgdir"/usr/lib/efi "$subpkgdir"/usr/lib/
+	fi
 }
 
 bridge() {
 	depends="dnsmasq"
 	pkgdesc="Bridge interface for XEN with dhcp"
+
+	mkdir -p "$subpkgdir"/etc/xen
+
+	cat ->>"$subpkgdir"/etc/xen/dnsmasq.conf <<EOF
+		#dhcp-host=somehost,10.0.4.3
+		#dhcp-host=otherhost,10.0.4.4
+EOF
+
+}
+
+bridge_openrc() {
+	depends=
+	pkgdesc="Bridge interface for XEN with dhcp (OpenRC init scripts)"
+	install_if="openrc ${subpkgname%-openrc}=$pkgver-r$pkgrel"
+
 	mkdir -p "$subpkgdir"/etc/conf.d \
-		"$subpkgdir"/etc/init.d \
-		"$subpkgdir"/etc/xen
+		"$subpkgdir"/etc/init.d
 
 	ln -s dnsmasq "$subpkgdir"/etc/init.d/dnsmasq.xenbr0
 	cat ->>"$subpkgdir"/etc/conf.d/dnsmasq.xenbr0 <<EOF
@@ -416,48 +636,66 @@ bridge() {
 		BRIDGE_MAC="00:16:3f:00:00:00"
 		DNSMASQ_CONFFILE="/etc/xen/dnsmasq.conf"
 EOF
-	cat ->>"$subpkgdir"/etc/xen/dnsmasq.conf <<EOF
-		#dhcp-host=somehost,10.0.4.3
-		#dhcp-host=otherhost,10.0.4.4
-EOF
-
 }
 
-sha512sums="236c02bee69e33644703ed26d323d4c491a91fc05bd0ee0990a7368579f7c82f5bb4510845bf80348fd923024d7d60d521f593dfd0365d971dc592f8ef10fbea  xen-4.10.1.tar.gz
-2e0b0fd23e6f10742a5517981e5171c6e88b0a93c83da701b296f5c0861d72c19782daab589a7eac3f9032152a0fc7eff7f5362db8fccc4859564a9aa82329cf  gmp-4.3.2.tar.bz2
-c2bc9ffc8583aeae71cee9ddcc4418969768d4e3764d47307da54f93981c0109fb07d84b061b3a3628bd00ba4d14a54742bc04848110eb3ae8ca25dbfbaabadb  grub-0.97.tar.gz
-1465b58279af1647f909450e394fe002ca165f0ff4a0254bfa9fe0e64316f50facdde2729d79a4e632565b4500cf4d6c74192ac0dd3bc9fe09129bbd67ba089d  lwip-1.3.0.tar.gz
-40eb96bbc6736a16b6399e0cdb73e853d0d90b685c967e77899183446664d64570277a633fdafdefc351b46ce210a99115769a1d9f47ac749d7e82837d4d1ac3  newlib-1.16.0.tar.gz
-2b3d98d027e46d8c08037366dde6f0781ca03c610ef2b380984639e4ef39899ed8d8b8e4cd9c9dc54df101279b95879bd66bfd4d04ad07fef41e847ea7ae32b5  pciutils-2.2.9.tar.bz2
-88da614e4d3f4409c4fd3bb3e44c7587ba051e3fed4e33d526069a67e8180212e1ea22da984656f50e290049f60ddca65383e5983c0f8884f648d71f698303ad  polarssl-1.1.4-gpl.tgz
-4928b5b82f57645be9408362706ff2c4d9baa635b21b0d41b1c82930e8c60a759b1ea4fa74d7e6c7cae1b7692d006aa5cb72df0c3b88bf049779aa2b566f9d35  tpm_emulator-0.7.4.tar.gz
-021b958fcd0d346c4ba761bcf0cc40f3522de6186cf5a0a6ea34a70504ce9622b1c2626fce40675bc8282cf5f5ade18473656abc38050f72f5d6480507a2106e  zlib-1.2.3.tar.gz
-bbcce5e55040e7e29adebd4a5253a046016a6e2e7ff34cf801a42d147e1ec1af57e0297318249bfa9c5bbeac969fe4b37c18cbf845a80b2136d65387a4fc31da  ipxe-git-356f6c1b64d7a97746d1816cef8ca22bdd8d0b5d.tar.gz
-1936ab39a1867957fa640eb81c4070214ca4856a2743ba7e49c0cd017917071a9680d015f002c57fa7b9600dbadd29dcea5887f50e6c133305df2669a7a933f3  qemu-xen_paths.patch
-f095ea373f36381491ad36f0662fb4f53665031973721256b23166e596318581da7cbb0146d0beb2446729adfdb321e01468e377793f6563a67d68b8b0f7ffe3  hotplug-vif-vtrill.patch
-77b08e9655e091b0352e4630d520b54c6ca6d659d1d38fbb4b3bfc9ff3e66db433a2e194ead32bb10ff962c382d800a670e82b7a62835b238e294b22808290ea  musl-hvmloader-fix-stdint.patch
-8c3b57eab8641bcee3dbdc1937ea7874f77b9722a5a0aa3ddb8dff8cc0ced7e19703ef5d998621b3809bea7c16f3346cfa47610ec9ab014ad0de12651c94e5ff  stdint_local.h
-853467a2d055c5bfbdc7bdca175a334241be44a7c5ac3c0a84a4bc5463b5c070b66d37e2a557429ef860727a6b7350683af758cc2494d85b6be4d883143a2c0d  elf_local.h
-79cb1b6b81b17cb87a064dfe3548949dfb80f64f203cac11ef327102b7a25794549ce2d9c019ebf05f752214da8e05065e9219d069e679c0ae5bee3d090c685e  xen-hotplug-lockfd.patch
-e76816c6ad0e91dc5f81947f266da3429b20e6d976c3e8c41202c6179532eec878a3f0913921ef3ac853c5dbad8082da3c9cd53b65081910516feb492577b7fc  xen-fd-is-file.c
-69dfa60628ca838678862383528654ecbdf4269cbb5c9cfb6b84d976202a8dea85d711aa65a52fa1b477fb0b30604ca70cf1337192d6fb9388a08bbe7fe56077  xenstore_client_transaction_fix.patch
-2094ea964fa610b2bf72fd2c7ede7e954899a75c0f5b08030cf1d74460fb759ade84866176e32f8fe29c921dfdc6dafd2b31e23ab9b0a3874d3dceeabdd1913b  xenqemu-xattr-size-max.patch
+qemu() {
+	pkgdesc="QEMU for XEN"
+	case "$CARCH" in
+	x86*)
+		depends="$depends seabios-bin"
+		;;
+	esac
+	mkdir -p "$subpkgdir"/usr/lib/xen/bin \
+		"$subpkgdir"/usr/share/applications
+
+	amove usr/lib/xen/bin/qemu*
+	mv "$pkgdir"/usr/share/qemu-xen/applications/qemu.desktop \
+		"$subpkgdir"/usr/share/applications/qemu-xen.desktop
+	amove usr/share/qemu-xen
+
+	case "$CARCH" in
+	x86*)
+		# these files are only in the x86* builds
+		amove usr/lib/xen/libexec/qemu-bridge-helper
+	esac
+
+	# these files contain textrels in the QEMU release tracked by Xen 4.20
+	rm "$subpkgdir"/usr/share/qemu-xen/qemu/s390-netboot.img
+	rm "$subpkgdir"/usr/share/qemu-xen/qemu/s390-ccw.img
+}
+
+qemu_openrc() {
+	depends=
+	pkgdesc="QEMU for XEN (OpenRC init scripts)"
+	install_if="openrc ${subpkgname%-openrc}=$pkgver-r$pkgrel"
+
+	amove etc/conf.d/xenqemu
+	amove etc/init.d/xenqemu
+}
+
+sha512sums="
+e4502ddaeb66de4c30d59e90af198586683c28b56bf0eb03ca5508f663fef5e6582c009861ff5b66b7f0df6e5f6bc12337eff0ec775d72e7cb189fd2079dbd9d  xen-4.20.1.tar.gz
+fe3c253d03e1962ca4dd6bccd2e51817075450f51aa66e8ab9673bdd5a530dc08f1ed7817a1271ada028b0c34162f37cd6b24d84334403767caacd8206284cbb  qemu-xen_paths.patch
+1c9cb24bf67a2e84466572198315d5501627addf1ccd55d8d83df8d77d269a6696cd45e4a55601495168284e3bff58fb39853f56c46aaddd14f6191821678cf6  hotplug-vif-vtrill.patch
 8c9cfc6afca325df1d8026e21ed03fa8cd2c7e1a21a56cc1968301c5ab634bfe849951899e75d328951d7a41273d1e49a2448edbadec0029ed410c43c0549812  hotplug-Linux-iscsi-block-handle-lun-1.patch
-08a35c2c14d51f4e004274367a948332b97f22d12b0b8f7647f5f026f3d57cfe294dd4c3f3e4d34439c9010f2efc30689e62ec805ca134cfd75fe85f0c53c94b  xsa260-1.patch
-6d152a54d38a8c06a8c1293ab637c484ad6baf53b7be54a8a916143011f5042a089972c5c08e489d510356507296da8c7aa8e89b17517b1c167a95084b5389db  xsa260-2.patch
-d7208e68d60581ad6a6a5f56528e7b820f0f6db56593a4b01a5c59f245e3e06596a6512f5cca6d3c88b662c787c46b98f7f0759822e375e10b2e2402c89262f6  xsa260-3.patch
-2b26451201f0b754b19f7cd7f8ffdc3b2ea083fd3f54de6cd0c29bc0dba89d5dac4b33ed58b3b80a48887ffa11d9c82ded0c60a4df5895022ff97d1b11b2357c  xsa260-4.patch
-f6c55fb28915d54b05585c4ba177fd57f8a70b87930af24307c3142e97e39239f684b52c70d9051d1ac6a21a9e8eaabba482c451d7b4e3f48054a02048d5603e  xsa261.patch
-aa6089f017c0e00e0e464b6f8d82dd5c8d588ccff027b175f43dd9d4efd4014ac899fceedef2005854b892ea156c7951c71183c03479cdf70c6d0298f5f76522  xsa262-4.10.patch
-52c43beb2596d645934d0f909f2d21f7587b6898ed5e5e7046799a8ed6d58f7a09c5809e1634fa26152f3fd4f3e7cfa07da7076f01b4a20cc8f5df8b9cb77e50  xenstored.initd
+709d1487e76db80381e45f0b2a8149e8c21fea0b5dac05fb66c8c4ce02c786567148a36d3470f5178d1f0a9440cc5bd37447792a05650d52362856b285ffe8fb  xsa472-1.patch
+20f9732928c750bdfdda5164d8c7c0df9a24098948a188490efeea999fc1fecb2cca66750258d5bfbc60cc4b5de828be2ddaf15ae0eb29e579348dceb68d1e3a  xsa472-2.patch
+ed5102a81725f066f3533c72ff3f109334d451b394a258889644537b1eddec6978252bbc2a5304e3c6e3660c2ba4f9a4bdc8512c8317df41f52803c1bba42456  xsa472-3.patch
+7eb24637a23f64d2e72f9fe5363de132ec08591ebf9a6d99995a30acd56f7cef3ad51e94116f02ef0ce7a56e8f6e2a7bfd5c3969d38f15eb6b0b7bf6627b8ec0  xsa473-1.patch
+87685314030501c460a041d31a779307ad578a0d8023c228689f3f0b80bcecb0f2e094d2b82fd4955da269f481a337a9665028ab15920da8534b957476bfb108  xsa473-2.patch
+41f2d6709748cd817d3da4e4d58bb2c7820da7e9e4d23b9ddf74ec9e67c8359fb7d8e9fdccb4b5c614f2920003f0112a214eceb2a092cabe28b76827880c5f5b  xsa475-1.patch
+63a6ca42085af34db112510cbf8fad5e2f3f9f40a057ed1a11a0a0f63ea3ddb107fca9d297b4f1a78e7b7c7dc24d5cb0f2c227a197d2496657f648436ab9dd96  xsa475-2.patch
+8bfafa10128bd2742250819b3e74991af556e17886fca18021ad8338ed1d3b37d06c39c9b5bedc2f26d82887d1aa1650371658378958e55db4bedae8b5171dbb  xsa476-4.20.patch
+9430940692d6bfb58b1438e0f5f84cb703fbca9ce9cc157a1313ab1ceff63222a1ae31c991543b20c8fc84300df2b22f4614b27bbff32f82e17f27fcd953143c  xenstored.initd
 093f7fbd43faf0a16a226486a0776bade5dc1681d281c5946a3191c32d74f9699c6bf5d0ab8de9d1195a2461165d1660788e92a3156c9b3c7054d7b2d52d7ff0  xenstored.confd
-3c86ed48fbee0af4051c65c4a3893f131fa66e47bf083caf20c9b6aa4b63fdead8832f84a58d0e27964bc49ec8397251b34e5be5c212c139f556916dc8da9523  xenconsoled.initd
+1dd04f4bf1890771aa7eef0b6e46f7139487da0907d28dcdbef9fbe335dcf731ca391cfcb175dd82924f637a308de00a69ae981f67348c34f04489ec5e5dc3b7  xenconsoled.initd
 30df69cc38d0bed26bc4d6e08a2b62cbdc654d5f663009a05cb3b83b3e3dc5e206362d3fd59abbb753ceb8d6d79eaa6e15d079bb8f4f35dc74667103faf4e85d  xenconsoled.confd
-357ab672be7ac36e4b5b056504cd5094d9218c4ea148c2f739d628479ebf0d9c0eb201ea7d4f97f07d01e59b88cafd318de0e1250a5b3db41bd94aa3fb7c7e49  xendomains.initd
+71d464464130fbac0ffe6ce06337d8032b4a03a9da5fbb313b26538946d122f2531ef91e258faaff2636b29514cbb65ec0f62615a48437a8383f24f7e59df685  xendomains.initd
 c7c0eecd5f454d903b57a710902da27dcb2c6b200f88d4eadfab33a447be6b41454109d482aab849a690446ea5c928e619dfc6cf95b7955f00a476f2317bb82b  xendomains.confd
 ab2105c75cfe01768aecd5bcbb56269d63666e8a44e42b6a83aee87df6c84ee2f9ab249171c21b2e09f8fec2cae8318f6e87d160989398a3e7dd68db8d52c426  xen-consoles.logrotate
 bdbe15c924071cdc2d0f23e53ba8e3f837d4b5369bfb218abd3405f9bef25d105269aaf0784baeb69c073a5786b8c82ffdfd414e86874da34293cfdc2c497928  xenqemu.confd
-8475119369409efb8ad930c7735cd3d782191d18fab4fc322a51120c395162ff88e381182876036d1078afd30079dbf3f94a3568689e9b52ba235adead4b97d3  xenqemu.initd
-85afec835a374aac3d307b3226eee7a08a676b1daac7e39bb7463d564ef72438dc27dd188a871cfd031e80c6992b756951f26bdca0d445e07eab6dba5245de46  xendriverdomain.initd
+b833ed7334d912b519f317caefcf278274964838ca5588a0d58d9e91817e6c5519eab42521b78f7fc307ad24f25934e4f5d5d1097f783a847fc22d2cc38b27b5  xenqemu.initd
+bc40f7c0548162ce2181b34ea39064c0e1c529af95e0a282c78879916036cf7ac3c2cb7c433f8702a9fffe6e9257707d25fdccb6f8d045aef78b5e251a476309  xendriverdomain.initd
 a46337bebce24337f00adbe08095b9f5128c1f440e2033329e5ace9fd817a31fb772d75c0ecc7cc06f34b1522ebf8b21874ee4d0881a0f29851b1c1235f29cf3  xen-pci.initd
-2db5fa6edeeb028236460029b976a849f22b3a15d3929acc3911dc41f365b471c2b815eb111639bc230a69528b1571f3c2e9e8e1e81a6679e55387e39355aa99  xen-pci.confd"
+2db5fa6edeeb028236460029b976a849f22b3a15d3929acc3911dc41f365b471c2b815eb111639bc230a69528b1571f3c2e9e8e1e81a6679e55387e39355aa99  xen-pci.confd
+"

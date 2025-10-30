@@ -1,0 +1,41 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=moor
+pkgver=2.7.1
+pkgrel=0
+pkgdesc="Pager designed to do the right thing without any configuration"
+url="https://github.com/walles/moor"
+arch="all"
+license="BSD-2-Clause-Views"
+makedepends="go"
+subpackages="$pkgname-doc"
+source="https://github.com/walles/moor/archive/v$pkgver/moor-$pkgver.tar.gz
+	fix-test.patch
+	"
+options="net" # for downloading Go modules
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+build() {
+	go build \
+		-ldflags "-X main.versionString=v$pkgver" \
+		-v ./cmd/moor
+}
+
+check() {
+	go test ./...
+}
+
+package() {
+	install -Dvm755 moor -t "$pkgdir"/usr/bin/
+
+	install -Dvm644 moor.1 -t "$pkgdir"/usr/share/man/man1/
+	install -Dvm644 LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname/
+}
+
+sha512sums="
+c866b2eea018165e8eb198afefde1984051d46a27d1c665fa255dfa8c4f9c8b118115a3a63495f8c9e2a083f457f7be29ab834d44f58c7c37fd176c172481bcd  moor-2.7.1.tar.gz
+b5d3ff407d8a5a7379fc699b1f15402ff150008c05af3b940dfaf9d2ec3dd40fe05e412554d548dbc936c308aa48edf872bea919df3cf7d7df675dc0ce1b782a  fix-test.patch
+"

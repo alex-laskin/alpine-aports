@@ -1,31 +1,38 @@
 # Contributor: ScrumpyJack <scrumpyjack@me.com>
 # Maintainer: ScrumpyJack <scrumpyjack@me.com>
 pkgname=xeyes
-pkgver=1.1.2
+pkgver=1.3.1
 pkgrel=0
-pkgdesc="A pair of eyes that follow your mouse in X11"
-url="http://www.x.org"
+pkgdesc="Pair of eyes that follow your mouse in X11"
+url="https://www.x.org"
+options="!check" # no test suite
 arch="all"
 license="MIT"
-depends=""
-depends_dev=""
-makedepends="libx11-dev libxt-dev libxext-dev libxmu-dev libxrender-dev"
-install=""
+makedepends="
+	libx11-dev
+	libxext-dev
+	libxi-dev
+	libxmu-dev
+	libxrender-dev
+	libxt-dev
+	"
 subpackages="$pkgname-doc"
-source="http://www.x.org/releases/individual/app/${pkgname}-${pkgver}.tar.bz2"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://www.x.org/releases/individual/app/xeyes-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
+		--host=$CHOST \
+		--build=$CBUILD \
 		--prefix=/usr \
 		--datarootdir=/usr/share
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="008d76f03ddabd3d86ad9e52a540504553b94cb7a6743b20cf08897549eb27505667365ab9af21956a1b5ec7297acca8903a326536e6195a30e643cd93297ee0  xeyes-1.1.2.tar.bz2"
+sha512sums="
+c0c3e25b1685cc943c8d27f88c4d3ec79aa05c102ba7ac0cbd7dcebdf703111ecb2288f4bac55d9ffc5b7aa3b15cba58f28c21025a53b415a8a18bdb61688dcf  xeyes-1.3.1.tar.xz
+"

@@ -4,40 +4,32 @@
 pkgname=perl-net-iptrie
 _pkgreal=Net-IPTrie
 pkgver=0.7
-pkgrel=2
+pkgrel=5
 pkgdesc="Perl module for building IPv4 and IPv6 address space hierarchies"
-url="http://search.cpan.org/dist/Net-IPTrie/"
+url="https://metacpan.org/release/Net-IPTrie/"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends="perl-netaddr-ip perl-module-build"
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl perl-netaddr-ip perl-module-build"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/C/CV/CVICENTE/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/C/CV/CVICENTE/$_pkgreal-$pkgver.tar.gz"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
 	default_prepare
-
-	cd "$builddir"
 	perl Build.PL installdirs=vendor
 }
 
 build() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	./Build
 }
 
 check() {
-        cd "$builddir"
-        ./Build test
+	./Build test
 }
 
 package() {
-	cd "$builddir"
 	./Build install destdir="$pkgdir"
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }

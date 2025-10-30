@@ -1,11 +1,15 @@
 #!/sbin/openrc-run
 
-command="/usr/sbin/haveged"
-command_args="$HAVEGED_OPTS"
-command_background="yes"
+description="Entropy harvesting daemon using CPU timings"
 
+command="/usr/sbin/haveged"
+# $HAVEGED_OPTS is here for backward compatiblity only
+command_args="--Foreground ${command_args:-$HAVEGED_OPTS}"
+command_background="yes"
 pidfile="/run/$RC_SVCNAME.pid"
 
 depend() {
-	need net
+	need localmount
+	after urandom
+	provide entropy
 }

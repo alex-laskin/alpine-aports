@@ -1,0 +1,50 @@
+# Contributor: Zachary Lee Andrews <zcrayfish@gmail.com>
+maintainer="Antoni Aloy <aaloytorrens@gmail.com>"
+pkgname=libfm-qt
+pkgver=2.2.0
+pkgrel=3
+pkgdesc="Qt port of libfm"
+url="https://github.com/lxqt/libfm-qt"
+arch="all"
+license="LGPL-2.0-or-later"
+depends="lxqt-menu-data"
+depends_dev="
+	perl
+	libfm-dev
+	libexif-dev
+	lxqt-build-tools
+	menu-cache-dev
+	qt6-qtbase-dev
+	qt6-qttools-dev
+	"
+makedepends="
+	$depends_dev
+	cmake
+	samurai
+	qt6-qtbase-private-dev
+	"
+subpackages="$pkgname-dev $pkgname-lang"
+options="!check" # No testsuite
+source="https://github.com/lxqt/libfm-qt/releases/download/$pkgver/libfm-qt-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+lang() {
+	install_if="lang $pkgname=$pkgver-r$pkgrel"
+	amove usr/share/libfm-qt6/translations
+}
+
+sha512sums="
+9b5c8ba0cfd71861396cb8ba2a6d3cb13850f631b949dd0885abe9d829d703c02da3a72564819f74db5d28fb430d8a8599cfee717fc757533f6a37f0d8de74ad  libfm-qt-2.2.0.tar.xz
+"

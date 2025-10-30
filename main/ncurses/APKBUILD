@@ -1,28 +1,84 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=ncurses
-pkgver=6.1
-_ver=${pkgver%_p*} #-${pkgver#*_p}
+pkgver=6.5_p20251010
+_pkgver=${pkgver/_p/-}
 pkgrel=0
 pkgdesc="Console display library"
-url="https://www.gnu.org/software/ncurses/"
+url="https://invisible-island.net/ncurses/"
 arch="all"
 options="!check" # "tests" are actual demo programs, not a test suite.
-license="MIT"
+license="X11"
 makedepends_build="ncurses"
-subpackages="$pkgname-static $pkgname-dev $pkgname-doc $pkgname-libs
-	$pkgname-terminfo-base:base:noarch $pkgname-terminfo:terminfo:noarch"
-source="https://ftp.gnu.org/gnu/ncurses/ncurses-$_ver.tar.gz"
-builddir="$srcdir"/ncurses-$_ver
+subpackages="
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-terminfo-base:base:noarch
+	$pkgname-terminfo:terminfo:noarch
+	$pkgname-libs:compat:noarch
+	libformw
+	libmenuw
+	libncurses++:pp
+	libncursesw
+	libpanelw
+	"
+source="https://invisible-mirror.net/archives/ncurses/current/ncurses-$_pkgver.tgz
+	cleanup-pkgconfig-ldflags.patch
+	"
+builddir="$srcdir/$pkgname-$_pkgver"
 
 # secfixes:
+#   6.4_p20230424-r0:
+#     - CVE-2023-29491
+#   6.3_p20220416-r0:
+#     - CVE-2022-29458
+#   6.2_p20200530-r0:
+#     - CVE-2021-39537
+#   6.1_p20180414-r0:
+#     - CVE-2018-10754
 #   6.0_p20171125-r0:
-#     - CVE-2017-16879 
+#     - CVE-2017-16879
 #   6.0_p20170701-r0:
 #     - CVE-2017-10684
 
-build() {
-	cd "$builddir"
+# Terminfo definitions to be included in ncurses-terminfo-base.
+_basic_terms="
+	alacritty
+	ansi
+	console
+	dumb
+	gnome
+	gnome-256color
+	konsole
+	konsole-256color
+	konsole-linux
+	linux
+	putty
+	putty-256color
+	rxvt
+	rxvt-256color
+	screen
+	screen-256color
+	st-*
+	sun
+	terminator
+	terminology*
+	tmux
+	tmux-256color
+	vt100
+	vt102
+	vt200
+	vt220
+	vt52
+	vte
+	vte-256color
+	xterm
+	xterm-256color
+	xterm-color
+	xterm-xfree86
+	"
 
+build() {
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -30,75 +86,123 @@ build() {
 		--without-ada \
 		--without-tests \
 		--disable-termcap \
+		--disable-root-access \
 		--disable-rpath-hack \
+		--disable-setuid-environ \
 		--disable-stripping \
 		--with-pkg-config-libdir=/usr/lib/pkgconfig \
-		--without-cxx-binding \
-		--with-terminfo-dirs="/etc/terminfo:/usr/share/terminfo" \
+		--with-cxx-binding \
+		--with-cxx-shared \
+		--with-terminfo-dirs="/etc/terminfo:/usr/share/terminfo:/lib/terminfo:/usr/lib/terminfo" \
 		--enable-pc-files \
+		--enable-symlinks \
 		--with-shared \
 		--enable-widec
 	make
 }
 
 package() {
-	cd "$builddir"
 	make -j1 DESTDIR="$pkgdir" install
 
-	# Install basic terms in /etc/terminfo
-	for i in ansi console dumb linux rxvt screen sun vt52 vt100 vt102 \
-			vt200 vt220 xterm xterm-color xterm-xfree86; do
-		local termfile=$(find "$pkgdir"/usr/share/terminfo/ -name "$i" 2>/dev/null) || true
-		local basedir=$(basename $(dirname "$termfile"))
+	cd "$pkgdir"
 
-		[ -z "$termfile" ] && continue
-
-		install -d "$pkgdir"/etc/terminfo/$basedir
-		mv ${termfile} "$pkgdir"/etc/terminfo/$basedir/
-		ln -s ../../../../etc/terminfo/$basedir/$i \
-			"$pkgdir"/usr/share/terminfo/$basedir/$i
-	done
-}
-
-dev() {
-	default_dev
 	# force link against *w.so
-	for lib in ncurses ncurses++ form panel menu; do
-		echo "INPUT(-l${lib}w)" > "$subpkgdir"/usr/lib/lib${lib}.so
-		ln -s ${lib}w.pc "$subpkgdir"/usr/lib/pkgconfig/${lib}.pc
+	local lib; for lib in ncurses ncurses++ form panel menu; do
+		ln -s ${lib}w.pc usr/lib/pkgconfig/$lib.pc
+		ln -s lib${lib}w.a usr/lib/lib$lib.a
+		ln -s lib${lib}w.so usr/lib/lib$lib.so
 	done
-	# link curses -> ncurses
-	echo "INPUT(-lncursesw)" > "$subpkgdir"/usr/lib/libcursesw.so
-	ln -s libncurses.so "$subpkgdir"/usr/lib/libcurses.so
+
+	# link curses, tic, tinfo -> ncurses
+	for lib in curses tic tinfo; do
+		ln -s libncurses.a usr/lib/lib${lib}.a
+		ln -s libncurses.so usr/lib/lib${lib}.so
+		ln -s ncurses.pc usr/lib/pkgconfig/${lib}.pc
+	done
+	ln -s libncursesw.so usr/lib/libcursesw.so
+
+	# Install basic terms in /etc/terminfo
+	local i; for i in $_basic_terms; do
+		local termfiles=$(find usr/share/terminfo/ -name "$i" 2>/dev/null) || true
+
+		[ -z "$termfiles" ] && continue
+
+		for termfile in $termfiles; do
+			local basedir=$(basename "$(dirname "$termfile")")
+			install -d etc/terminfo/$basedir
+			mv "$termfile" etc/terminfo/$basedir/
+			ln -s "../../../../etc/terminfo/$basedir/${termfile##*/}" \
+				"usr/share/terminfo/$basedir/${termfile##*/}"
+		done
+	done
 }
 
 terminfo() {
 	pkgdesc="$pkgdesc (other terminfo files)"
-	depends="$pkgname-terminfo-base"
-	rm -rf $subpkgdir
-	mkdir -p $subpkgdir/usr/share
-	mv $pkgdir/usr/share/terminfo $subpkgdir/usr/share
+	depends="$pkgname-terminfo-base=$pkgver-r$pkgrel"
+	replaces="kitty<0.25.2-r1"  # /usr/share/terminfo/x/xterm-kitty (Alpine <3.17)
+
+	amove usr/share/terminfo
+	# also move symlink
+	amove usr/lib/terminfo
 }
 
-libs() {
-	pkgdesc="Ncurses libraries"
-	depends="$pkgname-terminfo-base"
+compat() {
+	pkgdesc="Ncurses libraries (old compat to pull sublibs)"
 	provides="ncurses-widec-libs=$pkgver-r$pkgrel"
+	depends="
+		libformw=$pkgver-r$pkgrel
+		libmenuw=$pkgver-r$pkgrel
+		libncursesw=$pkgver-r$pkgrel
+		libpanelw=$pkgver-r$pkgrel
+		"
 
-	mkdir -p "$subpkgdir"/usr/
-	mv "$pkgdir"/usr/lib "$subpkgdir"/usr/
+	mkdir -p "$subpkgdir"
+}
+
+libmenuw() {
+	pkgdesc="$pkgdesc ($subpkgname)"
+	depends="$pkgname-terminfo-base=$pkgver-r$pkgrel"
+
+	amove usr/lib/libmenuw.so.*
+}
+
+libformw() {
+	pkgdesc="$pkgdesc ($subpkgname)"
+	depends="$pkgname-terminfo-base=$pkgver-r$pkgrel"
+
+	amove usr/lib/libformw.so.*
+}
+
+pp() {
+	pkgdesc="$pkgdesc ($subpkgname)"
+	depends="$pkgname-terminfo-base=$pkgver-r$pkgrel"
+
+	amove usr/lib/libncurses++w.so.*
+}
+
+libncursesw() {
+	pkgdesc="$pkgdesc ($subpkgname)"
+	depends="$pkgname-terminfo-base=$pkgver-r$pkgrel"
+
+	amove usr/lib/libncursesw.so.*
+}
+
+libpanelw() {
+	pkgdesc="$pkgdesc ($subpkgname)"
+	depends="$pkgname-terminfo-base=$pkgver-r$pkgrel"
+
+	amove usr/lib/libpanelw.so.*
 }
 
 base() {
 	pkgdesc="Descriptions of common terminals"
-	mkdir -p "$subpkgdir"/etc
-	mv "$pkgdir"/etc/terminfo "$subpkgdir"/etc/
+	depends=""
+
+	amove etc/terminfo
 }
 
-static() {
-	pkgdesc="Static libraries for the ncurses library"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/*.a "$subpkgdir"/usr/lib/
-}
-
-sha512sums="e308af43f8b7e01e98a55f4f6c4ee4d1c39ce09d95399fa555b3f0cdf5fd0db0f4c4d820b4af78a63f6cf6d8627587114a40af48cfc066134b600520808a77ee  ncurses-6.1.tar.gz"
+sha512sums="
+6e7fff6be462b17f41eab57b7a0a5497983781af2bededdf07b03e95a3576b1d2f98db42793f92dd34eaaa423b5ff36cfa65edb597ab40ae46fc7e0f9f2c6957  ncurses-6.5-20251010.tgz
+201ef1876655101cedabc83a0ce46f75079b08f565ca8de4cf96fd69e41332a2d0597b77fe360dc58b10772586fa39bd52ac9ee670a912fef84840278356065a  cleanup-pkgconfig-ldflags.patch
+"

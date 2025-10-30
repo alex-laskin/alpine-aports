@@ -1,51 +1,75 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Maintainer: team/gnome <pabloyoyoista@postmarketos.org>
 pkgname=evince
-pkgver=3.28.2
+pkgver=48.1
 pkgrel=0
-pkgdesc="simple document viewer for GTK+"
-url="http://projects.gnome.org/evince/"
+pkgdesc="Simple document viewer for GTK+"
+url="https://apps.gnome.org/Evince"
 arch="all"
 license="GPL-2.0-or-later"
-depends="adwaita-icon-theme"
-depends_dev="gtk+3.0-dev poppler-dev libsm-dev libevent-dev libxrandr-dev
-	libx11-dev libxcursor-dev libxcomposite-dev libxi-dev util-linux-dev
-	tiff-dev gobject-introspection-dev libxml2-dev py-six libspectre-dev"
-makedepends="$depends_dev intltool itstool gnome-doc-utils
-	adwaita-icon-theme-dev gnome-common automake autoconf
-	gtk-doc yelp-tools"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-lang $pkgname-libs"
-source="https://download.gnome.org/sources/${pkgname}/${pkgver%.*}/${pkgname}-${pkgver}.tar.xz"
-builddir="${srcdir}/${pkgname}-${pkgver}"
+depends="
+	adwaita-icon-theme
+	gsettings-desktop-schemas
+	"
+depends_dev="
+	gobject-introspection-dev
+	gtk+3.0-dev
+	libspectre-dev
+	libxml2-dev
+	poppler-dev
+	tiff-dev
+	"
+makedepends="
+	$depends_dev
+	adwaita-icon-theme-dev
+	cairo-dev
+	dbus-dev
+	desktop-file-utils
+	djvulibre-dev
+	gdk-pixbuf-dev
+	glib-dev
+	gnome-desktop-dev
+	gspell-dev
+	gst-plugins-base-dev
+	gstreamer-dev
+	itstool
+	libarchive-dev
+	libhandy1-dev
+	libsecret-dev
+	meson
+	"
+subpackages="$pkgname-dbg $pkgname-dev $pkgname-doc $pkgname-lang $pkgname-libs"
+source="https://download.gnome.org/sources/evince/${pkgver%%.*}/evince-$pkgver.tar.xz"
 
 # secfixes:
+#   3.32.0-r1:
+#     - CVE-2019-11459
 #   3.24.0-r2:
 #     - CVE-2017-1000083
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--disable-nautilus \
-		--without-keyring \
-		--enable-introspection \
-		--disable-static \
-		--enable-comics
-	make
-}
-
-package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	abuild-meson \
+		-Db_lto=true \
+		-Dsystemduserunitdir=no \
+		-Dgtk_doc=false \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+nautilus() {
+	pkgdesc="$pkgname (Nautilus extension)"
+	install_if="$pkgname=$pkgver-r$pkgrel nautilus"
+
+	amove usr/lib/nautilus
 }
 
 libs() {
@@ -56,8 +80,9 @@ libs() {
 doc() {
 	default_doc
 	if [ -d "$pkgdir"/usr/share/help ]; then
-		mv "$pkgdir"/usr/share/help "$subpkgdir"/usr/share/
+		amove usr/share/help
 	fi
 }
-
-sha512sums="6deeefc5ed52d79627ae892b227bcf023c6ea45ac02c6a3a7c9fa1004f5da2e36051bfea73f6838cb8f9aed8cadfd145173a5d3b2be405f1d1f06bd4fdadae23  evince-3.28.2.tar.xz"
+sha512sums="
+bb17c2d769180d6bb4008d4110104aebb47f10594c32ccd8e6075ccec12ab43e962e41cba9d4b927c399e4e779766c0822968c46d891beb509817db0bfe2ea08  evince-48.1.tar.xz
+"

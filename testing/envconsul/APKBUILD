@@ -1,33 +1,34 @@
 # Contributor: Gennady Feldman <gena01@gmail.com>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=envconsul
-pkgver=0.7.2
-pkgrel=0
+pkgver=0.13.3
+pkgrel=7
 pkgdesc="Read and set environmental variables for processes from Consul."
 url="https://www.consul.io/"
-arch="all"
 license="MPL-2.0"
-depends=""
+arch="all"
 makedepends="go"
-options="!strip"
-source="$pkgname-$pkgver.tar.gz::https://github.com/hashicorp/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+options="net chmod-clean"
+source="$pkgname-$pkgver.tar.gz::https://github.com/hashicorp/envconsul/archive/v$pkgver.tar.gz"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
 
 build() {
-	cd "$builddir"
+	mkdir -p pkg/linux-$CARCH
+	go build -v -o pkg/linux-$CARCH/$pkgname
+}
 
-	mkdir -p "$builddir/src/github.com/hashicorp"
-	ln -s "$builddir" "$builddir/src/github.com/hashicorp/$pkgname"
-	cd "$builddir/src/github.com/hashicorp/$pkgname" || return 1
-
-	GOPATH="$builddir" go build -v -o bin/$pkgname
+check() {
+	go test -timeout=30s -parallel=20 -failfast
 }
 
 package() {
-	cd "$builddir"
-
 	# Main binary
-	install -m755 -D bin/$pkgname "$pkgdir"/usr/bin/$pkgname
+	install -m755 -D pkg/linux-$CARCH/$pkgname "$pkgdir"/usr/bin/$pkgname
 }
 
-sha512sums="b6dbeb330ff17e1709b272037fc6a202de7c8451572a45e9be7fdf7e7e47d7557b79fe3330f51ce56b8bf46d3bf1dbbc53d94895858c70d4a430b71bd030c0dc  envconsul-0.7.2.tar.gz"
+sha512sums="
+5dbe9c3e346ea7d85468c87d86e14309bdd6ef7905a4831de426c9f8a0111dcfd07e06bb286d8b01a9e2bddcad24fa0f0057217036debb22f714233320fb897c  envconsul-0.13.3.tar.gz
+"

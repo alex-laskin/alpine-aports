@@ -1,37 +1,39 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=perl-net-ssleay
-_realname=Net-SSLeay
-pkgver=1.85
-pkgrel=1
+_pkgreal=Net-SSLeay
+pkgver=1.94
+pkgrel=3
 pkgdesc="Perl extension for using OpenSSL"
-url="http://search.cpan.org/dist/Net-SSLeay"
+url="https://metacpan.org/release/Net-SSLeay"
 arch="all"
 license="Artistic-2.0"
 depends="perl"
-makedepends="perl-dev libressl-dev zlib-dev"
+makedepends="perl-dev openssl-dev>3 zlib-dev"
 checkdepends="perl-test-exception perl-test-warn perl-test-nowarnings"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/M/MI/MIKEM/Net-SSLeay-$pkgver.tar.gz"
-builddir="$srcdir/$_realname-$pkgver"
+source="https://cpan.metacpan.org/authors/id/C/CH/CHRISN/Net-SSLeay-$pkgver.tar.gz
+	openssl-3.5.patch
+	"
+
+builddir="$srcdir/$_pkgreal-$pkgver"
 
 build() {
-	cd "$builddir"
-	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor || return 1
+	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 
 	# creates file collision among perl modules
-	find "$pkgdir" -name perllocal.pod -delete
+	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="74e0f2f56b707f1ff845c78c1fa7ce26a71b8f943bb99e994d4e065d1f42259fe4cd1a6a17d333459727534158f9541f116dbc8515122380807d9450b0faa26b  Net-SSLeay-1.85.tar.gz"
+sha512sums="
+f1461667269f3da56ff7e1724b5511b95c34582250f8336e9f93d30f3b30d4a5360eb27622b9730bba11df75e00d717c7f0cea2120d20206723db136a8509375  Net-SSLeay-1.94.tar.gz
+51253f95461b41f95b4e3014cea7c9440951d01506078fafcec406e1dcc14fe8412e405d12a60ffdced4fe9f18115f5af5b4f492b50725e8cea163e78aef44b7  openssl-3.5.patch
+"

@@ -1,0 +1,42 @@
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=sdl2-compat
+pkgver=2.32.56
+pkgrel=2
+pkgdesc="SDL2 compatibility layer that uses SDL3 behind the scenes"
+url="https://github.com/libsdl-org/sdl2-compat"
+arch="all"
+license="Zlib"
+depends="so:libSDL3.so.0"
+makedepends="
+	cmake
+	samurai
+	sdl3-dev
+	"
+subpackages="$pkgname-dev $pkgname-doc"
+source="https://github.com/libsdl-org/sdl2-compat/releases/download/release-$pkgver/sdl2-compat-$pkgver.tar.gz"
+options="!check" # flaky
+
+build() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		local crossopts="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=ON \
+		-DCMAKE_BUILD_TYPE=None \
+		$crossopts
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+6117480fb29df01779b38e54596994a0e21f7c2247791ac3e2c8e416ea4c1048a3c00c04d74610b208076f9a79a5afee47cd4a072bdd69ddcecdf506fb6517b2  sdl2-compat-2.32.56.tar.gz
+"

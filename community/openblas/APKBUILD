@@ -1,24 +1,32 @@
 # Contributor: Isaac Dunham <ibid.ag@gmail.com>
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
-# Maintainer: Isaac Dunham <ibid.ag@gmail.com>
+maintainer="Krassy Boykinov <kboykinov@teamcentrixx.com>"
 pkgname=openblas
 _pkgname=OpenBLAS
-pkgver=0.3.0
+pkgver=0.3.30
 pkgrel=0
-pkgdesc="A fast BSD-licensed BLAS based on gotoBLAS2, with LAPACK"
-url="http://www.openblas.net"
+pkgdesc="fast BSD-licensed BLAS based on gotoBLAS2, with LAPACK"
+url="https://www.openblas.net/"
 arch="all"
-license="BSD"
-depends=""
+license="BSD-3-Clause"
 depends_dev="gfortran"
 makedepends="$depends_dev perl linux-headers"
-subpackages="$pkgname-dev $pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/xianyi/$_pkgname/archive/v$pkgver.tar.gz
-	Use-the-old-zrot.S-assembly-on-POWER8-for-crot-as-well.patch
+subpackages="
+	$pkgname-dev
+	$pkgname-doc
+	liblapack
+	liblapacke
+	"
+source="$_pkgname-$pkgver.tar.gz::https://github.com/OpenMathLib/OpenBLAS/archive/refs/tags/v$pkgver.tar.gz
+	blas-lapack.patch
+	arm.patch
 	"
 builddir="$srcdir/$_pkgname-$pkgver"
-
 _builddir64="$builddir-64"
+
+# this provides mostly the same thing as community/lapack,
+# but they should be separate
+sonameprefix="$pkgname:"
 
 # ILP64 is not supported on aarch64 (https://github.com/xianyi/OpenBLAS/issues/956)
 _ilp64=false
@@ -30,33 +38,79 @@ fi
 # USE_OPENMP=0: see GCC bug 60035
 # NO_AFFINITY: don't expect to work on musl, also breaks R and not
 #              recommended for Julia
-_flags="USE_OPENMP=0
-	NO_LAPACK=0
+# NO_STATIC: this is absolutely massive and not used anywhere in aports
+_flags="
 	MAJOR_VERSION=3
-	NO_AFFINITY=1"
+	NO_AFFINITY=1
+	NO_STATIC=1
+	USE_OPENMP=0
+	PREFIX=/usr
+	"
 case "$CARCH" in
-ppc64le) _flags="$_flags NUM_THREADS=64";;  # POWER machines are big
-*64|s390x) _flags="$_flags NUM_THREADS=32";;  # match kernel's CONFIG_NR_CPUS
-*) _flags="$_flags NUM_THREADS=8";;  # 32bit machines usually have less cores
+ppc64le)
+	# POWER machines are big and have 4/8 way SMT
+	_flags="$_flags NUM_THREADS=64"
+
+	# dgemmt tests are failing, need to investigate further
+	options="!check"
+	;;
+*64|s390x)
+	# match kernel's CONFIG_NR_CPUS
+	_flags="$_flags NUM_THREADS=256"
+	;;
+*)
+	# 32bit machines usually have fewer cores
+	_flags="$_flags NUM_THREADS=8"
+	;;
 esac
 
-# DYNAMIC_ARCH is supported on x86* only, see https://github.com/xianyi/OpenBLAS/issues/709
-[ "${CARCH%%_64*}" = "x86" ] && _flags="$_flags DYNAMIC_ARCH=1" || _flags="$_flags DYNAMIC_ARCH=0"
 case "$CARCH" in
-x86*) _flags="$_flags TARGET=core2";;
-armhf) _flags="$_flags TARGET=ARMV7";;
-aarch64) _flags="$_flags TARGET=ARMV8";;
-ppc64le) _flags="$_flags TARGET=POWER8";;
-s390x) _flags="$_flags TARGET=ZARCH_GENERIC";;
+x86*)
+	# DYNAMIC_ARCH is supported on x86* only, see
+	# https://github.com/xianyi/OpenBLAS/issues/709
+	_flags="$_flags DYNAMIC_ARCH=1"
+	;;
+*)
+	_flags="$_flags DYNAMIC_ARCH=0"
+	;;
+esac
+
+case "$CARCH" in
+x86*)
+	_flags="$_flags TARGET=CORE2"
+	;;
+armhf)
+	_flags="$_flags TARGET=ARMV6"
+	;;
+armv7)
+	_flags="$_flags TARGET=ARMV7"
+	;;
+aarch64)
+	_flags="$_flags TARGET=ARMV8"
+	;;
+ppc64le)
+	_flags="$_flags TARGET=POWER8"
+	;;
+s390x)
+	_flags="$_flags TARGET=ZARCH_GENERIC"
+	;;
+riscv64)
+	_flags="$_flags TARGET=RISCV64_GENERIC"
+	;;
+loongarch64)
+	_flags="$_flags TARGET=LA64_GENERIC"
+	;;
 esac
 
 # Flags for ILP64 variant.
-_flags64="$_flags
+_flags64="
+	$_flags
 	INTERFACE64=1
-	SYMBOLSUFFIX=64_"
+	SYMBOLSUFFIX=64_
+	"
 
 prepare() {
-	default_prepare || return 1
+	default_prepare
 
 	if [ "$CARCH" = "ppc64le" ] ; then
 		# Skip test level 3 on ppc64le for a while
@@ -67,43 +121,71 @@ prepare() {
 }
 
 build() {
-	CFLAGS= make -C "$builddir" \
-		$_flags CFLAGS="$CFLAGS" PREFIX=/usr || return 1
+	# OpenBLAS library is huge and it's heavily optimized for performance.
+	# It doesn't make sense to compile it with -Os.
+	export CFLAGS=${CFLAGS/-Os/-O2}
+
+	make -C "$builddir" \
+		$_flags CFLAGS="$CFLAGS"
+	make -C "$builddir"/interface \
+		$_flags CFLAGS="$CFLAGS" shared-blas-lapack
 
 	if $_ilp64; then
 		msg "Building with ILP64..."
-		CFLAGS= make -C "$_builddir64" \
-			$_flags64 CFLAGS="$CFLAGS" PREFIX=/usr || return 1
+		make -C "$_builddir64" $_flags64 CFLAGS="$CFLAGS"
 	fi
+}
+
+dev() {
+	provides="blas-dev lapack-dev"
+	replaces="$provides"
+
+	default_dev
+}
+
+check() {
+	make -j1 $_flags CFLAGS="$CFLAGS" tests
 }
 
 package() {
 	if $_ilp64; then
-		make -C "$_builddir64" $_flags64 \
-			PREFIX="$pkgdir/usr" install || return 1
+		make -C "$_builddir64" $_flags64 DESTDIR="$pkgdir" install
 	fi
 
-	cd "$builddir"
+	make $_flags DESTDIR="$pkgdir" install
+	install -Dm755 interface/liblapack.so.3 \
+		"$pkgdir"/usr/lib/liblapack.so.3
+	ln -s liblapack.so.3 "$pkgdir"/usr/lib/liblapack.so
+	install -Dm755 interface/liblapacke.so.3 \
+		"$pkgdir"/usr/lib/liblapacke.so.3
+	ln -s liblapacke.so.3 "$pkgdir"/usr/lib/liblapacke.so
 
-	make $_flags PREFIX="$pkgdir/usr" install || return 1
-
-	# Remove reference to $pkgdir.
-	sed -i "s|$pkgdir||" "$pkgdir"/usr/lib/cmake/$pkgname/OpenBLASConfig.cmake
-
-	mkdir -p "$pkgdir"/usr/share/doc/$pkgname
-	install -m 0644 Changelog.txt TargetList.txt USAGE.md \
-		"$pkgdir"/usr/share/doc/$pkgname/ || return 1
-
-	install -Dm 0644 LICENSE \
-		"$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+	install -Dm 0644 Changelog.txt TargetList.txt USAGE.md \
+		-t "$pkgdir"/usr/share/doc/$pkgname/
 }
 
 ilp64() {
 	pkgdesc="$pkgdesc (ILP64)"
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libopenblas64_* "$subpkgdir"/usr/lib/
+	amove usr/lib/libopenblas64_*
 }
 
-sha512sums="6a982d2adc13febc162d5c0077cedc116c771409ee1dbb651da6a073e5f6a439e1d0eba0349b3b2e506b274d3014adbf48fc96625ed942a61a54a0c936576b89  openblas-0.3.0.tar.gz
-db3e84388699dbb99c98f48e014fbb1175fb7d73b708b074555b4ce8927db3c4876047b908f191b40b69af9dfb8724a4907bc7ca9a9a1407ab4c85ebf7dc8914  Use-the-old-zrot.S-assembly-on-POWER8-for-crot-as-well.patch"
+liblapack() {
+	pkgdesc="$pkgdesc (LAPACK library)"
+	# provides the same library
+	depends="!lapack"
+	amove usr/lib/liblapack.so.*
+}
+
+liblapacke() {
+	pkgdesc="$pkgdesc (LAPACKE library)"
+	# provides the same library
+	depends="!lapack"
+	amove usr/lib/liblapacke.so.*
+}
+
+sha512sums="
+c726ced2d3e6ebd3ddcd0b13c255bb43fae8c12d2aec15e9ef992b0bc7099996c02cd284ccaaa7b5fac3f23f280b098063dd60f521d97a68dc183ab192fcccdb  OpenBLAS-0.3.30.tar.gz
+0209e0e86c34e5e684bd43f1e28e30b5ef8bed44e3b31211085d7f378ed525f9c07bfb1012a7af1e2342ce16b1844f7286957ff8d6c8285eba48e9ce16c76b96  blas-lapack.patch
+60fc365ec7ab5ebbdd515154655de442aaf38c36408a2e7bf92a5e5325992a2fe3a4c90fcb48a69423ef3917266a1d2f65bb9e40222612b2c87d0cca2b5330e1  arm.patch
+"

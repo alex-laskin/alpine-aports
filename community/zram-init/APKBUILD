@@ -1,27 +1,35 @@
-# Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 # Contributor: Bartłomiej Piotrowski <bpiotrowski@alpinelinux.org>
+# Contributor: Pedro Filipe <xpecex@outlook.com>
+# Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=zram-init
-pkgver=3.8.1
+pkgver=13.0.1
 pkgrel=0
 pkgdesc="wrapper script for the zram kernel module"
 arch="noarch"
 url="https://github.com/vaeth/zram-init"
-license="GPL-2.0"
-depends="e2fsprogs-extra"
-subpackages="$pkgname-zsh-completion:zshcomp"
-source="$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+license="GPL-2.0-only"
+depends="e2fsprogs-extra util-linux-misc" # we need zramctl from util-linux-misc
+subpackages="
+	$pkgname-zsh-completion:zshcomp
+	$pkgname-openrc
+	$pkgname-doc
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/vaeth/zram-init/archive/v$pkgver.tar.gz
+	"
+options="!check" # no tests
 
 build() {
-	return 0
+	make SYSTEMD=FALSE SYSCONFDIR=/etc GETTEXT=FALSE
 }
 
 package() {
-	cd "$builddir"
 	install -Dm644 modprobe.d/zram.conf "$pkgdir"/etc/modprobe.d/zram.conf
 	install -Dm755 sbin/zram-init "$pkgdir"/usr/sbin/zram-init
+
 	install -Dm644 openrc/conf.d/zram-init "$pkgdir"/etc/conf.d/zram-init
 	install -Dm755 openrc/init.d/zram-init "$pkgdir"/etc/init.d/zram-init
+
+	install -Dm644 man/zram-init.8 -t "$pkgdir"/usr/share/man/man8
 }
 
 zshcomp() {
@@ -29,10 +37,9 @@ zshcomp() {
 	pkgdesc="Zsh completions for $pkgname"
 	install_if="$pkgname=$pkgver-r$pkgrel zsh"
 
-	install -Dm644 "$builddir"/zsh/_$pkgname \
-		"$subpkgdir"/usr/share/zsh/site-functions/_$pkgname
+	install -Dm644 "$builddir"/zsh/_zram-init -t "$subpkgdir"/usr/share/zsh/site-functions
 }
 
-md5sums="43589ffca32bd70c3e0886627d14fe48  zram-init-3.8.1.tar.gz"
-sha256sums="fd518f84eadf65a316f7b33a0d3516efa781c24739d5f9fa1737dafcfad2dddb  zram-init-3.8.1.tar.gz"
-sha512sums="cf01cfd80ef40df4762a8028b9094b54e9f7e39c7cc09c92ab2a2ffeb18ed9a65472bb06e731c547fbbbf8cc62984f40e2314720e9323b4fb775ddef001333ae  zram-init-3.8.1.tar.gz"
+sha512sums="
+b6c72d6857d6d6a8b7017c0a0435e0c6bbc937bbae62644047399b2fc6322a723097df10358f203b1413e9cddcfed3840a462090c1ce2d61711585aef12b1437  zram-init-13.0.1.tar.gz
+"

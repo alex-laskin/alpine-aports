@@ -1,0 +1,91 @@
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: team/gnome <pabloyoyoista@postmarketos.org>
+pkgname=gnome-software
+pkgver=49.1
+pkgrel=0
+pkgdesc="Software lets you install and update applications and system extensions"
+url="https://apps.gnome.org/Software"
+arch="all"
+license="GPL-2.0-or-later"
+depends="gnome-app-list"
+makedepends="
+	appstream-dev
+	flatpak-dev
+	gdk-pixbuf-dev
+	glib-dev
+	gsettings-desktop-schemas-dev
+	gtk4.0-dev
+	gtk-doc
+	json-glib-dev
+	libadwaita-dev
+	libgudev-dev
+	libsoup3-dev
+	libxmlb-dev
+	meson
+	ostree-dev
+	polkit-dev
+	itstool
+	fwupd-dev
+	"
+options="!check" # lots of failing tests
+install="$pkgname.post-upgrade"
+subpackages="
+	$pkgname-bash-completion
+	$pkgname-dbg
+	$pkgname-lang
+	$pkgname-doc
+	$pkgname-dev
+	$pkgname-lib
+	$pkgname-plugin-flatpak:flatpak_plugin
+	"
+source="https://download.gnome.org/sources/gnome-software/${pkgver%.*}/gnome-software-$pkgver.tar.xz
+	org.gnome.software.gschema.override
+	"
+
+build() {
+	abuild-meson \
+		-Dmalcontent=false \
+		-Dpackagekit=false \
+		-Dhardcoded_proprietary_webapps=false \
+		-Dtests=false \
+		-Dexternal_appstream=true \
+		-Dfwupd=true \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+	install -Dm644 "$srcdir"/org.gnome.software.gschema.override \
+		-t "$pkgdir"/usr/share/glib-2.0/schemas/
+}
+
+dev() {
+	default_dev
+
+	amove usr/lib/gnome-software/libgnomesoftware.so
+}
+
+lib() {
+	pkgdesc="$pkgdesc (shared library)"
+	depends=""
+
+	amove usr/lib/gnome-software/libgnomesoftware.so.*
+}
+
+flatpak_plugin() {
+	pkgdesc="$pkgdesc (flatpak plugin)"
+	install_if="$pkgname=$pkgver-r$pkgrel flatpak"
+	depends=""
+
+	amove usr/lib/gnome-software/plugins-23/libgs_plugin_flatpak.so
+	amove usr/share/metainfo/org.gnome.Software.Plugin.Flatpak.metainfo.xml
+}
+sha512sums="
+3475ea7d7062679192d4317a6ae278601acd5316d20eb6db9512407058e3b39bf6804443a272016d206cd97d12c8c9fdd883db96297e6b5866d80300ff48503a  gnome-software-49.1.tar.xz
+fa82dfdaaa89554ae0882be6ed25ebcb48e7c9120c645401f369d1f888712002b2627900f629515136d66cf05dcb7d3a09d2bfd775c8063d3ec2d39c64cb1a5b  org.gnome.software.gschema.override
+"

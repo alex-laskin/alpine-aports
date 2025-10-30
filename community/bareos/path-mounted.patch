@@ -1,8 +1,6 @@
-diff --git a/src/lib/mntent_cache.c b/src/lib/mntent_cache.c
-index 69cc9f9..b14c8a1 100644
---- a/src/lib/mntent_cache.c
-+++ b/src/lib/mntent_cache.c
-@@ -54,6 +54,10 @@
+--- a/core/src/lib/mntent_cache.cc
++++ b/core/src/lib/mntent_cache.cc
+@@ -56,6 +56,10 @@
   *  Marco van Wieringen, August 2009
   */
  
@@ -10,6 +8,6 @@ index 69cc9f9..b14c8a1 100644
 +# define _PATH_MOUNTED "/proc/mounts"
 +#endif
 +
- #include "bareos.h"
+ #include "include/bareos.h"
  #include "mntent_cache.h"
- 
+ #include "lib/dlist.h"

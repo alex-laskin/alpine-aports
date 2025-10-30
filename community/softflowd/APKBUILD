@@ -1,24 +1,29 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
 # Maintainer: Valery Kartel <valery.kartel@gmail.com>
 pkgname=softflowd
-pkgver=0.9.9
-pkgrel=1
+pkgver=1.1.0
+pkgrel=0
 pkgdesc="A software NetFlow probe"
-url="https://code.google.com/p/softflowd"
+url="https://github.com/irino/softflowd"
 arch="all"
-license="BSD"
+license="BSD-2-Clause"
 options="!check"
-makedepends="libpcap-dev"
-subpackages="$pkgname-doc"
-source="https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/$pkgname/$pkgname-$pkgver.tar.gz
+makedepends="autoconf automake libtool libpcap-dev"
+subpackages="$pkgname-openrc $pkgname-doc"
+source="https://github.com/irino/softflowd/archive/softflowd-v$pkgver.tar.gz
 	$pkgname.initd
 	$pkgname.confd
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+builddir="$srcdir/softflowd-softflowd-v$pkgver"
+
+prepare() {
+	default_prepare
+	autoreconf -vfi
+}
 
 build() {
-	cd "$builddir"
-	./configure --prefix=/usr \
+	./configure \
+		--prefix=/usr \
 		--sysconfdir=/etc \
 		--localstatedir=/var \
 		--mandir=/usr/share/man \
@@ -27,11 +32,13 @@ build() {
 }
 
 package() {
-	make -C "$builddir" DESTDIR="$pkgdir" install
+	make DESTDIR="$pkgdir" install
 	install -Dm755 "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
 	install -Dm644 "$srcdir"/$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
 }
 
-sha512sums="4d579c2a087c0f3cd4d2020bcfbddf9dab73254e40678b3509c93bec212bf8b5692f76bfb4e766577e431ff508f0bce0a2cf326184f192e3c5dc8ddf38514dbd  softflowd-0.9.9.tar.gz
+sha512sums="
+ab4f5df35d5ff7591c6e0b92ae6c41c977b107e1e5777429d2d7c637cadd3cdff3ca0ed560ada54af449c33429739117499a898b405d2f50eb9d0ee048b25983  softflowd-v1.1.0.tar.gz
 a049158fe474bb76e497613a7e2109b92047a37210bfe695b18b50cf7f5be5407896a11927d685fc03dec899c50bd6dbfeffdccf8e918ba515cfcab5dbd2b2a9  softflowd.initd
-10b536cb5d32edbfe5d1a09e2b4ded4d95cb2bbfbe44cdcf267958efe1cde440f0caf4f60e41b4a59164a471bf430527912daf2c47df42f0dc47997352689e5d  softflowd.confd"
+10b536cb5d32edbfe5d1a09e2b4ded4d95cb2bbfbe44cdcf267958efe1cde440f0caf4f60e41b4a59164a471bf430527912daf2c47df42f0dc47997352689e5d  softflowd.confd
+"

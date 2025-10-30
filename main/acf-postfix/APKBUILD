@@ -2,24 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-postfix
 pkgver=0.10.0
-pkgrel=2
-pkgdesc="A web-based system administration interface for postfix"
-url="https://git.alpinelinux.org/cgit/acf/acf-postfix"
+pkgrel=4
+pkgdesc="Web-based system administration interface for postfix"
+url="https://gitlab.alpinelinux.org/acf/acf-postfix"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core postfix"
-makedepends=""
-install=
-subpackages=""
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-postfix/-/archive/v$pkgver/acf-postfix-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
-
 	make DESTDIR="$pkgdir" install
-
 }
 
-md5sums="e37d6d118cd6fa0cf38b666ec1b6dc1b  acf-postfix-0.10.0.tar.xz"
-sha256sums="060d3dcd61ce067e35897446ced11799436daf3b3f8e6ba8e628ac8018ce4bb8  acf-postfix-0.10.0.tar.xz"
-sha512sums="022c9df2c8af416cf4df2ff96c17dd16a43147660e40a36558f0dfe64dcf310ceb8f73855797e3304e7ba736829663f83180962c5af9538b7e90219a0e65fe64  acf-postfix-0.10.0.tar.xz"
+sha512sums="
+1efad25b1488e6faf7c16e67ac08dd42fee45e461d1e8e0b2716776f2692a8113086e581d4d4aefa2d0219c51e456795ec26c048c9c66884b89617020ca0b052  acf-postfix-v0.10.0.tar.gz
+"

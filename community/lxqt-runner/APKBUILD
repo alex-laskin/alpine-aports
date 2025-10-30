@@ -1,0 +1,44 @@
+# Contributor: Zachary Lee Andrews <zcrayfish@gmail.com>
+maintainer="Antoni Aloy <aaloytorrens@gmail.com>"
+pkgname=lxqt-runner
+pkgver=2.2.0
+pkgrel=0
+pkgdesc="Tool used to launch programs quickly by typing their names"
+url="https://github.com/lxqt/lxqt-runner"
+arch="all !armhf"
+license="LGPL-2.0-or-later"
+makedepends="
+	cmake samurai liblxqt-dev lxqt-build-tools qt6-qttools-dev
+	kwindowsystem-dev libqtxdg-dev lxqt-globalkeys-dev
+	menu-cache-dev muparser-dev
+	layer-shell-qt-dev perl
+	"
+subpackages="$pkgname-doc $pkgname-lang"
+options="!check" # No testsuite
+source="https://github.com/lxqt/lxqt-runner/releases/download/$pkgver/lxqt-runner-$pkgver.tar.xz"
+
+build() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True \
+		$CMAKE_CROSSOPTS .
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --build build --target install
+}
+
+lang() {
+	install_if="lang $pkgname=$pkgver-r$pkgrel"
+	amove usr/share/lxqt/translations/$pkgname
+}
+
+sha512sums="
+7fffc423db30e9257878324e09b2ad61e7a4fe85ec497e59278c54341b210633dac40cc5dd78554da952b5b607da7869ab3d1c48a4b875584f474f3b455511e4  lxqt-runner-2.2.0.tar.xz
+"

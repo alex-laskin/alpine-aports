@@ -1,22 +1,18 @@
 # Contributor: Timo Teräs <timo.teras@iki.fi>
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=libixion
-pkgver=0.12.2
-pkgrel=1
-pkgdesc="a general purpose formula parser & interpreter"
+pkgver=0.20.0
+pkgrel=0
+pkgdesc="A general purpose formula parser & interpreter"
 url="https://gitlab.com/ixion/ixion"
 arch="all"
 license="MPL-2.0"
-depends=""
-depends_dev=""
-makedepends="$depends_dev boost-dev mdds-dev"
-install=""
+makedepends="boost-dev mdds-dev"
+checkdepends="bash"
 subpackages="$pkgname-dev"
-source="http://kohei.us/files/ixion/src/libixion-$pkgver.tar.xz"
-builddir="$srcdir/libixion-$pkgver"
+source="https://gitlab.com/api/v4/projects/ixion%2Fixion/packages/generic/source/$pkgver/libixion-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -24,23 +20,24 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
-		--disable-python \
-		|| return 1
-	make || return 1
+		--disable-python
+	make
+}
+
+check() {
+	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 }
 
 dev() {
-	default_dev || return 1
-	cd "$builddir"
+	default_dev
 	mkdir -p "$subpkgdir"/usr
 	mv "$pkgdir"/usr/bin "$subpkgdir"/usr
 }
 
-md5sums="50873fec72f7f74bb0c0c216ee092d32  libixion-0.12.2.tar.xz"
-sha256sums="8b44008836bb4e1a3dff4d3e40afec6c73037e3518e72cc85b5cc675fbc2daae  libixion-0.12.2.tar.xz"
-sha512sums="0a85120a08c79c73a252a997c8b3df461fe1f8ce8b2334aee0e50bfd887a440a220b44922edd18fbd402b1c8ea8be629e6181493bc618eda198f35159813ddcd  libixion-0.12.2.tar.xz"
+sha512sums="
+ca52e85c8f264a17c2971a5b06a6877c29d15218077d7e5e65d928a67ca3e13ea46250e9f3050f1648e754f4dadc488d2adeb13edfe994e9a8147c9bb05c1754  libixion-0.20.0.tar.gz
+"

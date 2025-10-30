@@ -1,0 +1,74 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-plasma
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=plasma5support
+pkgver=6.5.1
+pkgrel=0
+pkgdesc="Support components for porting from KF5/Qt5 to KF6/Qt6"
+# armhf blocked by qt6-qtdeclarative
+arch="all !armhf"
+url="https://kde.org/plasma-desktop/"
+license="GPL-2.0-or-later"
+depends_dev="
+	kconfig-dev
+	kcoreaddons-dev
+	kholidays-dev
+	ki18n-dev
+	kidletime-dev
+	kio-dev
+	kpackage-dev
+	kservice-dev
+	kunitconversion-dev
+	kxmlgui-dev
+	libksysguard-dev
+	networkmanager-qt-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-dev
+	"
+makedepends="$depends_dev
+	doxygen
+	extra-cmake-modules
+	graphviz
+	qt6-qtdeclarative-private-dev
+	qt6-qttools-dev
+	samurai
+	"
+
+case "$pkgver" in
+	*.*.9*) _rel=unstable;;
+	*) _rel=stable;;
+esac
+
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/plasma/plasma5support.git"
+source="https://download.kde.org/$_rel/plasma/$pkgver/plasma5support-$pkgver.tar.xz"
+options="!check" # Tests fail, needs looking into
+
+replaces="plasma-workspace<=6.2.5-r0"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_TESTING=ON \
+		-DBUILD_QCH=ON
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+lang() {
+	replaces="plasma-workspace-lang<=6.2.5-r0"
+
+	default_lang
+}
+sha512sums="
+e600dd3f90e41d8f7f0133cb054a20d41a5bcfd2869bd68dd6568281163c068dc625cac534b6979484626614a1a3aa35f7a31a364900ef620d33cfa2f1a6c58d  plasma5support-6.5.1.tar.xz
+"

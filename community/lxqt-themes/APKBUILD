@@ -1,0 +1,32 @@
+# Contributor: Zachary Lee Andrews <zcrayfish@gmail.com>
+maintainer="Antoni Aloy <aaloytorrens@gmail.com>"
+pkgname=lxqt-themes
+pkgver=2.2.0
+pkgrel=0
+pkgdesc="Themes for LXQt"
+url="https://github.com/lxqt/lxqt-themes"
+arch="noarch"
+license="LGPL-2.0-or-later"
+makedepends="cmake samurai lxqt-build-tools perl-dev"
+options="!check" # No testsuite
+source="https://github.com/lxqt/lxqt-themes/releases/download/$pkgver/lxqt-themes-$pkgver.tar.xz"
+
+build() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True \
+		$CMAKE_CROSSOPTS .
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --build build --target install
+}
+sha512sums="
+3306d0ef1fc842d1901dc6c73842fbccc845aad6c631d516af1b337d88e062b474a84a8d9a7532ddfead411f82bf6f0f723e484fea4ed3cba62460a636d04cd1  lxqt-themes-2.2.0.tar.xz
+"

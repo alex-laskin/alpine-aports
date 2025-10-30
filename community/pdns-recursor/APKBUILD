@@ -1,28 +1,83 @@
-# Contributor: Olivier Mauras <olivier@mauras.ch>
+# Maintainer: Peter van Dijk <peter.van.dijk@powerdns.com>
 pkgname=pdns-recursor
-pkgver=4.1.3
+pkgver=5.3.1
 pkgrel=0
 pkgdesc="PowerDNS Recursive Server"
 url="https://www.powerdns.com/"
-arch="all !s390x"
-license="GPL-2.0-or-later"
-depends=""
-depends_dev=""
-makedepends="$depends_dev boost-dev file libressl-dev libsodium-dev lua-dev net-snmp-dev protobuf-dev"
-install="$pkgname.pre-install"
-subpackages="$pkgname-doc $pkgname-openrc"
+arch="all"
+license="GPL-2.0-only WITH OpenSSL-Exception"
+depends="$pkgname-common"
+makedepends="autoconf
+	automake
+	boost-dev
+	cargo
+	curl
+	curl-dev
+	fstrm-dev
+	libtool
+	libsodium-dev
+	lua5.4-dev
+	net-snmp-dev
+	openssl-dev>3
+	"
+install="$pkgname-common.pre-install"
+subpackages="$pkgname-common::noarch $pkgname-doc $pkgname-openrc"
 pkgusers="recursor"
 pkggroups="recursor"
-source="http://downloads.powerdns.com/releases/$pkgname-$pkgver.tar.bz2
-	libressl-2.7.patch
-	pdns-recursor.initd
+source="https://downloads.powerdns.com/releases/pdns-recursor-${pkgver//_/-}.tar.xz
+	$pkgname.initd
 	recursor.conf
 	"
-options="!check"
+builddir="$srcdir/$pkgname-${pkgver//_/-}"
 
-builddir="$srcdir/$pkgname-$pkgver"
+case "$CARCH" in
+loongarch64|ppc64le|riscv64)
+	_luajit=OFF
+	;;
+*)
+	makedepends="$makedepends luajit-dev"
+	subpackages="$subpackages $pkgname-luajit"
+	_luajit=ON
+	;;
+esac
 
 # secfixes:
+#   5.3.0-r0:
+#     - CVE-2025-59023
+#     - CVE-2025-59024
+#   5.2.5-r0:
+#     - CVE-2025-30192
+#   5.2.1-r0:
+#     - CVE-2025-30195
+#   5.1.2-r0:
+#     - CVE-2024-25590
+#   5.0.4-r0:
+#     - CVE-2024-25583
+#   5.0.2-r0:
+#     - CVE-2023-50387
+#     - CVE-2023-50868
+#   4.8.1-r0:
+#     - CVE-2023-22617
+#   4.7.2-r0:
+#     - CVE-2022-37428
+#   4.6.1-r0:
+#     - CVE-2022-27227
+#   4.3.5-r0:
+#     - CVE-2020-25829
+#   4.3.2-r0:
+#     - CVE-2020-14196
+#   4.3.1-r0:
+#     - CVE-2020-10995
+#     - CVE-2020-12244
+#   4.1.9-r0:
+#     - CVE-2019-3806
+#     - CVE-2019-3807
+#   4.1.8-r0:
+#     - CVE-2018-16855
+#   4.1.7-r0:
+#     - CVE-2018-10851
+#     - CVE-2018-14644
+#     - CVE-2018-14626
 #   4.1.1-r0:
 #     - CVE-2018-1000003
 #   4.0.7-r0:
@@ -31,37 +86,92 @@ builddir="$srcdir/$pkgname-$pkgver"
 #     - CVE-2017-15093
 #     - CVE-2017-15094
 
-build() {
-	cd "$builddir"
+prepare() {
+	default_prepare
+	if [ "$_luajit" = "ON" ]; then
+		cp -a "$builddir" "$builddir-jit"
+	fi
+}
+
+_configure() {
+	local arg="$1"
+	local lua
+
+	if [ "$arg" = '-jit' ]; then
+		lua="luajit"
+	else
+		lua="lua5.4"
+	fi
+
+	cd "$builddir$arg"
+
 	./configure --prefix=/usr \
 		--sysconfdir=/etc/pdns \
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
 		--localstatedir=/var \
 		--libdir=/usr/lib/pdns \
+		--enable-dns-over-tls \
+		--enable-dnstap \
 		--enable-unit-tests \
-		--disable-static
+		--with-lua=$lua \
+		--with-libcrypto=/usr
+}
+
+build() {
+	_configure
+	make
+
+	[ -d "$builddir-jit" ] || return 0
+
+	_configure -jit
 	make
 }
 
+_cat_found_file() {
+	local _rc="$?"
+	find . -name "$1" -type f -print -exec cat {} \;
+	return "$_rc"
+}
+
 check() {
-	cd "$builddir"
-	make check
+	make check || _cat_found_file 'test-suite.log'
+
+	if cd "$builddir-jit"; then
+		make check || _cat_found_file 'test-suite.log'
+	fi
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
-	rm "$pkgdir"/etc/pdns/recursor.conf-dist
 
-	install -m755 -D "$srcdir"/$pkgname.initd \
-		"$pkgdir"/etc/init.d/$pkgname
-
-	install -m600 -D "$srcdir"/recursor.conf \
-		"$pkgdir"/etc/pdns/recursor.conf
+	install -m755 -D "$srcdir/$pkgname.initd" \
+		"$pkgdir/etc/init.d/$pkgname"
 }
 
-sha512sums="5ea7e027131143b3ca45ca4a97316f52207a55cf5498a136e44cf5ee78bee00efecf3cd7c9c46261002cbd6e4ea0cd2af62c456b71fd2366729242950b7c060d  pdns-recursor-4.1.3.tar.bz2
-2846854b74bcc1149e18aa5ff17d1c0548790a5eaf87a7194b89a1063c6783708bfa109e8edf9c2b430fbd90445bee7f80137601babab8766be106bcad700cf3  libressl-2.7.patch
-f23cb30d943e0b0aea09371dc57aa43e55b8f91062a3caa3fac17e3565a8e36dfd304f45eba588f625ca2337cd2ade450ea5ae1776872c006204cdaf912f6651  pdns-recursor.initd
-954df537693a202fc195e751011bbfaa605b3f3df42ac386fa82eb809b73c2b987f5e418b5c96bb3b0669497426ce0daa39a719844701e06990b82843a4cf0d4  recursor.conf"
+common() {
+	pkgdesc="$pkgname common files"
+	depends=""
+
+	mkdir -p "$subpkgdir/etc/pdns"
+
+	mv "$pkgdir"/etc/pdns/*  "$subpkgdir"/etc/pdns/
+	mv "$subpkgdir"/etc/pdns/recursor.yml-dist "$subpkgdir"/etc/pdns/recursor.conf-dist
+	cp "$srcdir/recursor.conf" "$subpkgdir"/etc/pdns/recursor.conf
+}
+
+luajit() {
+	pkgdesc="$pkgname with luajit bindings"
+	depends="$pkgname-common"
+	provides="$pkgname=$pkgver-r$pkgrel"
+
+	cd "$builddir-jit"
+	make DESTDIR="$subpkgdir" install-exec
+	rm -rf "$subpkgdir"/etc/pdns
+}
+
+sha512sums="
+e595f9dc7d7b05ef7b80e905b5536341bc6a5267a37786e73a0fdb0f52970d41568b01717a5f6900b1ee297c01063d3edccad3d143c72c94409bb1457b901f41  pdns-recursor-5.3.1.tar.xz
+71f7be51d3a9a78f22f3946e95534d4f5b37b3bcbd1891ad3a17095be545fdb0eaf239d58c9f40ccc642542150c0b35ed025bf69acabfa779c0ab10c67a5e796  pdns-recursor.initd
+4bd244afe3ca888292eb1a9528b6f308ef7c131626f2e62a7b58e381710c392c671f96bb4932be52bb4213e58c349ed3ae9cf9ddf13fd92d6a43150ab4b54b11  recursor.conf
+"

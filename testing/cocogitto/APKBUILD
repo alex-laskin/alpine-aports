@@ -1,0 +1,67 @@
+maintainer="Thomas Böhler <witcher@wiredspace.de>"
+pkgname=cocogitto
+pkgver=6.3.0
+pkgrel=0
+pkgdesc="The Conventional Commits toolbox"
+url="https://docs.cocogitto.io/"
+arch="all"
+license="MIT"
+makedepends="
+	cargo
+	cargo-auditable
+	libgit2-dev
+	"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/cocogitto/cocogitto/archive/refs/tags/$pkgver.tar.gz
+	001-bump-libc.patch
+	"
+options="net !check" # tests relies on, among other things, specific tags
+
+export LIBGIT2_NO_VENDOR=1  # use system libgit2
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+
+	local compgen="target/release/cog generate-completions"
+
+	$compgen bash > cog.bash
+	$compgen fish > cog.fish
+	$compgen zsh > cog.zsh
+
+	mkdir man
+	target/release/cog generate-manpages man
+}
+
+package() {
+	install -Dm755 -t "$pkgdir"/usr/bin target/release/cog
+
+	install -Dm644 -t "$pkgdir"/usr/share/doc/"$pkgname" CHANGELOG.md
+	install -Dm644 -t "$pkgdir"/usr/share/doc/"$pkgname" README.md
+
+	install -Dm644 -t "$pkgdir"/usr/share/licenses/"$pkgname" LICENSE
+
+	install -Dm644 -t "$pkgdir"/usr/share/man/man1 man/*.1
+
+	install -Dm644 cog.bash \
+		"$pkgdir"/usr/share/bash-completion/completions/cog
+	install -Dm644 cog.fish \
+		"$pkgdir"/usr/share/fish/vendor_completions.d/cog.fish
+	install -Dm644 cog.bash \
+		"$pkgdir"/usr/share/zsh/site-functions/_cog
+}
+
+sha512sums="
+5e83f4be27affbf9d15f22d34e7d43522affd9cc5f5ae7436ce257ac734465190e4f1833747fe51876ae510bc04234579997c6348f9a74c4cddda37bc2adf40f  cocogitto-6.3.0.tar.gz
+d1ef6b3e11e845874318c24d8e281ed6526a0dbf1ad688f483d639867dbb0b56843d9b2d62271ad8efa5605fb12864498c57e425dc313fc5cbee84bea53db407  001-bump-libc.patch
+"

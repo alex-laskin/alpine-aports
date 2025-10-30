@@ -1,61 +1,100 @@
 # Contributor: Sören Tempel <soeren+alpinelinux@soeren-tempel.net>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=harfbuzz
-pkgver=1.7.6
+pkgver=11.3.2
 pkgrel=0
 pkgdesc="Text shaping library"
-url="http://freedesktop.org/wiki/Software/HarfBuzz"
+url="https://harfbuzz.github.io/"
 arch="all"
 license="MIT"
-depends=""
-# tests depend on certain freetype behaviours
-options="!check"
-makedepends="freetype-dev glib-dev gobject-introspection-dev cairo-dev icu-dev
-	graphite2-dev"
+makedepends="
+	cairo-dev
+	freetype-dev
+	glib-dev
+	gobject-introspection-dev
+	graphite2-dev
+	gtk-doc
+	icu-dev
+	meson
+	"
 checkdepends="python3"
-subpackages="$pkgname-dev $pkgname-icu"
-source="http://www.freedesktop.org/software/$pkgname/release/$pkgname-$pkgver.tar.bz2"
+subpackages="
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-cairo
+	$pkgname-doc
+	$pkgname-gobject
+	$pkgname-icu
+	$pkgname-subset
+	$pkgname-utils
+	"
+source="https://github.com/harfbuzz/harfbuzz/releases/download/$pkgver/harfbuzz-$pkgver.tar.xz"
 
-builddir="$srcdir/$pkgname-$pkgver"
+# secfixes:
+#   4.4.1-r0:
+#     - CVE-2022-33068
+
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--localstatedir=/var \
-		--disable-static \
-		--with-glib \
-		--with-gobject \
-		--with-graphite2 \
-		--with-icu \
-		--with-truetype
-	make
+	CFLAGS="$CFLAGS -O2 -flto=auto -ffat-lto-objects" \
+	CXXFLAGS="$CXXFLAGS -O2 -flto=auto -ffat-lto-objects" \
+	CPPFLAGS="$CPPFLAGS -O2 -flto=auto -ffat-lto-objects" \
+	abuild-meson \
+		--default-library=both \
+		-Dglib=enabled \
+		-Dgobject=enabled \
+		-Dgraphite=enabled \
+		-Dicu=enabled \
+		-Dfreetype=enabled \
+		-Dtests="$(want_check && echo enabled || echo disabled)" \
+		-Dcairo=enabled \
+		-Ddocs=enabled \
+		-Dintrospection=enabled \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-}
-
-dev() {
-	default_dev
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
 icu() {
 	pkgdesc="Harfbuzz ICU support library"
 	replaces="harfbuzz"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/lib*icu.so.* "$subpkgdir"/usr/lib/
+
+	amove usr/lib/lib*icu.so.*
 }
 
-sha512sums="259656574b1ec2916ada951b759a591f45c11c5c639fa29831e06320312bf951f4f5ef6306f9ffc373abf0d40dbf944db918d4c54aca3bd7eab2c3a886db7a68  harfbuzz-1.7.6.tar.bz2"
+gobject() {
+	pkgdesc="Harfbuzz gobject library"
+	amove usr/lib/lib*gobject.so.*
+}
+
+cairo() {
+	pkgdesc="Harfbuzz cairo library"
+	amove usr/lib/lib*cairo.so.*
+}
+
+subset() {
+	pkgdesc="Harfbuzz subset library"
+	amove usr/lib/lib*subset.so.*
+}
+
+utils() {
+	pkgdesc="$pkgdesc (utilities)"
+
+	amove usr/bin
+}
+
+dev() {
+	default_dev
+	provides="harfbuzz-bootstrap-dev"
+	provider_priority=2
+}
+
+sha512sums="
+d3ba37b55b04863e75f9af80839f0efe9baad2cde3c7334383e313e863bdc1532c8a6e00669ee8d8d6634e8066d0a66119c0a953df427694a1219d002e4644b5  harfbuzz-11.3.2.tar.xz
+"

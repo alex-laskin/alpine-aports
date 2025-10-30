@@ -1,61 +1,65 @@
 # Contributor: Ian Bashford <ianbashford@gmail.com>
-# Maintainer: Ian Bashford <ianbashford@gmail.com>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=dnscrypt-proxy
-pkgver=2.0.15
-pkgrel=0
-pkgdesc="A tool for securing communications between a client and a DNS resolver"
+pkgver=2.1.14
+pkgrel=2
+pkgdesc="Tool for securing communications between a client and a DNS resolver"
 url="https://dnscrypt.info"
 arch="all"
 license="ISC"
 depends="ca-certificates"
-makedepends="libcap go"
+makedepends="go"
 install="$pkgname.pre-install"
 pkgusers=dnscrypt
 pkggroups=dnscrypt
-subpackages="$pkgname-setup::noarch $pkgname-openrc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/jedisct1/$pkgname/archive/$pkgver.tar.gz
+subpackages="$pkgname-setup::noarch $pkgname-doc $pkgname-openrc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/DNSCrypt/dnscrypt-proxy/archive/$pkgver.tar.gz
 	$pkgname.initd
 	$pkgname.confd
 	$pkgname.setup
-	config-full-paths.patch
+	dnscrypt-proxy.toml
 	"
-builddir="$srcdir"/$pkgname-$pkgver
 options="!check"
 
-prepare() {
-	default_prepare
-	cd "$builddir"
-	export GOPATH=$(pwd)
-	ln -sf vendor src
-}
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
 
 build() {
-	cd "$builddir"/"$pkgname"
-	GOPATH="$builddir" go build -ldflags="-s -w" -v
+	go build -v -o output/ ./dnscrypt-proxy
 }
 
 package() {
-	cd "$builddir"/"$pkgname"
-	mkdir -p "$pkgdir"/etc/"$pkgname"
-	mkdir -p "$pkgdir"/var/log/"$pkgname"
-	mkdir -p "$pkgdir"/usr/share/"$pkgname"
-	install -m755 -D dnscrypt-proxy "$pkgdir"/usr/bin/dnscrypt-proxy
-	setcap cap_net_bind_service=+ep "$pkgdir"/usr/bin/dnscrypt-proxy
-	install -vDm 644 "dnscrypt-proxy.toml" "${pkgdir}/etc/${pkgname}/dnscrypt-proxy.toml"
-	install -m755 -D "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
-	install -m644 -D "$srcdir"/$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
-	for i in example-*;do install -m644 -D "$i" "$pkgdir"/usr/share/"$pkgname"/"$i"; done
+	install -dvm0755 -o $pkgusers -g $pkggroups \
+		"$pkgdir"/etc/$pkgname \
+		"$pkgdir"/usr/share/$pkgname \
+		"$pkgdir"/var/cache/$pkgname \
+		"$pkgdir"/var/log/$pkgname
+
+	install -Dvm0755 output/dnscrypt-proxy -t "$pkgdir"/usr/bin/
+	install -Dvm0644 "$srcdir"/dnscrypt-proxy.toml -t "$pkgdir"/etc/$pkgname/
+
+	install -Dvm0755 "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
+	install -Dvm0644 "$srcdir"/$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
+
+	install -Dvm0644 $pkgname/example-* -t "$pkgdir"/usr/share/doc/$pkgname/
+	install -Dvm0644 LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname/
+
+	install -Dvm0755 "$srcdir"/$pkgname.setup "$pkgdir"/usr/sbin/setup-dnscrypt
 }
 
 setup() {
 	pkgdesc="Script for setting up dnscrypt proxy"
-	depends="sed wget $pkgname"
+	depends="sed wget $pkgname=$pkgver-r$pkgrel"
 
-	install -m755 -D "$srcdir"/$pkgname.setup "$subpkgdir"/usr/sbin/setup-dnscrypt
+	amove usr/sbin/setup-dnscrypt
 }
 
-sha512sums="4517ab7b7eb1474f8c9e133a289caf6c02f472b51b910f1fbe1e5ffd6d389943626c8878e68f7f27a47b00301a427dfe9c563bc82b67cafab32f4ab3bc4c84b9  dnscrypt-proxy-2.0.15.tar.gz
-e0a72d39d47dc24b889d08beedbd9fdf21615f42fbab79980debdfd2c3feaa83dc3f776351f7dd13533cc85905ce4e01812e4ff8a80a9ccc0b21e9db7d6cb232  dnscrypt-proxy.initd
+sha512sums="
+e147e2a5f01f37219eb9756444684c954cdc90674d99900347c8aef6aea27d067e5e60429072e33681c0bb2d34536c252c6cb90277fca93aefe7c7931f7af5ad  dnscrypt-proxy-2.1.14.tar.gz
+a1bbcc63d3160e2101096cb06d714422ee85f7cf86a856b53437abb04f23995ac75b2a9d980c6c8e790bd5db350f1e2d6d39093705b0657020323179e5ff2076  dnscrypt-proxy.initd
 c001ae39da1b2db71764cab568f9ed18e4de0cea3d1a4e7bd6dd01a5668b81a888ea9eef99de6beac08857ad7f8eb1a32d730e946ac3563e4dcfa27147e35052  dnscrypt-proxy.confd
-66dd43d84117a0151ae41f34d82b716760382a5a491424bf6418228ffd21f0dfbc88e34cc5074e11f97f006335d97b85367bb9ab1d96747a48e893c022ad52d0  dnscrypt-proxy.setup
-0de69a4a32e50bc0c23c67fb314f30c5404d823e060d1fb88933d3e6aa8eabe8b93c452cd2994faa7482d9b135535326814eaf40a515f9b5d713fb4a86a0096c  config-full-paths.patch"
+1c2bd450b1d195bd11d3441017f269904b3eb8ee8ace419f11882679664840b47d32e20c56d190b06dc5d9bb4dea0bfadbc878dcb1272af391b225bae56ad1e7  dnscrypt-proxy.setup
+6df864de178ae2147baf1a79c7a7232e0daf75f9a9103f59580997036c47f7f4f9f35ee40afbdaeef77b3587c57e5a184893e6a707927f32c8c8fd233edd43f7  dnscrypt-proxy.toml
+"

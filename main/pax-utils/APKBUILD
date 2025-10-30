@@ -1,42 +1,64 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=pax-utils
-pkgver=1.2.3
-pkgrel=0
+pkgver=1.3.8
+pkgrel=2
 pkgdesc="ELF related utils for ELF 32/64 binaries"
 url="https://wiki.gentoo.org/wiki/Hardened/PaX_Utilities"
 arch="all"
-options="!check"  # Requires unpackaged dependencies
-license="GPL-2.0"
+license="GPL-2.0-only"
 depends="scanelf"
-makedepends_build=""
+makedepends_build="meson"
 makedepends_host="linux-headers libcap-dev"
-makedepends="$makedepends_build $makedepends_host"
-source="https://dev.gentoo.org/~slyfox/distfiles/pax-utils-$pkgver.tar.xz
-	fix-eitype.patch"
-subpackages="$pkgname-doc scanelf:_scanelf"
-builddir="$srcdir"/$pkgname-$pkgver
+checkdepends="bash python3 py3-elftools"
+subpackages="$pkgname-doc scanelf:_scanelf lddtreepax:_lddtreepax:noarch"
+[ -n "$BOOTSTRAP" ] && options="$options !check" # prevent python dependency
+source="https://dev.gentoo.org/~sam/distfiles/app-misc/pax-utils/pax-utils-$pkgver.tar.xz
+	unsigned.patch
+	"
 
 build() {
-	cd "$builddir"
-	make USE_CAP=yes
+	if [ -z "$BOOTSTRAP" ]; then
+		local lto="-Db_lto=true"
+	fi
+	abuild-meson \
+		$lto \
+		-Dlddtree_implementation=python \
+		-Duse_seccomp=false \
+		-Duse_libcap=enabled \
+		-Dtests="$(want_check && echo true || echo false)" \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir/" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 
 	# Don't conflict with main/lddtree
-	rm -f "$pkgdir"/usr/bin/lddtree
+	mv "$pkgdir"/usr/bin/lddtree "$pkgdir"/usr/bin/lddtreepax
 }
 
 _scanelf() {
+	depends=""
 	pkgdesc="Scan ELF binaries for stuff"
-	depends=
 	replaces="pax-utils"
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/scanelf "$subpkgdir"/usr/bin/
+
+	amove usr/bin/scanelf
 }
 
-sha512sums="efcbce49aa7e5cd433f9b3fbc8fa82f6d7b0eb80ec40aafde453d6fe96e3565e066e5020f04d71537d8d4e820147f4203c0df2dd330ebb1358a26def3dd5484c  pax-utils-1.2.3.tar.xz
-7150f162a64d9095fab4f73c4a0c531550e2286d6e09a686c62b3a692353b9e33a770ad196f647b5f26b5acafcdef05187dc9d40b40b46d508900dc3e33324a6  fix-eitype.patch"
+_lddtreepax() {
+	depends="python3 py3-elftools"
+	pkgdesc="Read and package ELF dependency trees"
+
+	amove usr/bin/lddtreepax
+}
+
+sha512sums="
+0dde95f86802729d80b7b38af84dec636e973f6abc70600633edcb05d3d5f95c1b2861300ce478dd7f798c7a1e5eccb1011c06c53adba38e11a996b69d463656  pax-utils-1.3.8.tar.xz
+6687f4aad61dfcfb16be9ececc123ce93adb8e87c52e7964594ac8f9a48d040882aae6cbcfcf41cbbec9ed893303aa70c6c682d4173933793019f15797bd24af  unsigned.patch
+"

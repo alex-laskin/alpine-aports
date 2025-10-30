@@ -1,0 +1,34 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=emacs-posframe
+pkgver=1.4.4
+pkgrel=0
+_pkgreal=posframe
+pkgdesc="Pop up a frame inside Emacs"
+url="https://github.com/tumashu/posframe"
+arch="noarch"
+license="GPL-3.0-or-later"
+depends="cmd:emacs"
+makedepends="emacs-nox"
+source="https://github.com/tumashu/posframe/archive/v$pkgver/emacs-posframe-$pkgver.tar.gz"
+builddir="$srcdir/$_pkgreal-$pkgver"
+options="!check" # no tests provided
+
+build() {
+	emacs -batch -q -no-site-file -L . \
+		-f batch-byte-compile \
+		./*.el
+}
+
+package() {
+	install -Dvm644 posframe.el posframe.elc \
+		-t "$pkgdir"/usr/share/emacs/site-lisp/
+
+	cd "$pkgdir"/usr/share/emacs/site-lisp
+	emacs -batch -q -no-site-file \
+		-eval "(loaddefs-generate \".\" \"$_pkgreal-loaddefs.el\")"
+}
+
+sha512sums="
+14b66186d62e5ff0ff1ed3ee1c7c82db139b5d392bd6d5dd8ee1edb3f5787e5be0cb364adee51d260924fa37d2ca291271e790b873f8f08a586e4bca8f5e77d0  emacs-posframe-1.4.4.tar.gz
+"

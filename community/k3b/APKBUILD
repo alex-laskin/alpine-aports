@@ -1,0 +1,75 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=k3b
+pkgver=25.08.1
+pkgrel=0
+# armhf blocked by qt6-qtdeclarative -> ki18n
+arch="all !armhf"
+url="https://kde.org/applications/multimedia/org.kde.k3b"
+pkgdesc="A full-featured CD/DVD/Blu-ray burning and ripping application"
+license="GPL-2.0-or-later AND GFDL-1.2-only"
+depends="
+	cdrdao
+	dvd+rw-tools
+	libburn
+	"
+makedepends="
+	extra-cmake-modules
+	flac-dev
+	karchive-dev
+	kcmutils-dev
+	kconfig-dev
+	kcoreaddons-dev
+	kdoctools-dev
+	kfilemetadata-dev
+	ki18n-dev
+	kiconthemes-dev
+	kio-dev
+	kjobwidgets-dev
+	knewstuff-dev
+	knotifications-dev
+	knotifyconfig-dev
+	kservice-dev
+	kwidgetsaddons-dev
+	kxmlgui-dev
+	lame-dev
+	libdvdread-dev
+	libkcddb-dev
+	libmad-dev
+	libsamplerate-dev
+	libvorbis-dev
+	qt6-qtbase-dev
+	samurai
+	shared-mime-info
+	solid-dev
+	taglib-dev
+	"
+subpackages="$pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/multimedia/k3b.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/k3b-$pkgver.tar.xz
+	ffmpeg8.patch"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DK3B_BUILD_MUSE_DECODER_PLUGIN=OFF \
+		-DK3B_BUILD_SNDFILE_DECODER_PLUGIN=OFF \
+		-DK3B_ENABLE_MUSICBRAINZ=OFF
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+2c4915cf52f01f751556645ef0ea04613d0381e4a8515f0ac931e06dcdb0259a234e407a8dae501ae4c56a100d683d99d30cd47cceeda9322bb4d3a5d8438e32  k3b-25.08.1.tar.xz
+75eb351c0bc715c49d96ccce3a845d208bba41360cb1a1f1d08098e4743fc8763a340aab2346272196ad0832849fdbf5ca8ca8c1287ad26570af2ce25b48c849  ffmpeg8.patch
+"

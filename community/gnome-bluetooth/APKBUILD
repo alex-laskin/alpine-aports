@@ -1,54 +1,48 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: team/gnome <pabloyoyoista@postmarketos.org>
 pkgname=gnome-bluetooth
-pkgver=3.26.1
+pkgver=47.1
 pkgrel=1
 pkgdesc="The GNOME Bluetooth Subsystem"
-url="http://live.gnome.org/GnomeBluetooth"
+url="https://gitlab.gnome.org/GNOME/gnome-bluetooth"
 arch="all"
-license="GPL LGPL"
-depends="hicolor-icon-theme bluez>=5"
-makedepends="intltool gobject-introspection-dev libunique-dev
-	libnotify-dev libxi-dev libxslt gnome-doc-utils
-	dbus-glib-dev gtk+3.0-dev itstool eudev-dev libcanberra-dev
-	meson"
+license="GPL-2.0-or-later AND LGPL-2.1-or-later"
+depends="
+	bluez>=5
+	obexd-enhanced
+	"
+makedepends="
+	eudev-dev
+	glib-dev
+	gobject-introspection-dev
+	gsound-dev
+	gtk4.0-dev
+	libadwaita-dev
+	libnotify-dev
+	meson
+	upower-dev
+	"
+checkdepends="py3-dbus py3-gobject3 py3-dbusmock"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-lang $pkgname-libs"
-source="https://download.gnome.org/sources/$pkgname/${pkgver%.*}/$pkgname-$pkgver.tar.xz
+source="https://download.gnome.org/sources/gnome-bluetooth/${pkgver%.*}/gnome-bluetooth-$pkgver.tar.xz
 	61-gnome-bluetooth-rfkill.rules"
-builddir="$srcdir"/$pkgname-$pkgver
-
-prepare() {
-	default_prepare
-	cd "$builddir"
-	mkdir -p build
-}
+options="!check" # "AssertionError: D-Bus socket never created" in all tests
 
 build() {
-	cd "$builddir"/build
-	meson \
-		--prefix=/usr \
-		--buildtype=release \
-		--sysconfdir=/etc ..
-	ninja
+	abuild-meson -Db_lto=true . output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"/build
-	ninja test
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"/build
-	DESTDIR="$pkgdir" ninja install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 	install -m644 -D "$srcdir/61-gnome-bluetooth-rfkill.rules" \
-		"$pkgdir/lib/udev/rules.d/61-gnome-bluetooth-rfkill.rules"
+		"$pkgdir/usr/lib/udev/rules.d/61-gnome-bluetooth-rfkill.rules"
 }
 
-libs() {
-	default_libs
-	replaces="gnome-bluetooth"
-	mkdir -p "$subpkgdir"/usr/share
-	mv "$pkgdir"/usr/share/icons "$subpkgdir"/usr/share/
-}
-
-sha512sums="a7e5a3243af467e17342f6810a9b3d2283310ceb25d00fd523032c7e58aecc0a3d537ac71cfee8c37ab87ede5a79e78797436b709232b0914b9cd35e71dfda87  gnome-bluetooth-3.26.1.tar.xz
-80b7fd0bc3e0f82c8d2d609ffed634200e63f61d9a134445df8e8511756b7fb423d338a1d12e42b91c57243097beaa3d4662856ec0507fb19a29b6de7ee9e4de  61-gnome-bluetooth-rfkill.rules"
+sha512sums="
+474f8687e8d1c1a10ce5690a8e7c57e6afd29d55c9777820fad3b6d21ec07bab4ac31ab0ea9dd7d9a0e93a60b933913f5a54df69dc7d348d95098cc289c2e6b4  gnome-bluetooth-47.1.tar.xz
+68ea6502a469d800e92d8984984cfddfa66e7bf8a0252d52a2338843d183680c84aa7ec6c4c7d14a250515b34b71d89364480c809743ba9e7ef30473b8ebb5a8  61-gnome-bluetooth-rfkill.rules
+"

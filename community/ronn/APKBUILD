@@ -2,34 +2,40 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 # Note: This project is basically dead, but it's still needed for some packages.
 pkgname=ronn
-_gemname=$pkgname
-pkgver=0.7.3
-pkgrel=1
+_gemname=$pkgname-ng
+pkgver=0.10.1
+pkgrel=0
 pkgdesc="Convert Markdown files to manpages"
-url="https://rtomayko.github.io/ronn/"
+url="https://github.com/apjanke/ronn-ng"
 arch="noarch"
 license="MIT"
-depends="groff ruby ruby-json ruby-hpricot ruby-mustache ruby-rdiscount"
-checkdepends="ruby-rake ruby-test-unit"
+depends="
+	groff
+	ruby
+	ruby-kramdown
+	ruby-kramdown-parser-gfm
+	ruby-mustache
+	ruby-nokogiri
+	"
+checkdepends="
+	ruby-rake
+	ruby-test-unit
+	"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/rtomayko/$pkgname/archive/$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://github.com/apjanke/$_gemname/archive/v$pkgver/$_gemname-$pkgver.tar.gz"
+builddir="$srcdir/$_gemname-$pkgver"
 
 build() {
-	cd "$builddir"
 	gem build $_gemname.gemspec
 }
 
 check() {
-	cd "$builddir"
 	rake test
 }
 
 package() {
 	local gemdir="$pkgdir/$(ruby -e 'puts Gem.default_dir')"
 	local geminstdir="$gemdir/gems/$_gemname-$pkgver"
-
-	cd "$builddir"
 
 	gem install --local \
 		--install-dir "$gemdir" \
@@ -43,14 +49,14 @@ package() {
 		"$pkgdir"/usr/share/man/man1/$pkgname.1
 	install -D -m 644 "$geminstdir"/man/$pkgname-format.7 \
 		"$pkgdir"/usr/share/man/man7/$pkgname-format.7
-	install -D -m 644 "$geminstdir"/COPYING \
-		"$pkgdir"/usr/share/licenses/$pkgname/COPYING
 
 	# Remove unnecessary files and rubbish...
 	cd "$gemdir"
-	rm -r cache build_info doc extensions
+	rm -r cache build_info doc extensions plugins
 	cd "$geminstdir"
-	rm -r test man Rakefile [A-Z][A-Z][A-Z]*
+	rm -r man Rakefile [A-Z][A-Z][A-Z]*
 }
 
-sha512sums="17ebc493a9943c193ef4e43254f1526c4c1346a09eeb0944ef4c0cd34a62e08c6ef5439c4736fa04e1d21370e175ced65a284b143a7a9675736f5b2c6915a594  ronn-0.7.3.tar.gz"
+sha512sums="
+3f6ee5355c7a19d5cb04c1b677028dd13ad2ff620acdb2e83d9b6f154a7b1e7b5a77ea0bcfbcef4bbb46a60b1c0fbc52fda079ff860c83a71f89b8fed0b83665  ronn-ng-0.10.1.tar.gz
+"

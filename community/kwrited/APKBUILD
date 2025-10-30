@@ -1,0 +1,46 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-plasma
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kwrited
+pkgver=6.5.1
+pkgrel=0
+pkgdesc="KDE daemon listening for wall and write messages"
+arch="all !armhf" # qt6-qtdeclarative-dev  unavilable on armhf
+url="https://kde.org/plasma-desktop/"
+license="GPL-2.0-or-later"
+makedepends="
+	extra-cmake-modules
+	kcoreaddons-dev
+	kdbusaddons-dev
+	ki18n-dev
+	knotifications-dev
+	kpty-dev
+	qt6-qtbase-dev
+	samurai
+	"
+
+case "$pkgver" in
+	*.*.9*) _rel=unstable;;
+	*) _rel=stable;;
+esac
+
+_repo_url="https://invent.kde.org/plasma/kwrited.git"
+source="https://download.kde.org/$_rel/plasma/$pkgver/kwrited-$pkgver.tar.xz"
+# No tests available
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+dd830f01a8d72f2bc193ea7f379979a04dac18a819d83d8063d25faa3f24d023dcd24986ff6ebc319c54aed27153b0e7df0c4b2f8b254c1828852acafe768ae6  kwrited-6.5.1.tar.xz
+"

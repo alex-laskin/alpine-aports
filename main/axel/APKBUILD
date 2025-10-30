@@ -1,21 +1,22 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=axel
-pkgver=2.16.1
+pkgver=2.17.14
 pkgrel=1
 pkgdesc="A multiple-connection concurrent downloader"
 url="https://github.com/axel-download-accelerator/axel"
 arch="all"
 options="!check" # has no checks
-license="GPL-2.0-or-later"
-makedepends="libressl-dev"
+license="GPL-2.0-or-later WITH OpenSSL-Exception"
+makedepends="openssl-dev>3"
 subpackages="$pkgname-doc"
-source="$url/releases/download/v$pkgver/axel-$pkgver.tar.xz"
+source="https://github.com/axel-download-accelerator/axel/releases/download/v$pkgver/axel-$pkgver.tar.xz"
 
-builddir="$srcdir/$pkgname-$pkgver"
+# secfixes:
+#   2.17.8-r0:
+#     - CVE-2020-13614
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -28,8 +29,9 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="a263b6926acb6acf16353d0d02464d48ad89c18dd3328b84273c26cdb23cb7323084a8204a5c6ad163ad5352136cb1709c6734d4fec9bc1c514174dbbb3c5dab  axel-2.16.1.tar.xz"
+sha512sums="
+73ea499f581d9411197269fc96d7eeed83dcdb7470aba2ef93db0a1032689bfb66e03a194e9ae5191477ca86cc772d204c6672233009cf210b9ebb3ae29bc9c0  axel-2.17.14.tar.xz
+"

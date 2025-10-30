@@ -28,87 +28,92 @@
 #   (shown below with the assignment of CLOUDI_PID_FILE).
 
 pkgname=cloudi
-pkgver=1.7.3
-pkgrel=3
+pkgver=2.0.7
+pkgrel=24
 pkgdesc="Cloud computing framework for efficient, scalable, and stable soft-realtime event processing."
 url="https://cloudi.org/"
 license="MIT"
+# Erlang/OTP and CloudI should both support loongarch64
 arch="all"
-depends="erlang
-         g++"
+depends="
+	erlang
+	g++"
 makedepends="autoconf
-             automake
-             binutils-dev
-             boost-dev
-             boost-system
-             boost-thread
-             erlang-asn1
-             erlang-common-test
-             erlang-crypto
-             erlang-dev
-             erlang-erl-interface
-             erlang-eunit
-             erlang-inets
-             erlang-jinterface
-             erlang-public-key
-             erlang-reltool
-             erlang-sasl
-             erlang-snmp
-             erlang-ssl
-             erlang-syntax-tools
-             erlang-tools
-             erlang-xmerl
-             gmp-dev
-             go
-             libexecinfo-dev
-             libtool
-             nodejs
-             openjdk8
-             perl
-             php7
-             python3
-             python3-dev
-             ruby
-             "
-install=""
-subpackages=""
-source="https://osdn.net/dl/$pkgname/$pkgname-$pkgver.tar.gz
-        0005-Disable-tests-for-aports-buildservers.patch
-        $pkgname.initd"
+	automake
+	binutils-dev
+	boost-dev
+	erlang-dev
+	erlang-reltool
+	gmp-dev
+	go
+	libseccomp-dev
+	libtool
+	linux-headers
+	nodejs
+	perl
+	php
+	python3-dev
+	ruby
+	rust
+	"
+# LXC build containers need limits.cpu config to create CPU quota
+# that is detected by Erlang/OTP for creating its schedulers
+options="!check"
+subpackages="$pkgname-static $pkgname-openrc"
+source="https://cloudi.org/download/cloudi-$pkgver.tar.gz
+	$pkgname.initd
+	format_status.patch
+	"
 builddir="$srcdir/cloudi-$pkgver/src"
+patch_args="-p2"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
 
 # configure additional dependencies based on the package architecture
-CONFIGURE_ARGS=""
+
 # Enable Haskell on the appropriate architectures
-case "$CTARGET_ARCH" in
-x86_64)
-	# Haskell is available on armhf though the compilation of the
-	# external Haskell dependencies fails with a gcc linker error
-	# (commit a55ed2043ebe1432fe30400d2aee3b080da32062)
-	makedepends="$makedepends ghc cabal zlib-dev"
-	CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-haskell-support"
-	;;
+case "$CARCH" in
+	x86_64)
+		makedepends="$makedepends ghc libffi-dev zlib-dev"
+		_configure_args="$_configure_args --enable-haskell-support"
+		;;
+esac
+# Disable Java on architectures that lack OpenJDK
+case "$CARCH" in
+	x86|armhf|armv7|x86_64|aarch64|ppc64le|s390x)
+		# The oldest version of OpenJDK available as an Alpine Linux
+		# port is used to avoid blocking the use of the
+		# Java CloudI API with older Java dependencies
+		# (the Java CloudI API maven package can be used separately,
+		#  if necessary, https://github.com/CloudI/cloudi_api_java).
+		makedepends="$makedepends openjdk8"
+		export PATH="/usr/lib/jvm/java-1.8-openjdk/bin:$PATH"
+		;;
+	*)
+		_configure_args="$_configure_args --disable-java-support"
+		;;
 esac
 # Enable OCaml on the appropriate architectures
-case "$CTARGET_ARCH" in
-x86 | armhf | s390x)
-	;;
-*)
-	makedepends="$makedepends ocaml"
-	CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-ocaml-support"
-	;;
+case "$CARCH" in
+	riscv*)
+		;;
+	loongarch*)
+		;;
+	*)
+		makedepends="$makedepends ocaml ocaml-compiler-libs"
+		_configure_args="$_configure_args --enable-ocaml-support"
+		;;
 esac
 
 prepare() {
-	cd "$builddir"
 	default_prepare
 	./autogen.sh
 }
 
 build() {
-	cd "$builddir"
-	export PATH="/usr/lib/jvm/java-1.8-openjdk/bin:$PATH"
-	LIBS="-lexecinfo" CLOUDI_PID_FILE="/run/cloudi.pid" ./configure \
+	PHP="/usr/bin/php8" CLOUDI_PID_FILE="/run/cloudi.pid" ./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
 		--localstatedir=/var \
@@ -117,24 +122,24 @@ build() {
 		--infodir=/usr/share/info \
 		--host="$CHOST" \
 		--build="$CBUILD" \
-		--with-cxx-backtrace \
-		--with-python-version=3 \
-		--enable-go-support $CONFIGURE_ARGS
+		--with-test-timeout=container \
+		--enable-go-support \
+		--enable-rust-support $_configure_args
 	make
 }
 
 check() {
-	cd "$builddir"
 	make ct
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	install -m755 -D "$srcdir"/$pkgname.initd \
 		"$pkgdir"/etc/init.d/$pkgname
 }
 
-sha512sums="4a254983c45f12c0eb8cde6f9b4953219ce1e52abc3262d1703d28f2b1a2d1cc8eb9a2beae5e9e52b14d17704ab239948f895681bd4ac38e677a8bb025afc053  cloudi-1.7.3.tar.gz
-b2ef0cf07e207cbe62a34edb69ac4700bd5a75d9924e6597595e69f0988772d833d6af882cfa40278c9efe4b042da2952f9b7276b3c80c4b015b0c1490782b59  0005-Disable-tests-for-aports-buildservers.patch
-053f860f656617012208a0e1909e43b2f8979d381a90d3fa5a745a9cf5021fe54556a641fef2badaa9955f2394d00e32183389cb9b501169dcbf8cbe4fbb0329  cloudi.initd"
+sha512sums="
+1ab46b698d19ea96ae151dfbf332b11ea523178eea039fcab85b4316cc1934fc0867550d0028cbb177839ac82a45bd96b98905cfbe69e1e3913dca7cca01d8e7  cloudi-2.0.7.tar.gz
+053f860f656617012208a0e1909e43b2f8979d381a90d3fa5a745a9cf5021fe54556a641fef2badaa9955f2394d00e32183389cb9b501169dcbf8cbe4fbb0329  cloudi.initd
+afba4eb5a1ddd81ad2da300a67ad64a596ccb935de70b8dbedc33c7747ec3f124acb9c91e6df2b94d6bfa9b7a6d5533948469f4ef8188c1611e3812f13525f65  format_status.patch
+"

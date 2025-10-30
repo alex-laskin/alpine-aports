@@ -1,43 +1,25 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=strace
-pkgver=4.22
+pkgver=6.17
 pkgrel=0
-pkgdesc="A useful diagnositic, instructional, and debugging tool"
-url="https://strace.io/"
+pkgdesc="Diagnostic, debugging and instructional userspace tracer"
+url="https://strace.io"
 arch="all"
-# disable checks for now, due to testsuite failure
+# checks fail on CI
 options="!check"
 license="BSD-3-Clause"
-depends=""
-makedepends="linux-headers autoconf automake gawk"
-subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/strace/$pkgname/archive/v$pkgver.tar.gz
-	disable-fortify.patch
-	fix-ppc-pt-regs-collision.patch
+# strace with libunwind doesn't work right on musl
+makedepends="binutils-dev elfutils-dev gawk linux-headers"
+subpackages="$pkgname-doc $pkgname-dbg"
+source="https://github.com/strace/strace/releases/download/v$pkgver/strace-$pkgver.tar.xz
+	off64.patch
+	busybox.patch
+	tv_usec.patch
 	nlattr-fix.patch
 	"
 
-builddir="$srcdir/$pkgname-$pkgver"
-
 build() {
-	cd "$builddir"
-	case "$CLIBC" in
-	musl) export CFLAGS="$CFLAGS -Dsigcontext_struct=sigcontext" ;;
-	esac
-
-	case "$CARCH" in
-	s390x)
-		# __SIGNAL_FRAMESIZE is defined in asm/sigcontext.h
-		# but including it would make conflict with struct sigcontext
-		# since we compile with it in musl.
-		# Temporarily add this until musl upstream has a proper fix
-		# for struct sigcontext.
-		export CFLAGS="$CFLAGS -D__SIGNAL_FRAMESIZE=160"
-		;;
-	esac
-
-	./bootstrap
-
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -46,20 +28,26 @@ build() {
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
 		--enable-mpers=no
+	# FIXME don't use bundled kernel headers
+	#	--enable-bundled=no
 	make
 }
 
 check() {
-	cd "$builddir"
-	make check
+	make check || {
+		cat tests/test-suite.log
+		return 1
+	}
 }
 
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="9d382531ff5f99f972b1f6ae7f1a07094bf7bbf9806335eb6a6c1df5ab9704b09ef415ff9e7b66c82071e87c7de09b05e0885c1dab8433f48db77b3b879fe75e  strace-4.22.tar.gz
-273b92ebf0069f19bef7ec26c7860e2af7ef01e782255c70ded1ae5e967f8f6bf031ecba96612c6083bf58f46278ba4ab3ec0fb35b08c8c8d668191f97adee52  disable-fortify.patch
-b70cee89dd49a2b5a69dc2a56c3a11169d3306e1a73981155188b574486965c034aa52b4ac1c6edff5ef55c9d52f27750acb242fac095a8a9f69689b51b3fad1  fix-ppc-pt-regs-collision.patch
-44b1872cf996caa4970fa6c2875a3a2cffe4a38455e328d968bd7855ef9a05cf41190794dc137bc8667576635f5271057cf0e6cde9a6c7aee66afd1dba9bdba0  nlattr-fix.patch"
+sha512sums="
+05788501420c6dc29cfa9b974c96ade4db0830e80636538fdb7c8306a8821c59a45781a3dac9fd0e8f2e0fb0710ab2c80c5d96b6d37522fb917e51815f8c88de  strace-6.17.tar.xz
+b2e7a5cedfef8128e5a3d9aed8fce606936e70a7d574196bd8ad797966be3b1eac6f3390d7a59f28d349d35e7f5abe6591a28749ec1f063a2133f138ff9c656c  off64.patch
+118c28e1adcfc9f69537c1ed47a42676aac4014fc63b2f5b7415d981c7ab1ada9add9d80bee617042a48f234d379ac2448cf4d6898dfd537b950ef6b58255dfb  busybox.patch
+84c345cb04a68b96487f9cfc0c31243d22eab6e83dbee79b749d165b81489671b5701ae2cb8da0d93f5dd6cf2c2402693336869ad671d991870baaab9a99a6a1  tv_usec.patch
+44b1872cf996caa4970fa6c2875a3a2cffe4a38455e328d968bd7855ef9a05cf41190794dc137bc8667576635f5271057cf0e6cde9a6c7aee66afd1dba9bdba0  nlattr-fix.patch
+"

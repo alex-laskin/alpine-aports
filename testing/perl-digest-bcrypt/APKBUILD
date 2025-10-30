@@ -3,46 +3,40 @@
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=perl-digest-bcrypt
 _pkgreal=Digest-Bcrypt
-pkgver=1.209
-pkgrel=0
+pkgver=1.212
+pkgrel=1
 pkgdesc="Perl interface to the bcrypt digest algorithm"
-url="http://search.cpan.org/dist/Digest-Bcrypt/"
+url="https://metacpan.org/release/Digest-Bcrypt"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends="perl-crypt-eksblowfish"
-cpanmakedepends=""
-cpancheckdepends="perl-try-tiny"
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
-checkdepends="$cpancheckdepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl perl-crypt-eksblowfish"
+checkdepends="perl-try-tiny perl-crypt-bcrypt"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/C/CA/CAPOEIRAB/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/C/CA/CAPOEIRAB/$_pkgreal-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
-	default_prepare || return 1
+	default_prepare
 
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
 check() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make test
 }
 
-sha512sums="d7e837c2cbcf7fe8713481cb6156b9ac1b4cd5922df82de2b68f0b087ceba5155c945d05086f859524510c1281e911eb8e26e3b315ec883b0cb7c11c06400eb7  Digest-Bcrypt-1.209.tar.gz"
+sha512sums="
+d2bf23d0eefda35d152c4ec5336032e585897fd69a95766832933dada2d131778d751c65845034b028c8224bef3abbfe0df1a725f0c702d94913c029958edcd1  Digest-Bcrypt-1.212.tar.gz
+"

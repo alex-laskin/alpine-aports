@@ -1,33 +1,50 @@
 # Contributor: Jeremy Thomerson <jeremy@thomersonfamily.com>
 # Maintainer: Jeremy Thomerson <jeremy@thomersonfamily.com>
 pkgname=rdiff-backup
-# Note: Do not update to 1.3.3, it's development/unstable version! #6458
-pkgver=1.2.8
-pkgrel=2
-pkgdesc="A backup utility that maintains extra reverse diffs so that files can be restored from previous backups"
-url="https://www.gnu.org/savannah-checkouts/non-gnu/rdiff-backup/"
+pkgver=2.2.6
+pkgrel=1
+pkgdesc="Reverse differential backup tool"
+# Requires unpackaged 'xattr'
+options="!check"
+url="https://rdiff-backup.net/"
 arch="all"
 license="GPL-2.0-or-later"
-depends=""
-makedepends="librsync-dev python2-dev"
-subpackages="$pkgname-doc"
-source="http://savannah.nongnu.org/download/rdiff-backup/$pkgname-$pkgver.tar.gz
-	rdiff-backup-1.2.8-librsync-1.0.0.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+depends="python3 py3-yaml"
+makedepends="
+	librsync-dev
+	python3-dev
+	py3-gpep517
+	py3-setuptools
+	py3-wheel
+	"
+subpackages="
+	$pkgname-pyc
+	$pkgname-doc
+	$pkgname-bash-completion
+	"
+source="https://github.com/rdiff-backup/rdiff-backup/releases/download/v$pkgver/rdiff-backup-$pkgver.tar.gz
+	0002-remove-setuptools_scm.patch
+	0003-fix-version.patch
+	"
+
+prepare() {
+	default_prepare
+	sed -e "s/%%PKGVER%%/$pkgver/" \
+		-i setup.cfg
+}
 
 build() {
-	cd "$builddir"
-	python2 setup.py build || return 1
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
 }
 
 package() {
-	cd "$builddir"
-	python2 setup.py install --prefix=/usr --root="$pkgdir" || return 1
+	python3 -m installer -d "$pkgdir" .dist/*.whl
 }
 
-md5sums="1a94dc537fcf74d6a3a80bd27808e77b  rdiff-backup-1.2.8.tar.gz
-5e54a67845edd6942fcf7359c921e003  rdiff-backup-1.2.8-librsync-1.0.0.patch"
-sha256sums="0d91a85b40949116fa8aaf15da165c34a2d15449b3cbe01c8026391310ac95db  rdiff-backup-1.2.8.tar.gz
-a00d993d5ffea32d58a73078fa20c90c1c1c6daa0587690cec0e3da43877bf12  rdiff-backup-1.2.8-librsync-1.0.0.patch"
-sha512sums="4230bdfca7fc2a5ffd7bdc92ca899cde3276042115b4f488255a201e6ea361eab4ce4ebaae15841c357f189e1c88ad037e2727dec0a05c61b1c6016fa807739c  rdiff-backup-1.2.8.tar.gz
-641894eb2527c0031d420345e8dfd4d7a0e18dc656feabf70c7200d04ea5eb533d5cd06bbaa46721a03578e2f373e0ed64643edb4edffc7f85e813d1c2812055  rdiff-backup-1.2.8-librsync-1.0.0.patch"
+sha512sums="
+7370dcbb71f087252f8c599b0fbf58260ec7e026e023648bfab63c39b062120862ab8b60173e2bf2352e16d404bb561c72fe19aa9aed9d49cff56225b91f5c63  rdiff-backup-2.2.6.tar.gz
+01014af9e1c562398b153900fe2db3e429408ce75dd72211121277d3f1b9133416f4ed4adedfe9d1da0a26fdb12c6c59f152cb02a717bf96bf61c64ef25f8586  0002-remove-setuptools_scm.patch
+236314c5d51d600abbfb55f084b47e0d60e3182be69803bb0abeff50e0d8750ab29b603abbf39b1a6aa94fe7a6593e121abb330bb8a348fcc27c7a0c3f4bed0b  0003-fix-version.patch
+"

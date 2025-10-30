@@ -1,53 +1,28 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=pingu
-pkgver=1.5
-pkgrel=1
+pkgver=1.5.1
+pkgrel=0
 pkgdesc="Small daemon that pings hosts and executes a script when status change"
-url="https://git.alpinelinux.org/cgit/pingu"
+url="https://github.com/ncopa/pingu"
 arch="all"
 license="GPL"
 makedepends="libev-dev lua-dev asciidoc linux-headers"
-depends=
-subpackages="$pkgname-doc lua-pingu:_lua mtu"
+subpackages="$pkgname-doc $pkgname-openrc lua-pingu:_lua mtu"
+options="!check"
 source="pingu-$pkgver.tar.gz::https://github.com/ncopa/pingu/archive/v$pkgver.tar.gz
 	pingu.initd
 	"
 
-_builddir="$srcdir"/$pkgname-$pkgver
-
-prepare() {
-	cd "$_builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-}
-
 build() {
-	cd "$_builddir"
 	./configure \
 		--prefix=/usr \
 		--localstatedir=/var \
 		--sysconfdir=/etc \
-		--with-luapc=lua \
-		|| return 1
-	make || return 1
-}
-
-prepare() {
-        local i
-        cd "$_builddir"
-        for i in $source; do
-                case $i in
-                *.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-                esac
-	done
+		--with-luapc=lua
+	make
 }
 
 package() {
-	cd "$_builddir"
 	make DESTDIR="$pkgdir" install
 	install -m644 -D pingu.conf "$pkgdir"/etc/pingu/pingu.conf
 	install -m755 -D "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
@@ -55,19 +30,15 @@ package() {
 
 mtu() {
 	pkgdesc="Utility to detect MTU"
-	mkdir -p "$subpkgdir"/usr
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+	amove usr/bin
 }
 
 _lua() {
 	pkgdesc="lua module for pingu client"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib "$pkgdir"/usr/share "$subpkgdir"/usr/
+	amove usr/lib usr/share
 }
 
-md5sums="3454ef7723e446d917c389c0615c62b4  pingu-1.5.tar.gz
-dd46546d05395893a1624e467b04b1d4  pingu.initd"
-sha256sums="1caaef8765e7bd6950be8109a58187ad529237eec89742d923c1888f4c2a9f6d  pingu-1.5.tar.gz
-1d4388e96a257c0bc01a585df36c0e6bc6c1ba53c9bb0b67290eaff7e8a6d1b3  pingu.initd"
-sha512sums="71e5fbe93f831f24d168957cdeaff2817a22f407575316d6515755bec760d10724821070549eaab562924237b96976a1a776ca903d5fe0cd9f9b69a38eadd8c9  pingu-1.5.tar.gz
-93859ab4e84d07c776915045b3fe533de551c55465dab4aa283f5606c0e8a439875f91e0e1db419bc97b01f7e4c4b0f5d434885edcf9ad77e6f65f6f27715de8  pingu.initd"
+sha512sums="
+1ec50ad5a1cb7318dc6ffb8ab8454f85dda9d31ea13503eaf001109b7255b6e93e165769e9b3c7fd95f2449f079e107f81a974b148b6f00f50f13ee8124d92fb  pingu-1.5.1.tar.gz
+b8df9b7bec561e234a2f74514a3513ceac222477f28b9306f40aed6398f65b4e2ce84dfbbf95c0ffaedd526c4283739bf88248d699bbf7d9dac7e27e5cc5a62b  pingu.initd
+"

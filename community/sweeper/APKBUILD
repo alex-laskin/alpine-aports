@@ -1,0 +1,49 @@
+# Contributor: Bart Ribbers <bribbers@disroot.org>
+
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=sweeper
+pkgver=25.08.1
+pkgrel=0
+# armhf blocked by extra-cmake-modules
+arch="all !armhf"
+url="https://kde.org/applications/utilities/org.kde.sweeper"
+pkgdesc="System cleaner to help clean unwanted traces the user leaves on the system"
+license="LGPL-2.1-or-later"
+makedepends="
+	extra-cmake-modules
+	kbookmarks-dev
+	kconfig-dev
+	kconfigwidgets-dev
+	kcoreaddons-dev
+	kcrash-dev
+	kdoctools-dev
+	ki18n-dev
+	kio-dev
+	ktextwidgets-dev
+	kxmlgui-dev
+	plasma-activities-stats-dev
+	qt6-qtbase-dev
+	samurai
+	"
+subpackages="$pkgname-lang"
+_repo_url="https://invent.kde.org/utilities/sweeper.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/sweeper-$pkgver.tar.xz"
+options="!check" # No tests
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+eee5718fac64b344bd54a188b52b0f467775c88d299eab18b44558f2075fd18b61c4d18f74587460c57f7ddc5f960db3e7ca6b6e8f281dec78d65d71127b5508  sweeper-25.08.1.tar.xz
+"

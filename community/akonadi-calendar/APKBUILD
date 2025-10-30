@@ -1,0 +1,57 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=akonadi-calendar
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="Akonadi calendar integration"
+# armhf, x86 ppc64le, s390x and riscv64 blocked by kmailtransport -> qt6-qtwebengine
+arch="all !armhf !x86 !ppc64le !s390x !riscv64"
+url="https://community.kde.org/KDE_PIM"
+license="LGPL-2.0-or-later"
+depends_dev="
+	akonadi-contacts-dev
+	akonadi-dev
+	kcalendarcore-dev
+	kcalutils-dev
+	kcodecs-dev
+	kdbusaddons-dev
+	ki18n-dev
+	kiconthemes-dev
+	kidentitymanagement-dev
+	kio-dev
+	kmailtransport-dev
+	kwidgetsaddons-dev
+	kxmlgui-dev
+	messagelib-dev
+	"
+makedepends="$depends_dev
+	extra-cmake-modules
+	samurai
+	"
+checkdepends="xwayland-run"
+subpackages="$pkgname-dev $pkgname-lang"
+_repo_url="https://invent.kde.org/pim/akonadi-calendar.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/akonadi-calendar-$pkgver.tar.xz"
+options="!check" # no tests
+
+replaces="kalendar>1.0.0"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	wlheadless-run -- ctest --test-dir build -E "kcalcoreserializertest"
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+sha512sums="
+a90c74fd9588a51516e7d5788d62cf8e9b8035bd582d40d7a479adc7339d3e719e80d7066cc35031a85c468df7241055333b8109e19b2442831e0bf57339c494  akonadi-calendar-25.08.1.tar.xz
+"

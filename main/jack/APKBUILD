@@ -1,68 +1,58 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=jack
-_realname=jack2
-pkgver=1.9.10
-pkgrel=5
+pkgver=1.9.22
+pkgrel=4
 pkgdesc="The Jack Audio Connection Kit"
-url="http://www.jackaudio.org"
+url="https://jackaudio.org/"
 arch="all"
-license="GPL-2.0 GPL-2.0-or-later LGPL-2.0-or-later"
-depends=""
-depends_dev=""
-makedepends="$depends_dev alsa-lib-dev dbus-dev expat-dev libsamplerate-dev
-	libsndfile-dev ncurses-dev readline-dev python2"
-install=""
-subpackages="$pkgname-dev $pkgname-doc $pkgname-dbus $pkgname-example-clients:_clients"
-source="$pkgname-$pkgver.tar.gz::https://github.com/jackaudio/jack2/archive/v${pkgver}.tar.gz
-	fix-execinfo.patch
-	jack-gcc6.patch
+license="GPL-2.0-or-later"
+depends_dev="$pkgname=$pkgver-r$pkgrel"
+makedepends="
+	alsa-lib-dev
+	dbus-dev
+	expat-dev
+	libsamplerate-dev
+	libsndfile-dev
+	linux-headers
+	ncurses-dev
+	python3
+	readline-dev
 	"
-
-_builddir="$srcdir"/$_realname-$pkgver
-prepare() {
-	local i
-	cd "$_builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-	sed -i -e '1s:#!/bin/bash:!#/bin/sh:' svnversion_regenerate.sh
-}
+subpackages="$pkgname-dev $pkgname-doc $pkgname-dbus"
+source="https://github.com/jackaudio/jack2/archive/v$pkgver/jack2-v$pkgver.tar.gz
+	fix-execinfo.patch
+	increase-api-version.patch
+	importlib.patch
+	"
+builddir="$srcdir/jack2-$pkgver"
+options="!check" # no real tests provided
 
 build() {
-	cd "$_builddir"
 	./waf configure \
-		-j1 \
 		--prefix=/usr \
 		--mandir=/usr/share/man/man1 \
 		--libdir=/usr/lib \
 		--dbus \
 		--alsa \
-		--classic \
-		|| return 1
+		--classic
 
-	./waf build -j${JOBS:-2} -v || return 1
+	./waf build -v
 }
 
 package() {
-	cd "$_builddir"
-	./waf --destdir="$pkgdir" install || return 1
+	./waf --destdir="$pkgdir" install
 }
 
 dbus() {
 	pkgdesc="Jack D-Bus launcher"
-	mkdir -p "$subpkgdir"/usr/bin "$subpkgdir"/usr/share
-	mv "$pkgdir"/usr/bin/jackdbus "$subpkgdir"/usr/bin/ || return 1
-	mv "$pkgdir"/usr/share/dbus* "$subpkgdir"/usr/share/|| return 1
+
+	amove usr/bin/jackdbus
+	amove usr/share/dbus*
 }
 
-_clients() {
-	pkgdesc="Example clients that use Jack"
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/*_* "$subpkgdir"/usr/bin/
-}
-
-sha512sums="0bee815356e9e572224e7cc484c402f38797d70257c4bc79a47552ae30a25a4600c61f712a73cbbede52cd8cb8dc144c9334e28c10e23354a11b7223ee0bb0ca  jack-1.9.10.tar.gz
+sha512sums="
+d93cb2bcc57b72b6815eed143de1092d14fe22542ae9a1f8480d9ed5f44b59c50f81279d18bdd84ff6276ddd71ca1aa64a1e46d61199a5eda0d873a356194ab4  jack2-v1.9.22.tar.gz
 b5abec7e67485d1c13f399b5961539177dd35d21c5dd95e0aa767adb0f5b1e588e9ca2f9b29cc4d66fc039311ff7eacc4cf21f6700ef0a2c8de99b63cb00f84d  fix-execinfo.patch
-31bc3451c9df0700632d1d29fe22da072f8e195cc3bcfef847867dda3d54e6636b3557b10e623a126f614e6b4b5250d02f5cfbda6b57dd341fe6b09319121675  jack-gcc6.patch"
+1ee0159ea0f75f964baa167fe13031fe82e04b31a1b14122c12161d103e1a3205061fc019bcd978f47eed6efc8ea6ee96188c0eb795e3d83f34481e193086fbe  increase-api-version.patch
+94fac61b17c3d4eef2bd29a86f6bdc042c0b8e770fc11abef95fe2ede3b0f3582e3a9ea9583e66ddd38ba8c77e04c6f2a13ae83224a8f3fe19eac994de37b800  importlib.patch
+"

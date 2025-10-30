@@ -1,43 +1,46 @@
-# Maintainer: TBK <alpine@jjtc.eu>
+# Contributor: TBK <alpine@jjtc.eu>
 # Contributor: Bartłomiej Piotrowski <bpiotrowski@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=libatomic_ops
-pkgver=7.6.4
+pkgver=7.8.4
 pkgrel=0
 pkgdesc="Semi-portable access to hardware provided atomic memory operations"
 arch="all"
-url="https://github.com/ivmai/libatomic_ops"
-license="GPL-2.0-or-later MIT"
-makedepends=""
-subpackages="$pkgname-dev $pkgname-doc"
-source="$url/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/"$pkgname-$pkgver
-
-case "$CARCH" in
-s390x) options="!check" ;; # FIXME
-esac
+url="https://github.com/bdwgc/libatomic_ops"
+license="GPL-2.0-or-later AND MIT AND Boehm-GC"
+makedepends="cmake samurai"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc"
+source="https://github.com/bdwgc/libatomic_ops/releases/download/v$pkgver/libatomic_ops-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var \
-		--enable-shared \
-		--disable-static
-	make
+	CFLAGS="${CFLAGS//-Os/-O2} -flto=auto" \
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=ON \
+		-Dbuild_tests="$(want_check && echo ON || echo OFF)"
+	cmake --build build
+
+	cmake -B build-static -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=OFF \
+		-Dbuild_tests=OFF
+	cmake --build build-static
 }
 
 check() {
-	cd "$builddir"
-	make check
+	ctest --test-dir build
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build-static
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-sha512sums="2e6ef0bfd4b77e9260383feb2865c96388fb1ebed9d37605eeb83ac87e3b6a565495d588808129ac7b3ee5f6a58a37440da7784b680cc6590842b09c2625983b  libatomic_ops-7.6.4.tar.gz"
+sha512sums="
+5f77a520cecc31fe9baf4d3a61beac79dba317e7b149464a945db3389c4a94b45fdb52f105d838409b1cbd64b5c3ae0e29acf81df5606a6f49ee8a366673091a  libatomic_ops-7.8.4.tar.gz
+"

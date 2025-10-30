@@ -1,0 +1,37 @@
+# Maintainer: Andy Postnikov <apostnikov@gmail.com>
+pkgname=php84-pecl-solr
+_extname=solr
+pkgver=2.8.1
+pkgrel=0
+pkgdesc="An extremely fast, light-weight, feature-rich PHP 8.4 extension to communicate with Apache Solr - PECL"
+url="https://pecl.php.net/package/solr"
+arch="all"
+license="PHP-3.01"
+_phpv=84
+_php=php$_phpv
+depends="$_php-common"
+makedepends="$_php-dev curl-dev libxml2-dev"
+source="php-pecl-$_extname-$pkgver.tar.gz::https://pecl.php.net/get/$_extname-$pkgver.tgz"
+builddir="$srcdir"/$_extname-$pkgver
+
+build() {
+	phpize$_phpv
+	./configure --prefix=/usr --with-php-config=/usr/bin/php-config$_phpv
+	make
+}
+
+check() {
+	make NO_INTERACTION=1 REPORT_EXIT_STATUS=1 test TESTS=--show-diff
+	$_php -d extension=modules/$_extname.so --ri $_extname
+}
+
+package() {
+	make INSTALL_ROOT="$pkgdir" install
+	local _confdir="$pkgdir"/etc/$_php/conf.d
+	install -d $_confdir
+	echo "extension=$_extname" > $_confdir/$_extname.ini
+}
+
+sha512sums="
+1f6cc7a174764d38e795fc28fb3dd4bc4accf935306d9b38ff50bb38b98b9e69f1d6c59ce75d3e029b6adc37cebd61cc4671eb3ac019cb648da929862de36678  php-pecl-solr-2.8.1.tar.gz
+"

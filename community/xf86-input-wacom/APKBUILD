@@ -1,0 +1,47 @@
+# Contributor: Ivan Tham <pickfire@riseup.net>
+# Maintainer: Bart Ribbers <bribbers@disroot.org>
+pkgname=xf86-input-wacom
+pkgver=1.2.3
+pkgrel=0
+pkgdesc="X.org Wacom tablet input driver"
+url="https://github.com/linuxwacom/xf86-input-wacom"
+arch="all"
+license="GPL-2.0-or-later"
+makedepends="
+	eudev-dev
+	libpciaccess-dev
+	libxext-dev
+	libxi-dev
+	libxinerama-dev
+	libxrandr-dev
+	util-macros
+	xorg-server-dev
+	"
+subpackages="$pkgname-dev $pkgname-doc"
+source="https://github.com/linuxwacom/xf86-input-wacom/releases/download/xf86-input-wacom-$pkgver/xf86-input-wacom-$pkgver.tar.bz2"
+
+prepare() {
+	default_prepare
+	update_config_sub
+}
+
+build() {
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr
+	make
+}
+
+check() {
+	make check
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+	rm -rf "$pkgdir"/usr/lib/systemd
+}
+
+sha512sums="
+1419f0d3103025d2f5d0b88b74c29f9b7cb9eb4f05119f8a469384af12b2821653596ce5adac918d8875e622cfccbd47ea9c6fc43d28c72091b09ec674e22de9  xf86-input-wacom-1.2.3.tar.bz2
+"

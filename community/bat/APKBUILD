@@ -1,0 +1,67 @@
+# Contributor: Chloe Kudryavtsev <code@toast.bunkerlabs.net>
+# Maintainer: omni <omni+alpine@hack.org>
+pkgname=bat
+pkgver=0.26.0
+pkgrel=0
+pkgdesc="cat(1) clone with wings"
+url="https://github.com/sharkdp/bat"
+arch="all"
+license="Apache-2.0"
+depends="less" # Required for RAW-CONTROL-CHARS
+makedepends="
+	cargo
+	cargo-auditable
+	libgit2-dev
+	oniguruma-dev
+	"
+checkdepends="bash"
+options="net"
+subpackages="$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	"
+source="https://github.com/sharkdp/bat/archive/v$pkgver/bat-$pkgver.tar.gz"
+
+# secfixes:
+#   0.21.0-r0:
+#     - CVE-2022-24713
+
+export CARGO_PROFILE_RELEASE_OPT_LEVEL="z"
+
+export RUSTONIG_DYNAMIC_LIBONIG=1  # use system libonig
+export LIBGIT2_NO_VENDOR=1  # use system libgit2
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+}
+
+check() {
+	cargo test --frozen
+}
+
+package() {
+	install -Dm755 target/release/bat "$pkgdir"/usr/bin/bat
+
+	find "$srcdir" -name bat.1 -exec install -Dm644 {} \
+		"$pkgdir"/usr/share/man/man1/bat.1 \;
+
+	find "$srcdir" -name bat.bash -exec install -Dm644 {} \
+		"$pkgdir"/usr/share/bash-completion/completions/bat \;
+
+	find "$srcdir" -name bat.fish -exec install -Dm644 {} \
+		"$pkgdir"/usr/share/fish/vendor_completions.d/bat.fish \;
+
+	find "$srcdir" -name bat.zsh -exec install -Dm644 {} \
+		"$pkgdir"/usr/share/zsh/site-functions/_bat \;
+}
+
+sha512sums="
+25b5564efb1e5504379d771a061ade68df5bde19b983a5ca11eb81f315d6cf63f96a646a985058d13f38cb4a46c2e5f3f736152f86224c3157b03da6837f9be2  bat-0.26.0.tar.gz
+"

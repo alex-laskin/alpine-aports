@@ -1,41 +1,61 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Bart Ribbers <bribbers@disroot.org>
 pkgname=qt5-qtxmlpatterns
-_pkgname=${pkgname/qt5-//}-everywhere-src
-pkgver=5.10.1
-_ver=${pkgver/_/-}
-_ver=${_ver/beta0/beta}
-_ver=${_ver/rc0/rc}
-_V=${_ver/rc/RC}
-pkgrel=0
+pkgver=5.15.10_git20230424
+pkgrel=1
+_module="${pkgname#qt5-}"
+_pkgver=0c1dcfe344c03d48d753aeb58f139bc990f2611c
+_fullname=$_module-$_pkgver
 pkgdesc="Qt5 - QtXmlPatterns component"
-url="http://qt-project.org/"
-arch="all"
-license="LGPL-2.0 with exceptions or GPL-3.0 with exceptions"
-makedepends="qt5-qtbase-dev"
+url="https://www.qt.io/developers/"
+arch="all !armhf" # armhf blocked by qt5-qtdeclarative
+license="LGPL-2.1-only AND LGPL-3.0-only AND GPL-3.0-only AND Qt-GPL-exception-1.0"
+makedepends="
+	qt5-qtbase-dev
+	qt5-qtdeclarative-dev
+	"
 subpackages="$pkgname-dev"
+source="https://dev.alpinelinux.org/archive/qt/$_fullname.tar.xz"
+builddir="$srcdir/$_fullname"
 
-case $pkgver in
-*_beta*|*_rc*) _rel=development_releases;;
-*) _rel=official_releases;;
-esac
-source="http://download.qt-project.org/$_rel/qt/${pkgver%.*}/$_ver/submodules/$_pkgname-$_V.tar.xz"
+_disturl="dev.alpinelinux.org:/archive/qt/"
+snapshot() {
+	clean
+	makedepends="git xz rsync tar" deps
+	mkdir -p "$srcdir" && cd "$srcdir"
+	git clone --filter=tree:0 https://invent.kde.org/qt/qt/$_module.git .
+	git archive --format tar --prefix=$_fullname/ $_pkgver > "$SRCDEST"/$_fullname.tar
+	xz -vv -T0 -9 -e "$SRCDEST"/$_fullname.tar
+	rsync --progress -La "$SRCDEST"/$_fullname.tar.xz $_disturl
+}
 
-builddir="$srcdir"/$_pkgname-${_V%-*}
-builddir="$srcdir"/$_pkgname-$_V
+prepare() {
+	default_prepare
+
+	# We need to make the build system think we're running in a git repository
+	# so it correctly symlinks during the build
+	mkdir .git
+}
 
 build() {
-	cd "$builddir"
-	qmake-qt5 && make
+	qmake-qt5
+	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make install INSTALL_ROOT="$pkgdir"
+	make INSTALL_ROOT="$pkgdir" install
+
+	# Drop QMAKE_PRL_BUILD_DIR because reference the build dir
+	find "$pkgdir/usr/lib" -type f -name '*.prl' \
+		-exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
+
+	install -d "$pkgdir"/usr/share/licenses
+	ln -s qt5-base "$pkgdir"/usr/share/licenses/$pkgname
 }
 
-sha512sums="942188fbfde248d956af009e69639beb90f860febc11b6b5d779376516e007d6d6c883ca68b8b70a2f7dbc6b353e65a2cccbde01766224d821052f07d6d56134  qtxmlpatterns-everywhere-src-5.10.1.tar.xz"
+sha512sums="
+3b74aa07d53a66c7aa3e2f9b03b06e5067396ce2621622292d2e925f8efce0ce308b7a9d3ccae6d0c35877293fc75ddd27ba38e6c85d66901527cd7770f92f28  qtxmlpatterns-0c1dcfe344c03d48d753aeb58f139bc990f2611c.tar.xz
+"

@@ -1,0 +1,42 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=riff
+pkgver=3.5.1
+pkgrel=0
+pkgdesc="Diff wrapper that highlights changed portions of lines"
+url="https://github.com/walles/riff"
+arch="all"
+license="MIT"
+makedepends="cargo cargo-auditable"
+subpackages="$pkgname-doc"
+source="https://github.com/walles/riff/archive/refs/tags/$pkgver/riff-$pkgver.tar.gz
+	loongarch64-update-tempfile.patch
+	"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CHOST" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+}
+
+check() {
+	cargo test --frozen
+}
+
+package() {
+	local targetdir="target/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}"
+
+	install -Dvm755 $targetdir/release/riff -t "$pkgdir"/usr/bin/
+
+	install -Dvm644 README.md -t "$pkgdir"/usr/share/doc/$pkgname/
+	install -Dvm644 LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname/
+}
+
+sha512sums="
+1515d5b296110b67ebac826db453d446a126ba2c2b9182c12c4b56c10270eebd32f5db38f21cff660dea746fd9051a98244c6a3fa6831238864576378eb94c8b  riff-3.5.1.tar.gz
+8514ff83ae82c8ee18d93a6718bebb078c40e7a3d2be48117754894f6bcc826de04be5c19b06c647cad963ac87e3de15b18c502f09db165a3772f2e4bb367282  loongarch64-update-tempfile.patch
+"

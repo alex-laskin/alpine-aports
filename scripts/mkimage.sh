@@ -1,8 +1,11 @@
 #!/bin/sh
 
 # apk add \
-#	abuild apk-tools alpine-conf busybox fakeroot syslinux xorriso
-#	(for efi:) mtools grub-efi
+#	abuild apk-tools alpine-conf busybox fakeroot syslinux xorriso cmd:mksquashfs mtools
+#	(for efi:) grub
+#	(for s390x:) s390-tools
+#	(for ppc64le:) grub
+#	(for pi:) sfdisk dosfstools
 
 # FIXME: clean workdir out of unneeded sections
 # FIXME: --release: cp/mv images to REPODIR/$ARCH/releases/
@@ -11,26 +14,39 @@
 set -e
 
 # get abuild configurables
-[ -e /usr/share/abuild/functions.sh ] || (echo "abuild not found" ; exit 1)
-. /usr/share/abuild/functions.sh
+. "${ABUILD_SHAREDIR:-/usr/share/abuild}"/functions.sh
 
-# deduce aports directory
-[ -n "$APORTS" ] || APORTS=$(realpath $(dirname $0)/../)
-[ -e "$APORTS/main/build-base" ] || die "Unable to deduce aports base checkout"
+scriptdir="$(dirname "$0")"
+git=$(command -v git) || git=true
+
+set_source_date() {
+	# dont error out if we're not in git
+	if ! $git rev-parse --show-toplevel >/dev/null 2>&1; then
+		git=true
+	fi
+	# set time stamp for reproducible builds
+	if [ -z "$SOURCE_DATE_EPOCH" ] && [ $($git -C "$scriptdir" status -s | wc -l) -ne 0 ]; then
+		SOURCE_DATE_EPOCH=$($git -C "$scriptdir" log -1 --format=%cd --date=unix)
+	fi
+	if [ -z "$SOURCE_DATE_EPOCH" ]; then
+		SOURCE_DATE_EPOCH=$(date -u "+%s")
+	fi
+	export SOURCE_DATE_EPOCH
+}
+
+set_source_date
 
 # 
 all_sections=""
 all_profiles=""
 all_checksums="sha256 sha512"
-all_arches="aarch64 armhf x86 x86_64"
 all_dirs=""
-build_date="$(date +%y%m%d)"
+build_date="$(date -u +%y%m%d -d "@$SOURCE_DATE_EPOCH")"
 default_arch="$(apk --print-arch)"
 _hostkeys=""
 _simulate=""
 _checksum=""
 
-scriptdir="$(dirname $0)"
 OUTDIR="$PWD"
 RELEASE="${build_date}"
 
@@ -57,7 +73,8 @@ usage() {
 
 $0	[--tag RELEASE] [--outdir OUTDIR] [--workdir WORKDIR]
 		[--arch ARCH] [--profile PROFILE] [--hostkeys] [--simulate]
-		[--repository REPO] [--extra-repository REPO] [--yaml FILE]
+		[--repository REPO [--repository REPO]]
+		[--repositories-file REPO_FILE] [--yaml FILE]
 $0	--help
 
 options:
@@ -66,8 +83,8 @@ options:
 --hostkeys		Copy system apk signing keys to created images
 --outdir		Specify directory for the created images
 --profile		Specify which profiles to build
+--repositories-file	List of repositories to use for the image create
 --repository		Package repository to use for the image create
---extra-repository	Add repository to search packages from
 --simulate		Don't execute commands
 --tag			Build images for tag RELEASE
 --workdir		Specify temporary working directory (cache)
@@ -105,7 +122,6 @@ build_section() {
 	local args="$@"
 
 	if [ -z "$_dir" ]; then
-		_fail="yes"
 		return 1
 	fi
 
@@ -115,14 +131,9 @@ build_section() {
 		if [ -z "$_simulate" ]; then
 			rm -rf "$DESTDIR"
 			mkdir -p "$DESTDIR"
-			if build_${section} "$@"; then
-				mv "$DESTDIR" "$WORKDIR/${_dir}"
-				_dirty="yes"
-			else
-				rm -rf "$DESTDIR"
-				_fail="yes"
-				return 1
-			fi
+			build_${section} "$@"
+			mv "$DESTDIR" "$WORKDIR/${_dir}"
+			_dirty="yes"
 		fi
 	fi
 	unset DESTDIR
@@ -134,7 +145,6 @@ build_profile() {
 	local _id _dir _spec
 	_my_sections=""
 	_dirty="no"
-	_fail="no"
 
 	profile_$PROFILE
 	list_has $ARCH $arch || return 0
@@ -143,9 +153,8 @@ build_profile() {
 
 	# Collect list of needed sections, and make sure they are built
 	for SECTION in $all_sections; do
-		section_$SECTION || return 1
+		section_$SECTION
 	done
-	[ "$_fail" = "no" ] || return 1
 
 	# Defaults
 	[ -n "$image_name" ] || image_name="alpine-${PROFILE}"
@@ -173,26 +182,27 @@ build_profile() {
 	if [ "$_dirty" = "yes" -o ! -e "$output_file" ]; then
 		# Create image
 		[ -n "$output_format" ] || output_format="${image_ext//[:\.]/}"
-		create_image_${output_format} || { _fail="yes"; false; }
+		create_image_${output_format}
 
 		if [ "$_checksum" = "yes" ]; then
 			for _c in $all_checksums; do
 				echo "$(${_c}sum "$output_file" | cut -d' '  -f1)  ${output_filename}" > "${output_file}.${_c}"
 			done
 		fi
-
-		if [ -n "$_yaml_out" ]; then
-			$mkimage_yaml --release $RELEASE \
-				--title "$title" \
-				--desc "$desc" \
-				"$output_file" >> "$_yaml_out"
-		fi
+	fi
+	if [ -n "$_yaml_out" ]; then
+		$mkimage_yaml --release $RELEASE \
+			--title "$title" \
+			--desc "$desc" \
+			"$output_file" >> "$_yaml_out"
 	fi
 }
 
 # load plugins
 load_plugins "$scriptdir"
-[ -z "$HOME" ] || load_plugins "$HOME/.mkimage"
+if [ -n "$HOME" ]; then
+	load_plugins "$HOME/.mkimage"
+fi
 
 mkimage_yaml="$(dirname $0)"/mkimage-yaml.sh
 
@@ -201,6 +211,7 @@ while [ $# -gt 0 ]; do
 	opt="$1"
 	shift
 	case "$opt" in
+	--repositories-file) REPOS_FILE="$1"; shift ;;
 	--repository)
 		if [ -z "$REPOS" ]; then
 			REPOS="$1"
@@ -208,7 +219,10 @@ while [ $# -gt 0 ]; do
 			REPOS=$(printf '%s\n%s' "$REPOS" "$1");
 		fi
 		shift ;;
-	--extra-repository) EXTRAREPOS="$EXTRAREPOS $1"; shift ;;
+	--extra-repository)
+		warning "--extra-repository is deprecated. Use multiple --repository"
+		EXTRAREPOS="$EXTRAREPOS $1"
+		shift ;;
 	--workdir) WORKDIR="$1"; shift ;;
 	--outdir) OUTDIR="$1"; shift ;;
 	--tag) RELEASE="$1"; shift ;;
@@ -218,6 +232,7 @@ while [ $# -gt 0 ]; do
 	--simulate) _simulate="yes";;
 	--checksum) _checksum="yes";;
 	--yaml) _yaml="yes";;
+	--help) usage; exit 0;;
 	--) break ;;
 	-*) usage; exit 1;;
 	esac
@@ -232,11 +247,15 @@ if [ -z "$RELEASE" ]; then
 	fi
 fi
 
+if [ -z "$REPOS" ]; then
+  echo "Must provide --repository"
+  exit 2
+fi
+
 # setup defaults
 if [ -z "$WORKDIR" ]; then
 	WORKDIR="$(mktemp -d -t mkimage.XXXXXX)"
-	trap 'rm -rf $WORKDIR' INT
-	mkdir -p "$WORKDIR"
+	trap 'rm -rf $WORKDIR' INT EXIT
 fi
 req_profiles=${req_profiles:-${all_profiles}}
 req_arch=${req_arch:-${default_arch}}
@@ -248,36 +267,43 @@ mkdir -p "$OUTDIR"
 # get abuild pubkey used to sign the apkindex
 # we need inject this to the initramfs or we will not be able to use the
 # boot repository
-if [ -z "$_hostkeys" ]; then
-	_pub=${PACKAGER_PRIVKEY:+${PACKAGER_PRIVKEY}.pub}
-	_abuild_pubkey="${PACKAGER_PUBKEY:-$_pub}"
-fi
+_pub=${PACKAGER_PRIVKEY:+${PACKAGER_PRIVKEY}.pub}
+_abuild_pubkey="${PACKAGER_PUBKEY:-$_pub}"
 
 # create images
 for ARCH in $req_arch; do
 	APKROOT="$WORKDIR/apkroot-$ARCH"
 	if [ ! -e "$APKROOT" ]; then
 		# create root for caching packages
-		mkdir -p "$APKROOT/etc/apk/cache"
-		cp -Pr /etc/apk/keys "$APKROOT/etc/apk/"
-		abuild-apk --arch "$ARCH" --root "$APKROOT" add --initdb
-
-		if [ -z "$REPOS" ]; then
-			warning "no repository set"
+		mkdir -p "$APKROOT/etc/apk/cache" "$APKROOT"/etc/apk/keys
+		if [ -d /usr/share/apk/keys/"$ARCH" ]; then
+			cp /usr/share/apk/keys/"$ARCH"/* "$APKROOT"/etc/apk/keys
 		fi
-		echo "$REPOS" > "$APKROOT/etc/apk/repositories"
+		if [ -n "$_hostkeys" ]; then
+			cp /etc/apk/keys/* "$APKROOT"/etc/apk/keys
+		fi
+		if [ -n "$_abuild_pubkey" ]; then
+			cp "$_abuild_pubkey" "$APKROOT"/etc/apk/keys
+		fi
+		apk --arch "$ARCH" --root "$APKROOT" add --initdb --no-chown
+
+		_repositories="$APKROOT/etc/apk/repositories"
+		if [ -n "$REPOS_FILE" ]; then
+			cat "$REPOS_FILE" > "$_repositories"
+		fi
+		echo "$REPOS" >> "$_repositories"
 		for repo in $EXTRAREPOS; do
-			echo "$repo" >> "$APKROOT/etc/apk/repositories"
+			echo "$repo" >> "$_repositories"
 		done
 	fi
-	abuild-apk update --root "$APKROOT"
+	apk update --root "$APKROOT"
 
 	if [ "$_yaml" = "yes" ]; then
 		_yaml_out=${OUTDIR:-.}/latest-releases.yaml
 		echo "---" > "$_yaml_out"
 	fi
 	for PROFILE in $req_profiles; do
-		(build_profile) || exit 1
+		(set -eo pipefail; build_profile)
 	done
 done
 echo "Images generated in $OUTDIR"

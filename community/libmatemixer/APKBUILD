@@ -1,37 +1,41 @@
 # Contributor: Alan Lacerda <alacerda@alpinelinux.org>
 # Maintainer: Alan Lacerda <alacerda@alpinelinux.org>
 pkgname=libmatemixer
-pkgver=1.20.0
+pkgver=1.28.0
 pkgrel=0
 pkgdesc="A mixer library for MATE desktop"
-url="http://git.mate-desktop.org/libmatemixer/"
+url="https://git.mate-desktop.org/libmatemixer/"
 arch="all"
-license="GPL"
-makedepends="intltool glib-dev alsa-lib-dev"
+license="GPL-2.0-or-later"
+makedepends="intltool glib-dev alsa-lib-dev pulseaudio-dev"
 subpackages="$pkgname-doc $pkgname-dev $pkgname-lang"
-source="http://pub.mate-desktop.org/releases/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://pub.mate-desktop.org/releases/${pkgver%.*}/libmatemixer-$pkgver.tar.xz"
+
+prepare() {
+	default_prepare
+	update_config_sub
+}
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--sysconfdir=/etc \
 		--enable-static=no \
 		--prefix=/usr \
-		--enable-alsa
+		--enable-alsa \
+		--enable-pulseaudio
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="bab8868b58d66a2a2b1588b99b9ef676eabc17ebaa3e34bf8551c338d470030130b1d0299519b4153fade97598ec47b47336688fc80be2b2ad3de9739ddc74f2  libmatemixer-1.20.0.tar.xz"
+sha512sums="
+9bfe33a851eae10564ccad5d578a76c565cba1d8c720b89eb1105c8d507436b31d6d0c9c1112dbf6b8cc7def97f14ff19feb6f55d6cf8de2d0421b5cf1dfc485  libmatemixer-1.28.0.tar.xz
+"

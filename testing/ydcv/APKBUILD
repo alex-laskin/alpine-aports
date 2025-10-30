@@ -1,33 +1,35 @@
 # Contributor: Ivan Tham <pickfire@riseup.net>
-# Maintainer: Ivan Tham <pickfire@riseup.net>
+# Maintainer:
 pkgname=ydcv
-pkgver=0.4
-pkgrel=0
+pkgver=0.7
+pkgrel=8
 pkgdesc="YouDao Console Version - Chinese online translate"
 url="https://github.com/felixonmars/ydcv"
 arch="noarch"
-license="GPL"
-depends="" # TODO: Either python2 or python3 is needed
-subpackages="$pkgname-zsh-completion:zshcomp"
-source="$pkgname-$pkgver.tar.gz::https://github.com/felixonmars/${pkgname}/archive/${pkgver}.tar.gz"
+license="GPL-3.0-only"
+depends="python3"
+makedepends="py3-setuptools py3-setuptools_scm py3-gpep517"
+subpackages="$pkgname-zsh-completion $pkgname-pyc"
+source="ydcv-$pkgver.tar.gz::https://github.com/felixonmars/ydcv/archive/$pkgver.tar.gz
+	fix-version.patch
+	"
 options="!check"
-builddir="$srcdir/"$pkgname-$pkgver
+
+build() {
+	export SETUPTOOLS_SCM_PRETEND_VERSION=$pkgver
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
 
 package() {
-	mkdir -p "$pkgdir"/usr/bin/$pkgname
-	install -Dm755 "$builddir"/ydcv.py \
-		"$pkgdir"/usr/bin/$pkgname || return 1
-
-}
-
-zshcomp() {
-	pkgdesc="Zsh completions for $pkgname"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel zsh"
-
-	mkdir -p "$subpkgdir"/usr/share/zsh/site-functions/
+	gpep517 install-wheel --destdir "$pkgdir" \
+		.dist/*.whl
 	install -Dm644 "$builddir"/contrib/zsh_completion \
-		"$subpkgdir"/usr/share/zsh/site-functions/_$pkgname || return 1
+		-t "$pkgdir"/usr/share/zsh/site-functions/_$pkgname
 }
 
-sha512sums="96c19ab8496159c90ef634533cd2f4e0a3d8a85449ae988ef0cb4d4d73e106b6383ad8c4eef5bdd0e9c7ae07db3ba2cf20112c8fa34d9487786d0cd4744f9bf3  ydcv-0.4.tar.gz"
+sha512sums="
+04277b2cc586bf19b0cd8cb52c0287ac75b235f72cbab19358a962f14de74f042cc90da1ec7ded06e3ce07a4694a6511599ce9213485ed0e4d40a84d296663bf  ydcv-0.7.tar.gz
+9d06ff193a1c59808a895fe069ec1ae6169df18c285e756ad65d59b11b8b7171b343f5e32f1c17edf909ff49ffc73d3fc33a96b602f418191aff395bf835c3ba  fix-version.patch
+"

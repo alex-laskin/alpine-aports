@@ -1,31 +1,26 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
-# Maintainer:  Francesco Colista <fcolista@alpinelinux.org>
+# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=mktorrent
 pkgver=1.1
-pkgrel=1
+pkgrel=6
 pkgdesc="A handy tool for creating .torrent files"
-url="http://borg.uu3.net/~borg/?mktorrent"
+url="https://github.com/pobrn/mktorrent"
 arch="all"
-license="BSD"
-makedepends="libressl-dev"
+license="GPL-2.0-or-later"
+makedepends="openssl-dev>3"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/Rudde/mktorrent/archive/v$pkgver.tar.gz"
-
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver.tar.gz::https://github.com/pobrn/mktorrent/archive/v$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	make
 }
 
 check() {
-	cd "$builddir"
 	./mktorrent -h > /dev/null
 }
 
 package() {
-	cd "$builddir"
-	install -D -m755 mktorrent $pkgdir/usr/bin/mktorrent-borg
+	install -D -m755 mktorrent $pkgdir/usr/bin/mktorrent
 	install -D -m644 COPYING $pkgdir/usr/share/licenses/mktorrent/COPYING
 }
 

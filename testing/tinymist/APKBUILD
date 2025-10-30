@@ -1,0 +1,54 @@
+# Contributor: lauren n. liberda <lauren@selfisekai.rocks>
+maintainer="lauren n. liberda <lauren@selfisekai.rocks>"
+pkgname=tinymist
+pkgver=0.13.31
+pkgrel=0
+pkgdesc="Language service for Typst"
+url="https://github.com/Myriad-Dreamin/tinymist"
+# armhf, armv7: failing tests
+# riscv64: failing test - triggers panic in rust libcore
+# s390x: failing tests - looks like endianness
+# x86: failing asserts in reflexo crate
+arch="all !armhf !armv7 !riscv64 !s390x !x86"
+license="Apache-2.0"
+makedepends="
+	cargo
+	cargo-auditable
+	openssl-dev
+	"
+subpackages="typlite:_typlite"
+source="
+	https://github.com/Myriad-Dreamin/tinymist/archive/v$pkgver/tinymist-$pkgver.tar.gz
+	"
+
+export OPENSSL_NO_VENDOR=1
+export PKG_CONFIG_ALL_DYNAMIC=1
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release -p tinymist
+	cargo auditable build --frozen --release -p typlite -F cli --bin typlite
+}
+
+check() {
+	# tests package is e2e tests. they don't simply work.
+	cargo test --frozen --workspace --exclude tests
+}
+
+package() {
+	install -Dm755 target/release/tinymist target/release/typlite -t "$pkgdir"/usr/bin/
+}
+
+_typlite() {
+	pkgdesc="CLI tool to convert a subset of Typst to Markdown"
+	amove usr/bin/typlite
+}
+
+sha512sums="
+5f786f630347869dfd333de2a794349f4b120d0b1c75ab18cb7e2722dacf16e887036c2aad6c5c16afdde3687d8b52aa490cf5897c0d424e649c8df2efe49abd  tinymist-0.13.31.tar.gz
+"

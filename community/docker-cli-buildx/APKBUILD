@@ -1,0 +1,42 @@
+# Contributor: Jake Buchholz Göktürk <tomalok@gmail.com>
+# Maintainer: Jake Buchholz Göktürk <tomalok@gmail.com>
+pkgname=docker-cli-buildx
+pkgver=0.29.1
+pkgrel=1
+_commit=a32761aeb3debd39be1eca514af3693af0db334b
+pkgdesc="A Docker CLI plugin for extended build capabilities"
+url="https://docs.docker.com/engine/reference/commandline/buildx_build"
+arch="all"
+license="Apache-2.0"
+makedepends="go"
+options="net"
+source="buildx-$pkgver.tar.gz::https://github.com/docker/buildx/archive/v$pkgver.tar.gz"
+
+_buildx_installdir="/usr/libexec/docker/cli-plugins"
+
+builddir="$srcdir"/buildx-"$pkgver"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+build() {
+	PKG=github.com/docker/buildx
+	local ldflags="-X $PKG/version.Version=v$pkgver -X $PKG/version.Revision=$_commit -X $PKG/version.Package=$PKG"
+	go build -v -modcacherw -ldflags "$ldflags" -o docker-buildx ./cmd/buildx
+}
+
+check() {
+	# bake and gitutil tests do not succeed inside abuild environment
+	local pkgs="$(go list -modcacherw ./... | grep -Ev '(bake|gitutil)')"
+	go test -modcacherw -short $pkgs
+	./docker-buildx version
+}
+
+package() {
+	install -Dm755 docker-buildx "$pkgdir$_buildx_installdir"/docker-buildx
+}
+
+sha512sums="
+d0294a583b0348626aef69de6a6ea12f4d6503d679739545d225707f242d3fed0dc304e74e7c3e8f7e52cff1038329d4b2ea9d79ecb9a37d8360fa3c885af276  buildx-0.29.1.tar.gz
+"

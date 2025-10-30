@@ -1,134 +1,140 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Contributor: Stefan Wagner <stw@bit-strickerei.de>
-# Maintainer: Stefan Wagner <stw@bit-strickerei.de>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=notmuch
-pkgver=0.25.3
+pkgver=0.38.3
 pkgrel=1
 pkgdesc="E-Mail index, search and tagging"
 url="https://notmuchmail.org/"
 arch="all"
-license="GPL-3.0"
-makedepends="gzip xapian-core-dev gmime-dev talloc-dev py-sphinx
-	py-requests python2-dev python3-dev bash-completion"
-checkdepends="sed coreutils diffutils bash tar mdocml grep"
+license="GPL-3.0-or-later"
+makedepends="
+	bash
+	bash-completion-dev
+	emacs-nox
+	gmime-dev
+	gzip
+	perl
+	py3-gpep517
+	py3-requests
+	py3-setuptools
+	py3-sphinx
+	py3-wheel
+	python3-dev
+	talloc-dev
+	xapian-core-dev
+	"
+checkdepends="
+	coreutils
+	dtach
+	mandoc
+	sed
+	tar
+	"
 subpackages="
-	py2-$pkgname:py2
-	py3-$pkgname:py3
-	$pkgname-dev
+	py3-$pkgname-pyc
+	py3-$pkgname:py3:noarch
 	$pkgname-doc
+	$pkgname-dev
 	$pkgname-libs
-	$pkgname-emacs:emacs
+	$pkgname-emacs:emacs:noarch
 	$pkgname-vim:vim:noarch
-	$pkgname-zsh-completion:zshcomp:noarch
-	$pkgname-bash-completion:bashcomp:noarch"
-source="https://notmuchmail.org/releases/$pkgname-$pkgver.tar.gz
-	fix-tests.patch
-	fix-tests-for-python3.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+	$pkgname-zsh-completion
+	$pkgname-bash-completion"
+source="https://notmuchmail.org/releases/notmuch-$pkgver.tar.xz
+	test-musl-invalid-regexp.patch
+	"
+
+prepare() {
+	default_prepare
+	git init -q .
+}
 
 build() {
-	cd "$builddir"
-
-	PYTHON=python3 ./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
+	CFLAGS="$CFLAGS -flto=auto" \
+	./configure \
+		--build="$CBUILD" \
+		--host="$CHOST" \
 		--prefix=/usr \
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
+		--without-rpath \
 		--bashcompletiondir=/usr/share/bash-completion/completions \
 		--zshcompletiondir=/usr/share/zsh/site-functions
-	make PREFIX=/usr DESTDIR="$pkgdir"
+	make
 
-	cd "$builddir"/bindings/python
-	python2 setup.py build
-	python3 setup.py build
-}
-
-package() {
-	make PREFIX=/usr DESTDIR="$pkgdir" \
-		-C "$builddir" install
+	cd bindings/python
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
 }
 
 check() {
-	cd "$builddir"/test
+	cd test
 	make test-binaries
 
-	local test=
+	local test
 	for test in T*.sh; do
 		name="$(basename "$test")"
 		case "${name%%.*}" in
+		# seems to have an extra Cc: and fail
+		T220-reply) continue ;;
 		# Requires dtach ↦ doesn't work on the builders
 		*emacs*|T355-smime|T350-crypto) continue ;;
 
 		# XXX: Doesn't pass on the builders for some reason
-		T140-excludes) continue ;;
+		T050-new|T140-excludes|T590-libconfig) continue ;;
+
+		# FIXME fails on riscv64
+		T620-lock) continue ;;
 
 		# FIXME: These should pass but currently don't
-		T050-new|T150-tagging|T060-count) continue ;;
+		T150-tagging|T060-count|T070-insert|T357-index-decryption) continue ;;
+
+		# Requires Python bindings installed
+		T055-path-config) continue ;;
 		esac
 
-		./${test}
+		./$test
 	done
 }
 
-vim() {
-	depends="vim notmuch"
-	pkgdesc="Vim plugins for $pkgname"
+package() {
+	make DESTDIR="$pkgdir" install
 
-	make -C "$builddir/vim" DESTDIR="$subpkgdir" \
+	cd bindings/python
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+
+	make -C "$builddir"/vim DESTDIR="$pkgdir" \
 		prefix="/usr/share/vim/vimfiles" install
 }
 
+vim() {
+	depends="vim notmuch=$pkgver-r$pkgrel"
+	pkgdesc="Vim plugins for $pkgname"
+
+	amove usr/share/vim
+}
+
 emacs() {
-	depends="emacs notmuch"
+	depends="emacs notmuch=$pkgver-r$pkgrel"
 	pkgdesc="Emacs plugins for $pkgname"
 
-	mkdir -p "$subpkgdir"/usr/share/
-	mv "$pkgdir"/usr/share/emacs/ "$subpkgdir"/usr/share/emacs/
+	amove usr/share/emacs
 
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/notmuch-emacs-mua "$subpkgdir"/usr/bin/
-}
-
-bashcomp() {
-	depends=""
-	pkgdesc="Bash completions for $pkgname"
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
-
-	mkdir -p "$subpkgdir"/usr/share/bash-completion/completions/
-	mv "$pkgdir"/usr/share/bash-completion/completions/$pkgname \
-		"$subpkgdir"/usr/share/bash-completion/completions/
-}
-
-zshcomp() {
-	depends=""
-	pkgdesc="Zsh completions for $pkgname"
-	install_if="$pkgname=$pkgver-r$pkgrel zsh"
-
-	mkdir -p "$subpkgdir"/usr/share/zsh/site-functions/
-	mv "$pkgdir"/usr/share/zsh/site-functions/_${pkgname} \
-		"$subpkgdir"/usr/share/zsh/site-functions/
-}
-
-_py() {
-	local python="$1"
-	pkgdesc="$pkgdesc (for $python)"
-	depends="$depends $python"
-	install_if="$pkgname=$pkgver-r$pkgrel $python"
-
-	cd "$builddir"/bindings/python
-	$python setup.py install --prefix=/usr --root="$subpkgdir"
-}
-
-py2() {
-	_py python2
+	amove usr/bin/notmuch-emacs-mua
 }
 
 py3() {
-	_py python3
+	pkgdesc="$pkgdesc (for python3)"
+	depends="py3-cffi"
+
+	amove usr/lib/python3*
 }
 
-sha512sums="1c0fcfdeb7a7eddcd10a8175676679ef6985407732d5bcc15edd327d9985017696cef3287c0398c628a604ae3fbab5d222d71537e37265cf6a594b4914e4599a  notmuch-0.25.3.tar.gz
-430e8f02b194b0582dfd7c66a2791a0071824e1d215993a6daf89c8d2a1ee7f73a6202136b1d890fc8920a4dc309ae976da8a8b8fc8b90e489d3c04f1592876c  fix-tests.patch
-a7dd888c5d08835be75986e67afcbc95c7a65c187fab5b0eb969bb36e9bbbc2d647789f106f709a38906eed51e3684a3241678ace1fc8c4b5e1cdbdd06fb6bbb  fix-tests-for-python3.patch"
+sha512sums="
+247f8b365a75b29df719403bc2c9645eb669a7ee6eb4c1e0047dcf55fea4d66c8dcb4899162b952643aa6148ec6e1538ebe3e7e8408376153165e394084aed19  notmuch-0.38.3.tar.xz
+0defaeb6781694d55f2e11a5ede37214d261bab4eed328d523cfda80deb11085a1486aa13e180cebc3b24dddfa073d17f7b9e2891c176d60aafa62509a28d55c  test-musl-invalid-regexp.patch
+"

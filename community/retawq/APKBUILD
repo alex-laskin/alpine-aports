@@ -2,23 +2,19 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=retawq
 pkgver=0.2.6c
-pkgrel=4
+pkgrel=9
 pkgdesc="retawq is an interactive, multi-threaded network client for text terminals"
-url="http://retawq.sourceforge.net/"
+url="https://retawq.sourceforge.net/"
 arch="all"
-license="GPL-2.0"
-depends=""
-depends_dev=""
-makedepends="$depends_dev ncurses-dev libressl-dev"
-install=""
+license="GPL-2.0-or-later"
+makedepends="ncurses-dev openssl-dev>3"
 subpackages="$pkgname-doc"
-source="http://prdownloads.sourceforge.net/$pkgname/$pkgname-$pkgver.tar.gz
+source="https://prdownloads.sourceforge.net/$pkgname/$pkgname-$pkgver.tar.gz
 	libressl.patch
+	ncurses-opaque.patch
 	"
 
-builddir="$srcdir"/$pkgname-$pkgver
 build() {
-	cd "$builddir"
 	./configure \
 		--path-archprefix="$pkgdir"/usr \
 		--path-prefix="$pkgdir"/usr \
@@ -27,21 +23,18 @@ build() {
 		--enable-cookies \
 		--enable-local-cgi \
 		--set-tls=2 \
-		--enable-ipv6 \
-		|| return 1
-	make || return 1
+		--enable-ipv6
+	make
 }
 
 package() {
-	cd "$builddir"
 	mkdir -p "$pkgdir"/usr/share/man
 	mkdir -p "$pkgdir"/usr/share/doc/$pkgname
 	make DESTDIR="$pkgdir" install
 }
 
-md5sums="ee60188bea597680bd39e435a8c73ff9  retawq-0.2.6c.tar.gz
-d730cb94bde88fa2868472aeb6aa17e1  libressl.patch"
-sha256sums="a42e82494f00e054c2de1b065bbc8fb439d93eb69f9b97cc4868e71e48a9eae0  retawq-0.2.6c.tar.gz
-ee179683d46b612f2a4c3970a874fb6d563336bf953dbbc824740ddde05de675  libressl.patch"
-sha512sums="555f61460decf3108e85f0d0153d281a7b9a9fd2474563fcf47145bf969025ffcfad6d5dc0ae946bde11bdf880cc26ceb5cde3194194a1cbbaadc4a672a094f8  retawq-0.2.6c.tar.gz
-3f54adee86945c2b5a2acc300cfc580186759a7545868578780e6bf60f17b29e39c1a4f55745e48dbfdfa05010bddf0ec98cdb510aa5dd19d437c5f45e97a632  libressl.patch"
+sha512sums="
+555f61460decf3108e85f0d0153d281a7b9a9fd2474563fcf47145bf969025ffcfad6d5dc0ae946bde11bdf880cc26ceb5cde3194194a1cbbaadc4a672a094f8  retawq-0.2.6c.tar.gz
+3f54adee86945c2b5a2acc300cfc580186759a7545868578780e6bf60f17b29e39c1a4f55745e48dbfdfa05010bddf0ec98cdb510aa5dd19d437c5f45e97a632  libressl.patch
+c307193cc8f2c8ecee5462ad0c5bfbdfb4f0c5e560c0dd92ed867e4080af21b9a9af7dfd682fb1da9dd95a49a0140304aa5d5d8d2939eb2d66a784dd66151075  ncurses-opaque.patch
+"

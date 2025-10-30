@@ -1,67 +1,45 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
-# Maintainer: Carlo Landmeter <clandmeter@gmail.com>
+maintainer="Michał Polański <michal@polanski.me>"
 pkgname=caddy
-pkgver=0.10.14
-pkgrel=0
-pkgdesc="Fast, cross-platform HTTP/2 web server with automatic HTTPS"
+pkgver=2.10.2
+pkgrel=1
+pkgdesc="Fast, multi-platform web server with automatic HTTPS"
 url="https://caddyserver.com/"
-arch="all !s390x"
 license="Apache-2.0"
+arch="all"
 depends="ca-certificates"
-makedepends="go libcap bash"
-install="$pkgname.pre-install"
+makedepends="go"
+subpackages="$pkgname-openrc"
 pkgusers="$pkgname"
 pkggroups="$pkgname"
-source="$pkgname-$pkgver.tar.gz::https://github.com/mholt/$pkgname/archive/v$pkgver.tar.gz
+install="$pkgname.pre-install"
+source="https://github.com/caddyserver/caddy/releases/download/v$pkgver/caddy_${pkgver}_buildable-artifact.tar.gz
 	$pkgname.initd
-	$pkgname.confd
-	$pkgname.conf
+	Caddyfile
 	"
-builddir="$srcdir/src/github.com/mholt/$pkgname"
-
-prepare() {
-        mkdir -p ${builddir%/*}
-        mv "$srcdir"/$pkgname-$pkgver "$builddir"/
-        cd "$builddir"
-        default_prepare
-}
+builddir="$srcdir"
 
 build() {
-        cd "$builddir"/caddy
-        export GOPATH="$srcdir"
-	go build -v -o caddy -ldflags \
-		"-X github.com/mholt/caddy/caddy/caddymain.gitTag=$pkgver"
+	go build
 }
 
 check() {
-	"$builddir"/caddy/caddy -version > /dev/null
+	go test ./...
+
+	if [ "$(./bin/caddy --version)" = "unknown" ]; then
+		error "caddy built without version info"
+		return 1
+	fi
 }
 
 package() {
-	cd "$builddir"
+	install -Dm755 caddy -t "$pkgdir"/usr/sbin/
 
-	install -Dm755 caddy/caddy "$pkgdir"/usr/sbin/caddy
-
-	# caddy currently does not support dropping privileges so we
-	# change attributes with setcat to allow access to priv ports
-	# https://caddyserver.com/docs/faq
-	setcap cap_net_bind_service=+ep \
-		"$pkgdir"/usr/sbin/caddy
-
-	install -d -o caddy -g caddy \
-		"$pkgdir"/var/lib/caddy \
-		"$pkgdir"/etc/caddy \
-		"$pkgdir"/var/www
-
-	install -Dm755 "$srcdir"/$pkgname.initd \
-		"$pkgdir"/etc/init.d/$pkgname
-	install -Dm644 "$srcdir"/$pkgname.confd \
-		"$pkgdir"/etc/conf.d/$pkgname
-	install -Dm644 "$srcdir"/$pkgname.conf \
-		"$pkgdir"/etc/$pkgname/$pkgname.conf
+	install -Dm755 "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
+	install -Dm644 "$srcdir"/Caddyfile -t "$pkgdir"/etc/$pkgname/
 }
 
-sha512sums="b2d7ff08687c1b1331c018430e3458d4a5e4d5923803fabe563536ce372209ac0350efd4112a1099bfbfb517935d4f498613820d6b0685d5947a903227e15636  caddy-0.10.14.tar.gz
-00fe095efd8d801f0c2c69832c7240858080407ea3696ca07f6b53d3304f7e2784566d8a6b447cb83d7dc4542db551f1b4fa48ff031da7e4a1d4a26e59fc05c5  caddy.initd
-7808688e92ab9950403a9b8ad29777f5bd0f75aa8cccc1d49958bb1e5af1b972dfba0c6d31931354f702a3a13933d0a1b8f28b82eed263773d71b79ec95cc15c  caddy.confd
-c24805d17234e6cf40fe1dd102c03f05cf6129d43f58f5567d540a0e4400ce89994820bb0e317f611c65459ae26bcf7110e23a8fecaae11ca78a561892b45d75  caddy.conf"
+sha512sums="
+8ac8eac49dfbead491ad63f1f0c04fa58144a33369675de47f379627eeddeb8827a8bad6d7f2932f02f80503daf7216c8377d41e57dcb2c602f8f76e1d671aec  caddy_2.10.2_buildable-artifact.tar.gz
+d67725ba47c2e983825b9390eb3244d2d429bb649cf3898e279849226922f50ee4fc6bb5aeea20144a22da4ec6205d01235573713bf8c6c8243df09386fa2754  caddy.initd
+d3110dd79f7d5e602a34d42569104dc97603994e42daf5f6b105303a3d034b52b91ef5fb156d5bf7b7a3a58ec0aeff58afc402618d0555af053771952a866f76  Caddyfile
+"

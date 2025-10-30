@@ -1,0 +1,43 @@
+# Contributor: Zachary Lee Andrews <zcrayfish@gmail.com>
+maintainer="Antoni Aloy <aaloytorrens@gmail.com>"
+pkgname=lxqt-policykit
+pkgver=2.2.0
+pkgrel=0
+pkgdesc="LXQt PolicyKit agent"
+url="https://github.com/lxqt/lxqt-policykit"
+# armhf blocked by liblxqt-dev
+arch="all !armhf"
+license="LGPL-2.0-or-later"
+makedepends="
+	cmake
+	kwindowsystem-dev
+	liblxqt-dev
+	lxqt-build-tools
+	polkit-qt-dev
+	qt6-qttools-dev
+	samurai
+	"
+subpackages="$pkgname-doc $pkgname-lang"
+source="https://github.com/lxqt/lxqt-policykit/releases/download/$pkgver/lxqt-policykit-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+lang() {
+	install_if="lang $pkgname=$pkgver-r$pkgrel"
+	amove usr/share/lxqt/translations/$pkgname-agent
+}
+
+sha512sums="
+19981aff54c835da30cde31e7711e852a4ce01dba523eae7b3de842663555884fd22acb14b501d0422d371a3e9180eb677eb0b7f725c5ecac4ad6a7b1480a0f5  lxqt-policykit-2.2.0.tar.xz
+"

@@ -2,34 +2,28 @@
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=perl-data-uniqid
 pkgver=0.12
-_realname=Data-Uniqid
-pkgrel=1
+_pkgreal=Data-Uniqid
+pkgrel=4
 pkgdesc="Perl extension for simple generation of unique id's"
-url="http://search.cpan.org/dist/Data-Uniqid/"
+url="https://metacpan.org/release/Data-Uniqid/"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/M/MW/MWX/$_realname-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/M/MW/MWX/Data-Uniqid-$pkgver.tar.gz"
 
-builddir="$srcdir/$_realname-$pkgver"
+builddir="$srcdir/$_pkgreal-$pkgver"
 
 build() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }

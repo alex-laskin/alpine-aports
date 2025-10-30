@@ -1,28 +1,24 @@
 # Contributor: Erik Ogan <erik@stealthymonkeys.com>
 # Maintainer: Erik Ogan <erik@stealthymonkeys.com>
 pkgname=wait4ports
-pkgver=0.0.4
-pkgrel=0
+pkgver=0.3.3
+pkgrel=1
 pkgdesc="A small utility to wait for network peer availability."
 url="https://github.com/erikogan/wait4ports"
 arch="all"
 license="MPL-2.0"
-depends=""
-makedepends=""
-install=""
-source="${pkgname}-${pkgver}.tar.gz::https://github.com/erikogan/wait4ports/archive/v${pkgver}.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver.tar.gz::https://github.com/erikogan/wait4ports/archive/v$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	make || return 1
+	make
 }
 
 package() {
-	cd "$builddir"
-	make PREFIX="$pkgdir" install || return 1
+	make PREFIX="$pkgdir" install
 }
 
-md5sums="540262422fc204037bb2315bcfb438e5  wait4ports-0.0.4.tar.gz"
-sha256sums="c94789f1c353c87d0a14fea88ef565cef8807bde2903e5020565f86c656e2597  wait4ports-0.0.4.tar.gz"
-sha512sums="a3f0df9fcfde0c49626327f19a5ba71d8c59311f04a874f3470d92503d577a4eedcc46f4432ddf9386b966ce5bee522f3c9a2c4d88b037ffd0caf7022358a461  wait4ports-0.0.4.tar.gz"
+check() {
+	make check
+}
+
+sha512sums="1280d8dafc2d7ac9aa4cbb3b86248ebbeef163da3e103664ac5baf4c81ce415ab6aae783e53ddbc179d3279df2c3edbceef57bc3bf28a204494c589c7fe742e4  wait4ports-0.3.3.tar.gz"

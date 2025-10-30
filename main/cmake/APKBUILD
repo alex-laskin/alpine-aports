@@ -1,71 +1,112 @@
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=cmake
-pkgver=3.11.1
-pkgrel=2
+pkgver=4.1.2
+pkgrel=0
+_pkgver=${pkgver/_rc/-rc}
 pkgdesc="Cross-platform, open-source make system"
-url="http://www.cmake.org"
+url="https://cmake.org/"
 arch="all"
 license="BSD-3-Clause"
-makedepends="bzip2-dev curl-dev expat-dev libarchive-dev
-	libuv-dev ncurses-dev rhash-dev xz-dev zlib-dev"
-options="!checkroot !check"
-checkdepends="filel musl-utils"
-subpackages="$pkgname-doc $pkgname-bash-completion:bashcomp:noarch
+makedepends="
+	bzip2-dev
+	expat-dev
+	libarchive-dev
+	libuv-dev
+	linux-headers
+	ncurses-dev
+	py3-sphinx
+	rhash-dev
+	samurai
+	xz-dev
+	zlib-dev
+	"
+checkdepends="file"
+subpackages="
+	ccmake
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-emacs::noarch
+	$pkgname-vim::noarch
 	"
 case $pkgver in
 *.*.*.*) _v=v${pkgver%.*.*};;
 *.*.*) _v=v${pkgver%.*};;
 esac
-
-source="http://www.cmake.org/files/$_v/cmake-${pkgver}.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
-
-_parallel_opt() {
-	local i n
-	for i in $MAKEOPTS; do
-		case "$i" in
-			-j*) n=${i#-j};;
-		esac;
-	done
-	[ -n "$n" ] && echo "--parallel $n"
-}
+source="https://cmake.org/files/$_v/cmake-$_pkgver.tar.gz"
+builddir="$srcdir/$pkgname-$_pkgver"
+options="!check"
 
 build() {
-	cd "$builddir"
-	# jsoncpp needs cmake to build so to avoid recursive build
-	# dependency, we use the bundled version of jsoncpp.
-	# Do NOT remove --no-system-jsoncpp unless you consulted
-	# maintainer
+	# jsoncpp/cppdap/curl/nghttp2 needs cmake to build so to avoid recursive build
+	# dependency, we use the bundled version.
+	# Do NOT remove --no-system-*
+
 	./bootstrap \
 		--prefix=/usr \
 		--mandir=/share/man \
 		--datadir=/share/$pkgname \
 		--docdir=/share/doc/$pkgname \
-		--system-libs \
+		--sphinx-man \
+		--no-system-cppdap \
+		--no-system-curl \
 		--no-system-jsoncpp \
-		$(_parallel_opt)
-	make
+		--no-system-nghttp2 \
+		--system-bzip2 \
+		--system-expat \
+		--system-libarchive \
+		--system-liblzma \
+		--system-librhash \
+		--system-libuv \
+		--system-zlib \
+		--generator=Ninja \
+		--parallel="${JOBS:-2}" \
+		-- \
+		-B build
+	ninja -C build
 }
 
 check() {
-	cd "$builddir"
-	CTEST_OUTPUT_ON_FAILURE=TRUE bin/ctest
+	./build/bin/ctest --test-dir build
 }
 
 package() {
-	cd $startdir/src/$pkgname-$pkgver
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" ninja -C build install
+
+	# Wrappers to ease the CMake 4 migration, aports that fail to build can
+	# switch to these while waiting for upstream to update CMakeLists.txt.
+	local exe; for exe in cmake ctest; do
+		cat > "$pkgdir"/usr/bin/${exe}3.5 <<-EOF
+			#!/bin/sh
+			export CMAKE_POLICY_VERSION_MINIMUM=3.5
+			exec $exe "\$@"
+		EOF
+		chmod 0755 "$pkgdir"/usr/bin/${exe}3.5
+	done
 }
 
-bashcomp() {
-        depends=""
-        pkgdesc="Bash completions for $pkgname"
-        install_if="$pkgname=$pkgver-r$pkgrel bash"
+ccmake() {
+	pkgdesc="$pkgdesc (ccmake configurator)"
+	depends="$pkgname=$pkgver-r$pkgrel"
 
-        mkdir -p "$subpkgdir"/usr/share/bash-completion
-        mv "$pkgdir"/usr/share/cmake/completions \
-                "$subpkgdir"/usr/share/bash-completion/
+	amove usr/bin/ccmake
 }
 
-sha512sums="d5df043453a9f9478a0e165ded6ce247a7b495fe8c4e56905bb523889a016fb8eb769455c2c2c5f6118c61bcffafe4e3e219ad99b2a85918323c2155f10089d8  cmake-3.11.1.tar.gz"
+emacs() {
+	pkgdesc="$pkgdesc (emacs mode)"
+	install_if="$pkgname=$pkgver-r$pkgrel emacs"
+
+	amove usr/share/emacs
+}
+
+vim() {
+	pkgdesc="$pkgdesc (vim files)"
+	install_if="$pkgname=$pkgver-r$pkgrel vim"
+
+	amove usr/share/vim
+}
+
+sha512sums="
+169b8ebfbd2c880a1f3ed8c3da8d4b8e9252a5a1ff9f0011e39bb3bb84d183f0379eea880b80e2e052c333db91e49b80e5a65131f71fc8582709b604e94bf280  cmake-4.1.2.tar.gz
+"

@@ -2,22 +2,24 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=gingerbase
 pkgver=2.3.0
-pkgrel=0
+pkgrel=7
 pkgdesc="Gingerbase: basic host management for WoK"
-url="http://kimchi-project.github.io/gingerbase/"
-arch="noarch"
+url="https://kimchi-project.github.io/gingerbase/"
+arch="noarch !s390x !riscv64" # blocked by wok
 license="AGPL-2.1"
-depends="py2-configobj py2-pyparted wok"
+depends="py3-configobj py3-pyparted wok"
 makedepends="automake autoconf libtool
-	python2-dev gettext-dev pyflakes libxslt"
-options="!check"
-subpackages="$pkgname-lang"
-source="$pkgname-$pkgver.tar.gz::https://github.com/kimchi-project/$pkgname/archive/$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+	python3-dev gettext-dev py3-pyflakes libxslt"
+options="!check" # depends on unit2
+subpackages="$pkgname-lang $pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/kimchi-project/gingerbase/archive/$pkgver.tar.gz"
+
+prepare() {
+	default_prepare
+	sh ./autogen.sh --system
+}
 
 build() {
-	cd "$builddir"
-	sh ./autogen.sh --system
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
@@ -27,8 +29,11 @@ build() {
 	make
 }
 
+check() {
+	make check
+}
+
 package() {
-	cd "$builddir"
 	make -j1 DESTDIR="$pkgdir" install
 }
 

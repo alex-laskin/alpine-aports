@@ -1,0 +1,27 @@
+# Contributor: Dylan Van Assche <dylan@postmarketos.org>
+# Maintainer: team/phosh <dylan@postmarketos.org>
+pkgname=feedbackd-device-themes
+pkgver=0.8.6
+pkgrel=1
+pkgdesc="Feedbackd device themes for different devices"
+url="https://gitlab.freedesktop.org/agx/feedbackd-device-themes"
+arch="noarch"
+license="GPL-3.0-or-later"
+makedepends="meson json-glib-dev"
+source="https://sources.phosh.mobi/releases/feedbackd-device-themes/feedbackd-device-themes-$pkgver.tar.xz"
+
+build() {
+	abuild-meson . output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+686673152429a540c5f2d302d71d2bc3016cc75dd302f32878ab058c24f7b985a60a3bb8321eb89ab69234919c4e2559e494fb7d75ffb68d95df4ea42a507fca  feedbackd-device-themes-0.8.6.tar.xz
+"

@@ -1,5 +1,8 @@
 #!/sbin/openrc-run
 
+# Copyright (c) Natanael Copa
+# This code is licensed under BSD-2-Clause
+
 # script that will mount image with modules
 
 depend() {
@@ -12,7 +15,7 @@ depend() {
 init_KOPT() {
 	for opt in $(cat /proc/cmdline 2>/dev/null); do
 	        case "$opt" in
-			modloop=*)
+			modloop=*|modloop_verify=*)
 				eval "KOPT_${opt%%=*}='${opt#*=}'" ;;
 		esac
 	done
@@ -31,6 +34,7 @@ find_modloop() {
 	IFS="$oifs"
 	for line; do
 		img=${line%%:*}
+		verify_modloop "$img" || eerror "Failed to verify signature of $img!"
 		mount "$img" -o loop,ro /.modloop || continue
 		if [ -d /.modloop/modules/$kver ]; then
 			return 0
@@ -38,6 +42,25 @@ find_modloop() {
 		umount /.modloop
 	done
 	return 1
+}
+
+verify_modloop() {
+	local modloop=$1 key=
+	if ! yesno "${KOPT_modloop_verify:=yes}"; then
+		return 0
+	fi
+	for key in /etc/apk/keys/*.pub; do
+		local sig=/var/cache/misc/${modloop##*/}.SIGN.RSA.${key##*/}
+		if [ -f "$sig" ]; then
+			if ! command -v openssl > /dev/null; then
+				ewarn "Missing openssl. Modloop verification disabled!"
+				return 0
+			fi
+			einfo "Verifying modloop"
+			openssl dgst -sha1 -verify "$key" -signature "$sig" "$modloop" \
+				>/dev/null 2>&1 || return 1
+		fi
+	done
 }
 
 find_backing_file() {
@@ -50,11 +73,14 @@ start() {
 	local modloop= mount_opts= modloop_dldir="/lib"
 	init_KOPT
 
-	mkdir -p /.modloop /lib
 	case "$KOPT_modloop" in
+		none) return 0;;
 		http://*|https://*|ftp://*)
 			modloop=$modloop_dldir/${KOPT_modloop##*/}
-			[ ! -f "$modloop" ] && wget -P "$modloop_dldir" "$KOPT_modloop"
+			if [ ! -f "$modloop" ]; then
+				mkdir -p "$modloop_dldir"
+				wget -P "$modloop_dldir" "$KOPT_modloop" || eend 1
+			fi
 			;;
 		*)
 			for dir in $(mountdirs); do
@@ -68,7 +94,9 @@ start() {
 	esac
 
 	ebegin "Mounting modloop $modloop"
+	mkdir -p /.modloop
 	if [ -n "$modloop" ]; then
+		verify_modloop "$modloop" || eerror "Failed to verify signature of $img!"
 		mount -o loop,ro $modloop /.modloop
 		eend $? || return 1
 	else
@@ -96,7 +124,8 @@ start() {
 		mkdir -p /.modoverlayfs /lib/modules
 		mount -t tmpfs $mount_ops tmpfs /.modoverlayfs
 		mkdir -p /.modoverlayfs/modules /.modoverlayfs/work
-		mount -t overlay -o upperdir=/.modoverlayfs/modules,lowerdir=/.modloop/modules,workdir=/.modoverlayfs/work overlay /lib/modules
+		mount -t overlay -o upperdir=/.modoverlayfs/modules,lowerdir=/lib/modules:/.modloop/modules,workdir=/.modoverlayfs/work overlay /lib/modules
+		depmod -A
 		eend $? || return 1
 	else
 		rm -rf /lib/modules && ln -sf /.modloop/modules /lib/

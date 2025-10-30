@@ -1,0 +1,70 @@
+# Contributor: lauren n. liberda <lauren@selfisekai.rocks>
+maintainer="lauren n. liberda <lauren@selfisekai.rocks>"
+pkgname=ghostty
+pkgver=1.2.0_git20250907
+pkgrel=1
+pkgdesc="Fast, feature-rich, and cross-platform terminal emulator"
+url="https://ghostty.org/"
+arch="x86_64"	# zig. fails to build on aarch64
+license="MIT"
+depends_dev="
+	fontconfig-dev
+	freetype-dev
+	glslang-dev
+	gtk4.0-dev
+	gtk4-layer-shell-dev
+	harfbuzz-dev
+	libadwaita-dev
+	libpng-dev
+	oniguruma-dev
+	simdutf-dev
+	zlib-dev
+	"
+makedepends="
+	$depends_dev
+	blueprint-compiler
+	ncurses
+	zig
+	"
+# !check: manual test suite
+# net: zig dependencies
+options="!check net"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	$pkgname-fish-completion
+	"
+# https://github.com/ghostty-org/ghostty/pull/8372
+_commit=4912b2b29b020bdab8c2eb3b377a03132bff0762
+builddir="$srcdir/ghostty-$_commit"
+source="
+	https://github.com/ghostty-org/ghostty/archive/$_commit/ghostty-$_commit.tar.gz
+	"
+
+build() {
+	zig build \
+		--release=small \
+		-Dcpu=baseline \
+		-fsys=fontconfig \
+		-fsys=freetype \
+		-fsys=glslang \
+		-fsys=gtk4-layer-shell \
+		-fsys=harfbuzz \
+		-fsys=libpng \
+		-fsys=oniguruma \
+		-fsys=simdutf \
+		-fsys=zlib
+}
+
+package() {
+	install -Dm755 zig-out/bin/ghostty -t "$pkgdir"/usr/bin/
+	cp -r zig-out/share "$pkgdir"/usr/share
+	# conflicts with ncurses-terminfo
+	rm -r "$pkgdir"/usr/share/terminfo/g/
+	install -Dm644 LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname/
+}
+
+sha512sums="
+429034725f202e06207d99644680ec7f7632b70c1098c5196b9009db17acbd4dc99e61f189ce49d4eb2e00fbc8cd6628673fc2ef2687ceff941ee3900ebbe0c1  ghostty-4912b2b29b020bdab8c2eb3b377a03132bff0762.tar.gz
+"

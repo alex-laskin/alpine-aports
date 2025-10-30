@@ -1,29 +1,33 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=goffice
-pkgver=0.10.39
+pkgver=0.10.59
 pkgrel=0
 _maj=${pkgver%%.*}
-_min=${pkgver#${_maj}.}
+_min=${pkgver#$_maj.}
 _min=${_min%%.*}
 pkgdesc="Library of document-centric objects and utilities built on top of GLib and Gtk+"
-url="http://www.gnome.org"
+url="https://www.gnome.org/"
 arch="all"
 license="GPL-2.0-or-later OR GPL-3.0-or-later"
-makedepends="librsvg-dev intltool gtk+-dev autoconf automake libtool gtk-doc
-	libxslt-dev gobject-introspection-dev glib-dev libgsf-dev cairo-dev
-	libxml2-dev gtk+3.0-dev"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="https://download.gnome.org/sources/$pkgname/$_maj.$_min/$pkgname-$pkgver.tar.xz
-	testsuite-workaround.patch
+makedepends="
+	autoconf
+	automake
+	cairo-dev
+	glib-dev
+	gobject-introspection-dev
+	gtk+3.0-dev
+	gtk-doc
+	intltool
+	libgsf-dev
+	librsvg-dev
+	libtool
+	libxml2-dev
+	libxslt-dev
 	"
-prepare() {
-	default_prepare
-	libtoolize --force && aclocal && autoconf \
-		&& automake --add-missing --gnu
-}
+subpackages="$pkgname-dbg $pkgname-dev $pkgname-doc $pkgname-lang"
+source="https://download.gnome.org/sources/goffice/$_maj.$_min/goffice-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -36,14 +40,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="8580f0623f426e43d6e9ee5b38af9acfad9e49d3a34530772f6c691fafa2025465f7a4595d665a3248d4be4b3cd97b080b2039813b7324257deff3b290a1c24e  goffice-0.10.39.tar.xz
-1addcc0e3f1c4d908fbe4caf2a31a3ac8957f03ccce55f8a81f059ad8d40a79cb51a72ba33a57b027fce85f29b335c126f567cb0a8cef2f25d5cff79287655d4  testsuite-workaround.patch"
+sha512sums="
+a702e95687b8f7671f175431acb0925e22cf661b2c8d662b1cf9f45243efa75d6e28414613d833cfc1651fc926d0a0d2094e3c82361c03b38efd1ab9aa9471e7  goffice-0.10.59.tar.xz
+"

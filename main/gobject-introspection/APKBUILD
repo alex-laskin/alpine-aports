@@ -1,46 +1,54 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: team/gnome <achill@achill.org>
 pkgname=gobject-introspection
-pkgver=1.56.1
+pkgver=1.86.0
 pkgrel=0
+# NOTE: Upgrade only to even-numbered versions (e.g. 1.18.x, 1.20.x)!
 pkgdesc="Introspection system for GObject-based libraries"
-url="https://wiki.gnome.org/action/show/Projects/GObjectIntrospection"
+url="https://gi.readthedocs.io"
 arch="all"
-license="LGPL-2.0+, GPL-2.0+, MIT"
-depends_dev="python3 cairo-dev libtool"
-makedepends="$depends_dev glib-dev libffi-dev flex bison python3-dev"
+license="LGPL-2.0-or-later AND GPL-2.0-or-later AND MIT"
+depends_dev="
+	cairo-dev
+	libtool
+	py3-setuptools
+	python3
+	"
+makedepends="$depends_dev
+	bison
+	flex
+	glib-dev
+	libffi-dev
+	meson
+	python3-dev
+	"
 subpackages="$pkgname-doc $pkgname-dev"
 replaces="libgirepository"
 checkdepends="sed"
-source="https://download.gnome.org/sources/$pkgname/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
+source="https://download.gnome.org/sources/gobject-introspection/${pkgver%.*}/gobject-introspection-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--disable-static \
-		--with-python=python3
-	make V=1
+	abuild-meson \
+		-Db_lto=true \
+		-Dcairo=enabled \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
 dev() {
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/share "$subpkgdir"/usr/
-	mv "$pkgdir"/usr/lib/gobject-introspection "$subpkgdir"/usr/lib/
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+	amove usr/bin usr/share usr/lib/gobject-introspection
 	default_dev
 	replaces="gobject-introspection"
 }
 
-sha512sums="2bfcd45b8c5ad68a3f6550c2f80a6804db0e1a72ffaf4fdd3cec3d8acc23e79ad14bb5bf612fe26fc896691839ab19ca8dd1c9994db14d730e56fa79df9d973d  gobject-introspection-1.56.1.tar.xz"
+sha512sums="
+a9d2edbe1cea710e10ef1ea8059a45cf5689bace43b5d2a6861809e863a6de7114b4763db8df3916ad6202c9967f48f7997acd0810a86e5e88dea7e0be88b585  gobject-introspection-1.86.0.tar.xz
+"

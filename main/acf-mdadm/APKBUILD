@@ -2,24 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-mdadm
 pkgver=0.5.0
-pkgrel=2
+pkgrel=5
 pkgdesc="ACF module for mdadm"
-url="http://git.alpinelinux.org/cgit/acf/$pkgname"
+url="https://gitlab.alpinelinux.org/acf/acf-mdadm"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core mdadm"
-makedepends=""
-install=
-subpackages=""
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-mdadm/-/archive/v$pkgver/acf-mdadm-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
-
 	make DESTDIR="$pkgdir" install
-
 }
 
-md5sums="fab4225e40bfa4cc690f47424d931e00  acf-mdadm-0.5.0.tar.xz"
-sha256sums="e8f695a71c5572a14c98ab813e2ec69c8773bba5a7006eadc79de4d034c8e811  acf-mdadm-0.5.0.tar.xz"
-sha512sums="7d21620a3bdc1f512f43685e89e6fd968920217764d22ceb98b15d33db653b5160a8f4f661ca58156896ba26e640ef7acf5db6bacfbd810160258433f8e3ba8e  acf-mdadm-0.5.0.tar.xz"
+sha512sums="
+adb54dbd81e5a2adc55876f147535e3898319ec802507c6e6c65b521dd91fb201733de4972d11d07f4732a9a2147dcbc3cff90e16fb955210d95a6abcd67a1aa  acf-mdadm-v0.5.0.tar.gz
+"

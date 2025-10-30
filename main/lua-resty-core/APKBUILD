@@ -1,0 +1,27 @@
+# Contributor: Michael Pirogov <vbnet.ru@gmail.com>
+# Maintainer: Michael Pirogov <vbnet.ru@gmail.com>
+pkgname=lua-resty-core
+# NOTE: It requires a specific version of nginx-mod-http-lua - it must be
+#  exactly the same as specified in lib/resty/core/base.lua:22.
+pkgver=0.1.31
+pkgrel=0
+pkgdesc="New FFI-based API for lua-nginx-module"
+url="https://github.com/openresty/lua-resty-core"
+# luajit
+arch="noarch !riscv64"
+license="BSD-2-Clause"
+depends="luajit lua-resty-lrucache"
+source="https://github.com/openresty/lua-resty-core/archive/v$pkgver/lua-resty-core-$pkgver.tar.gz"
+options="!check"  # FIXME: tests require OpenResty and additional dependencies
+
+package() {
+	make install DESTDIR="$pkgdir" LUA_LIB_DIR="/usr/share/lua/common"
+
+	echo 'rock_manifest = {}' > rock_manifest
+	install -D -m 644 rock_manifest \
+		"$pkgdir"/usr/lib/luarocks/rocks-common/$pkgname/$pkgver-1
+}
+
+sha512sums="
+e6c28a6b404817a10d1e0ebf3032d842aef164fa7ce2b83a6691a36019246a9bfc85bfd673b8a9b1301cffe0e84441561b2c01b86f29d457f43e77af5a492ef1  lua-resty-core-0.1.31.tar.gz
+"

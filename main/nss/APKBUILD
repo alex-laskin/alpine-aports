@@ -1,134 +1,145 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=nss
-pkgver=3.36.1
-_ver=${pkgver//./_}
+pkgver=3.117
 pkgrel=0
 pkgdesc="Mozilla Network Security Services"
-url="http://www.mozilla.org/projects/security/pki/nss/"
+url="https://developer.mozilla.org/docs/Mozilla/Projects/NSS"
 arch="all"
-license="MPL GPL"
-options="!check"
-depends=
+license="MPL-2.0"
 depends_dev="nspr-dev"
-makedepends="nspr-dev sqlite-dev zlib-dev perl bsd-compat-headers"
-subpackages="$pkgname-static $pkgname-dev $pkgname-tools"
-source="http://ftp.mozilla.org/pub/security/$pkgname/releases/NSS_${pkgver//./_}_RTM/src/$pkgname-$pkgver.tar.gz
+makedepends="
+	$depends_dev
+	bash
+	bsd-compat-headers
+	linux-headers
+	gyp
+	perl
+	sqlite-dev
+	zlib-dev
+	"
+subpackages="$pkgname-dev $pkgname-tools"
+source="https://ftp.mozilla.org/pub/security/nss/releases/NSS_${pkgver//./_}_RTM/src/nss-$pkgver.tar.gz
+	gyp-config.patch
+	no-werror.patch
 	nss.pc.in
 	nss-util.pc.in
 	nss-softokn.pc.in
 	nss-config.in
-	add_spi+cacert_ca_certs.patch
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+builddir="$srcdir/$pkgname-$pkgver/nss"
 
-prepare() {
-	default_prepare
-
-	# Respect LDFLAGS
-	sed -i -e 's/\$(MKSHLIB) -o/\$(MKSHLIB) \$(LDFLAGS) -o/g' \
-		"$builddir"/nss/coreconf/rules.mk
-}
+# secfixes:
+#   3.98-r0:
+#     - CVE-2023-5388
+#   3.76.1-r0:
+#     - CVE-2022-1097
+#   3.73-r0:
+#     - CVE-2021-43527
+#   3.58-r0:
+#     - CVE-2020-25648
+#   3.55-r0:
+#     - CVE-2020-12400
+#     - CVE-2020-12401
+#     - CVE-2020-12403
+#     - CVE-2020-6829
+#   3.53.1-r0:
+#     - CVE-2020-12402
+#   3.49-r0:
+#     - CVE-2019-17023
+#   3.47.1-r0:
+#     - CVE-2019-11745
+#   3.41-r0:
+#     - CVE-2018-12404
+#   3.39-r0:
+#     - CVE-2018-12384
 
 build() {
-	cd "$builddir"
-	unset CFLAGS
-	unset CXXFLAGS
-	export BUILD_OPT=1
-	export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
-	export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
-	export FREEBL_NO_DEPEND=0
-	export NSS_USE_SYSTEM_SQLITE=1
-	export NSS_ENABLE_WERROR=0
-	export NSPR_INCLUDE_DIR=`pkg-config --cflags-only-I nspr | sed 's/-I//'`
-	export NSPR_LIB_DIR=`pkg-config --libs-only-L nspr | sed 's/-L.//'`
-	case "$CARCH" in
-		*64* | s390x) export USE_64=1;;
-	esac
-	make -j 1 -C nss/coreconf
-	make -j 1 -C nss/lib/dbm
-	make -j 1 -C nss
+	CFLAGS="$CFLAGS -O2 -flto=auto" \
+	CXXFLAGS="$CXXFLAGS -O2 -flto=auto" \
+	./build.sh \
+		--opt \
+		--system-nspr \
+		--system-sqlite \
+		--enable-libpkix
+}
+
+check() {
+	cd tests
+	# other tests are failing for some reason and prompt an interactive password
+	export NSS_TESTS="cipher lowhash libpkix"
+	export NSS_CYCLES=standard
+	HOST=localhost DOMSUF=localdomain bash ./all.sh
 }
 
 package() {
 	replaces="nss-dev libnss"
 
-	cd "$builddir"
-
-	install -m755 -d "$pkgdir"/usr/lib/pkgconfig
-	install -m755 -d "$pkgdir"/usr/bin
-	install -m755 -d "$pkgdir"/usr/include/nss/private
-
-	NSS_VMAJOR=`awk '/#define.*NSS_VMAJOR/ {print $3}' nss/lib/nss/nss.h `
-	msg "DEBUG: $NSS_VMAJOR"
-	NSS_VMINOR=`awk '/#define.*NSS_VMINOR/ {print $3}' nss/lib/nss/nss.h`
-	NSS_VPATCH=`awk '/#define.*NSS_VPATCH/ {print $3}' nss/lib/nss/nss.h`
+	local nss_vmajor=$(awk '/#define.*NSS_VMAJOR/ {print $3}' lib/nss/nss.h)
+	local nss_vminor=$(awk '/#define.*NSS_VMINOR/ {print $3}' lib/nss/nss.h)
+	local nss_vpatch=$(awk '/#define.*NSS_VPATCH/ {print $3}' lib/nss/nss.h)
+	local nspr_version="$(pkg-config --modversion nspr)"
 
 	# pkgconfig files
+	mkdir -p "$pkgdir"/usr/lib/pkgconfig
 	local _pc; for _pc in nss.pc nss-util.pc nss-softokn.pc; do
-		sed "$srcdir"/${_pc}.in \
+		sed "$srcdir"/$_pc.in \
 			-e "s,%libdir%,/usr/lib,g" \
 			-e "s,%prefix%,/usr,g" \
 			-e "s,%exec_prefix%,/usr/bin,g" \
 			-e "s,%includedir%,/usr/include/nss,g" \
 			-e "s,%SOFTOKEN_VERSION%,$pkgver,g" \
-			-e "s,%NSPR_VERSION%,$pkgver,g" \
+			-e "s,%NSPR_VERSION%,$nspr_version,g" \
 			-e "s,%NSS_VERSION%,$pkgver,g" \
 			-e "s,%NSSUTIL_VERSION%,$pkgver,g" \
-			> "$pkgdir"/usr/lib/pkgconfig/${_pc}
+			> "$pkgdir"/usr/lib/pkgconfig/$_pc
 	done
 	ln -sf nss.pc "$pkgdir"/usr/lib/pkgconfig/mozilla-nss.pc
 	chmod 644 "$pkgdir"/usr/lib/pkgconfig/*.pc
 
 	# nss-config
+	mkdir -p "$pkgdir"/usr/bin
 	sed "$srcdir"/nss-config.in \
 		-e "s,@libdir@,/usr/lib,g" \
 		-e "s,@prefix@,/usr/bin,g" \
 		-e "s,@exec_prefix@,/usr/bin,g" \
 		-e "s,@includedir@,/usr/include/nss,g" \
-		-e "s,@MOD_MAJOR_VERSION@,${NSS_VMAJOR},g" \
-		-e "s,@MOD_MINOR_VERSION@,${NSS_VMINOR},g" \
-		-e "s,@MOD_PATCH_VERSION@,${NSS_VPATCH},g" \
+		-e "s,@MOD_MAJOR_VERSION@,${nss_vmajor},g" \
+		-e "s,@MOD_MINOR_VERSION@,${nss_vminor},g" \
+		-e "s,@MOD_PATCH_VERSION@,${nss_vpatch},g" \
 		> "$pkgdir"/usr/bin/nss-config
 	chmod 755 "$pkgdir"/usr/bin/nss-config
+
+	cd ..
+
 	local minor=${pkgver#*.}
 	minor=${minor%.*}
-	for file in $(find dist/*.OBJ/lib -name "*.so"); do
-		install -m755 $file \
+	find dist/Release/lib -name "*.so" | while IFS= read -r file; do
+		install -Dm755 $file \
 			"$pkgdir"/usr/lib/${file##*/}.$minor
 		ln -s ${file##*/}.$minor "$pkgdir"/usr/lib/${file##*/}
 	done
-	install -m644 dist/*.OBJ/lib/*.a "$pkgdir"/usr/lib/
-	install -m644 dist/*.OBJ/lib/*.chk "$pkgdir"/usr/lib/
 
 	for file in certutil cmsutil crlutil modutil pk12util shlibsign \
 			signtool signver ssltap; do
-		install -m755 dist/*.OBJ/bin/${file} "$pkgdir"/usr/bin/
+		install -Dm755 dist/Release/bin/$file -t "$pkgdir"/usr/bin/
 	done
-	install -m644 dist/public/nss/*.h "$pkgdir"/usr/include/nss/
-	install -m644 dist/private/nss/blapi.h dist/private/nss/alghmac.h "$pkgdir"/usr/include/nss/private/
-}
 
-static() {
-	pkgdesc="Static libraries for nss"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/*.a "$subpkgdir"/usr/lib/
-
-	# remove libssl.a which conflicts with libressl
-	rm "$subpkgdir"/usr/lib/libssl.a
+	install -Dm644 dist/public/nss/*.h -t "$pkgdir"/usr/include/nss/
+	install -Dm644 dist/private/nss/blapi.h dist/private/nss/alghmac.h -t "$pkgdir"/usr/include/nss/private/
 }
 
 dev() {
 	# we cannot use default_dev because we need the .so symlinks in main package
-	local i= j=
+	local i
 	pkgdesc="Development files for nss"
-	depends="$pkgname $depends_dev"
+	depends="$pkgname=$pkgver-r$pkgrel $depends_dev"
 
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/nss-config "$subpkgdir"/usr/bin
+	amove usr/bin/nss-config
 
 	cd "$pkgdir"
-	for i in usr/include usr/lib/pkgconfig usr/lib/*.a; do
+	for i in usr/include usr/lib/pkgconfig; do
 		if [ -e "$pkgdir/$i" ] || [ -L "$pkgdir/$i" ]; then
 			d="$subpkgdir/${i%/*}"  # dirname $i
 			mkdir -p "$d"
@@ -136,20 +147,21 @@ dev() {
 			rmdir "$pkgdir/${i%/*}" 2>/dev/null || true
 		fi
 	done
-	mv "$pkgdir"/usr/lib/libgtest1.* "$pkgdir"/usr/lib/libnsssysinit.* \
-		"$subpkgdir"/usr/lib
 }
 
 tools() {
 	pkgdesc="Tools for the Network Security Services"
 	replaces="nss"
-	mkdir -p "$subpkgdir"/usr/
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+
+	amove usr/bin
 }
 
-sha512sums="096fe4360b6d584a746ac6156830f8cff821fd173bd889d7a396238919328a227fa4ebb46f738970a4001773046f3dd4f4675b85ff6de8420a4a7657b3ba0c65  nss-3.36.1.tar.gz
+sha512sums="
+12e6eaa67d290fc8146dee2d92017fd481e4969d556870ec4200aab8d2590efe63686ca9cca5cc1b95c7078cc0ab7f1e27e77de5a1a2b75c4f1f3b4b65c700fe  nss-3.117.tar.gz
+c32b10ed72ffd7c64f9bf70f1caf06e47be6a51e6c79003b899c5c2052597ead7ef64b5b4ca6fe31eb107c00c300d9f49cda4e85dadd6b3bec13335640657b0f  gyp-config.patch
+6c432488b5b2cdfc89928ea512f396dfa8b383766ad7edb6f051ff16e6e2f2bfe6f3d11e95e7183d271ad29dcd03e46ba67775db8052b100bc39b3d798d2fe55  no-werror.patch
 75dbd648a461940647ff373389cc73bc8ec609139cd46c91bcce866af02be6bcbb0524eb3dfb721fbd5b0bc68c20081ed6f7debf6b24317f2a7ba823e8d3c531  nss.pc.in
 0f2efa8563b11da68669d281b4459289a56f5a3a906eb60382126f3adcfe47420cdcedc6ab57727a3afeeffa2bbb4c750b43bef8b5f343a75c968411dfa30e09  nss-util.pc.in
 09c69d4cc39ec9deebc88696a80d0f15eb2d8c94d9daa234a2adfec941b63805eb4ce7f2e1943857b938bddcaee1beac246a0ec627b71563d9f846e6119a4a15  nss-softokn.pc.in
 2971669e128f06a9af40a5ba88218fa7c9eecfeeae8b0cf42e14f31ed12bf6fa4c5ce60289e078f50e2669a9376b56b45d7c29d726a7eac69ebe1d1e22dc710b  nss-config.in
-6e04556858499aec465d6670818465327ba2cb099061c2afee4b5cac8aa61938e0095906acfb38df6a1b70a6bde6dd69f08bb4c00a9d188e4cb3131b26c1bc16  add_spi+cacert_ca_certs.patch"
+"

@@ -1,19 +1,20 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=yaml
-pkgver=0.1.7
-pkgrel=0
+pkgver=0.2.5
+pkgrel=2
 pkgdesc="YAML 1.1 parser and emitter written in C"
-url="http://pyyaml.org/wiki/LibYAML"
+url="https://pyyaml.org/wiki/LibYAML"
 arch="all"
 license="MIT"
-depends=""
-makedepends=""
-subpackages="$pkgname-dev"
+subpackages="$pkgname-static $pkgname-dev"
 source="http://pyyaml.org/download/libyaml/yaml-$pkgver.tar.gz"
 
+prepare() {
+ 	default_prepare
+	update_config_sub
+}
+
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -26,13 +27,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="1ee5007dd10db137b5ee80f8117f07390ec04af98d087a5f5475dd2b38d87c699b79ab1676e6c7bfa263323fcdf8edd69fada2b0b7f9c57bef4e46cd65f1e975  yaml-0.1.7.tar.gz"
+sha512sums="
+dadd7d8e0d88b5ebab005e5d521d56d541580198aa497370966b98c904586e642a1cd4f3881094eb57624f218d50db77417bbfd0ffdce50340f011e35e8c4c02  yaml-0.2.5.tar.gz
+"

@@ -1,38 +1,32 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libxau
-pkgver=1.0.8
-pkgrel=2
+pkgver=1.0.12
+pkgrel=0
 pkgdesc="X11 authorisation library"
-url="http://xorg.freedesktop.org/"
+url="https://xorg.freedesktop.org/"
 arch="all"
-license="custom"
-depends=
-makedepends="xproto util-macros"
+license="MIT"
+makedepends="meson xorgproto util-macros"
 subpackages="$pkgname-dev $pkgname-doc"
-source="http://www.x.org/releases/individual/lib/libXau-$pkgver.tar.bz2"
+source="https://www.x.org/releases/individual/lib/libXau-$pkgver.tar.xz"
 
 builddir="$srcdir"/libXau-$pkgver
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc
-	make
+	abuild-meson \
+		output .
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	install -m755 -d "$pkgdir"/usr/share/licenses/$pkgname
-	install -m644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+	install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
 }
 
-sha512sums="9f933d22f8f2411ae770094589cbe170c631a1437d572664e0fa6b9608e6ec39deef752f2dd6408ab45acdf01bf1827ef3ced640a33da787d9cfb546f12397b5  libXau-1.0.8.tar.bz2"
+sha512sums="
+4bbe8796f4a14340499d5f75046955905531ea2948944dfc3d6069f8b86c1710042bfc7918d459320557883e6631359d48e6173c69c62ff572314e864ff97c5e  libXau-1.0.12.tar.xz
+"

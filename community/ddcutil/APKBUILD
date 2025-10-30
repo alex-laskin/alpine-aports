@@ -1,0 +1,44 @@
+maintainer="Bart Ribbers <bribbers@disroot.org>"
+pkgname=ddcutil
+pkgver=2.2.1
+pkgrel=0
+pkgdesc="Query and change Linux monitor settings using DDC/CI and USB"
+url="https://github.com/rockowitz/ddcutil"
+arch="all"
+license="GPL-2.0-only"
+makedepends="
+	autoconf
+	automake
+	eudev-dev
+	glib-dev
+	i2c-tools-dev
+	jansson-dev
+	kmod-dev
+	libdrm-dev
+	libtool
+	libusb-dev
+	libxrandr-dev
+	linux-headers
+	"
+subpackages="$pkgname-dev $pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/rockowitz/ddcutil/archive/v$pkgver.tar.gz"
+
+prepare() {
+	default_prepare
+	NOCONFIGURE=1 ./autogen.sh
+}
+
+build() {
+	./configure \
+		--prefix=/usr \
+		--mandir=/usr/share/man
+	make
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+}
+
+sha512sums="
+119db19d4ca95ffcd50a0d40aebde15f346fbd745b5c84e9d58d8895a51acba52040540b1a325bd61f2c791a525c556526536df1e24c684cfd3b7c7ebfa2e589  ddcutil-2.2.1.tar.gz
+"

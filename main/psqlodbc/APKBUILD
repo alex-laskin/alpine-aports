@@ -1,20 +1,24 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=psqlodbc
-pkgver=09.06.0410
-pkgrel=0
+pkgver=16.00.0005
+pkgrel=1
+_pkgver="${pkgver//./_}"
 pkgdesc="PostgreSQL ODBC driver"
-url="http://www.postgresql.org"
+url="https://odbc.postgresql.org/"
 arch="all"
-license="GPL"
-depends=
-makedepends="postgresql-dev unixodbc-dev libressl-dev libtool"
-subpackages=
-source="https://ftp.postgresql.org/pub/odbc/versions/src/psqlodbc-$pkgver.tar.gz"
+license="GPL-2.0-or-later"
+makedepends="libpq-dev unixodbc-dev libtool autoconf automake"
+source="$pkgname-$pkgver.tar.gz::https://github.com/postgresql-interfaces/psqlodbc/archive/REL-$_pkgver.tar.gz
+	gcc15-configure-stdbool.patch
+	"
+builddir="$srcdir/psqlodbc-REL-$_pkgver"
 
-builddir="$srcdir/$pkgname-$pkgver"
+prepare() {
+	default_prepare
+	autoreconf -fvi
+}
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -22,9 +26,15 @@ build() {
 	make
 }
 
+check() {
+	make check
+}
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
-sha512sums="f129f7de1ec1dcec3d17d5d21eabb438ca9b9c1b76dd3b5571f6566460c61438a7c69bfda0057697e8669cd33ae5b8213d19e3c526c04eeb21b6632e62b761f8  psqlodbc-09.06.0410.tar.gz"
+
+sha512sums="
+61f4696ed5ab7b0e1b584faa73af997cd1685ad632de8bfe079854fed06e3aa79f0e4a7a7564a8fe96e87f338a54e7dbc2c5baccd440716e351038fc89b1c613  psqlodbc-16.00.0005.tar.gz
+8a27072e4b0ff14d0637cf11f76e4d0b52c1d11e15eb9a270304d1343249475d13cfb438a833e01eb309c479133fe6b39e716f0cc6cfb9f89e4fdb65725e11d3  gcc15-configure-stdbool.patch
+"

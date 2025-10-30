@@ -1,42 +1,43 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
 pkgname=stlink
-pkgver=1.5.0
-pkgrel=1
+pkgver=1.8.0
+pkgrel=0
 pkgdesc="STM32 discovery line linux programmer"
-url="https://github.com/texane/stlink"
+url="https://github.com/stlink-org/stlink"
 arch="all"
 license="MIT"
-depends=""
-depends_dev=""
-makedepends="cmake libusb-dev"
-install=""
+makedepends="cmake libusb-dev samurai"
 options="!check" # upstream doesn't have automated tests
 subpackages="$pkgname-doc $pkgname-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/texane/$pkgname/archive/$pkgver.tar.gz
-	0001-Fix-libusb-function-deprecation-used-for-stlinkv1.patch"
+source="$pkgname-$pkgver.tar.gz::https://github.com/stlink-org/stlink/archive/v$pkgver.tar.gz
+	gcc14.patch
+	"
 
-builddir="$srcdir"/$pkgname-$pkgver
 build() {
-	cd "$builddir"
-	cmake \
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DCMAKE_INSTALL_LIBDIR=lib \
 		-DBUILD_SHARED_LIBS=True \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-		-DCMAKE_C_FLAGS="$CFLAGS -Wno-error=cpp"
-	make
+		-DSTLINK_LIBRARY_PATH=/usr/lib \
+		-DCMAKE_C_FLAGS="$CFLAGS -Wno-error=cpp" \
+		-DSTLINK_UDEV_RULES_DIR=/usr/lib/udev/rules.d \
+		$CMAKE_CROSSOPTS
+	cmake --build build
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
 
 	mkdir -p "$pkgdir"/usr/share/doc/$pkgname
-	install -m644 README.md ChangeLog.md doc/tutorial.md \
+	install -m644 README.md CHANGELOG.md doc/tutorial.md \
 		"$pkgdir"/usr/share/doc/$pkgname/
 }
 
-sha512sums="0e93c0fdcd377c6f2d452b9b6fa00b741dc0dd906673773ef09185aca4f63930db61e137bb28c47e34218edca9f7a80cd05352fb8f9d8e50b000c779cc36580a  stlink-1.5.0.tar.gz
-d3bf74913f675f2f49c2219883c50a138267caf0a2e20e11f461d10ff77d0e291cf44cc266fa200855c9e171081f560a460496df28cc20c1020fdaef95dc3753  0001-Fix-libusb-function-deprecation-used-for-stlinkv1.patch"
+sha512sums="
+49245a4b0aeb926dd71ec4260b707d900318fe68e3a36e2e5543587fefb4886a9ff0ff42e0e12a8e727a5d4e9c7b4ce13989ca4d963842dbf960065e5fa0c968  stlink-1.8.0.tar.gz
+f0374641756981c94d865d282cbe8009ccc9e9b41499501310f7442878e68b1984418428d13a7ea1f22312d5c928ec7bdb845d99a54a4264497a954859ad38cc  gcc14.patch
+"

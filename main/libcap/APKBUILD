@@ -1,31 +1,76 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libcap
-pkgver=2.25
-pkgrel=1
+pkgver=2.77
+pkgrel=0
 pkgdesc="POSIX 1003.1e capabilities"
 arch="all"
-license="GPL"
-url="http://www.friedhoff.org/posixfilecaps.html"
-options="!check"
-depends=
+license="BSD-3-Clause OR GPL-2.0-only"
+url="https://sites.google.com/site/fullycapable/"
 depends_dev="linux-headers"
-makedepends_build="linux-headers perl"
-makedepends_host="$depends_dev attr-dev"
+makedepends_build="linux-headers perl bash"
+makedepends_host="$depends_dev"
 makedepends="$makedepends_build $makedepends_host"
+subpackages="
+	$pkgname-doc
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-getcap
+	$pkgname-setcap
+	$pkgname-utils
+	libcap2
+	"
 source="https://kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-$pkgver.tar.xz"
-subpackages="$pkgname-doc $pkgname-dev"
 
-_builddir="$srcdir"/$pkgname-$pkgver
-build ()
-{
-	cd "$_builddir"
-	make BUILD_CC=gcc CC="${CC:-gcc}" lib=lib prefix=/usr DESTDIR="$pkgdir"
+case "$CARCH" in
+armv7)
+	# psx_test fails in the armv7 CI environment
+	# possibly related to https://bugzilla.kernel.org/show_bug.cgi?id=219912
+	options="$options !check"
+	;;
+esac
+
+build() {
+	make BUILD_CC=gcc CC="${CC:-gcc}" lib=lib prefix=/usr GOLANG=no \
+		DESTDIR="$pkgdir"
+}
+
+check() {
+	make GOLANG=no test
 }
 
 package() {
-	cd "$_builddir"
-	make lib=/lib prefix=/usr RAISE_SETFCAP=no DESTDIR="$pkgdir" install
+	# backwards compatibility for things that depended on 'libcap'
+	depends="libcap2=$pkgver-r$pkgrel $pkgname-utils=$pkgver-r$pkgrel"
+
+	make lib=lib prefix=/usr GOLANG=no DESTDIR="$pkgdir" \
+		install
 }
-md5sums="6666b839e5d46c2ad33fc8aa2ceb5f77  libcap-2.25.tar.xz"
-sha256sums="693c8ac51e983ee678205571ef272439d83afe62dd8e424ea14ad9790bc35162  libcap-2.25.tar.xz"
-sha512sums="c3ab491885292adc171cde542b96f1295e84132febb50112a46575c3bde3a3eb6fcf733f7a756b4b656e013c0abb5ed6571db24799f8c0b23d8f759f992864f9  libcap-2.25.tar.xz"
+
+getcap() {
+	pkgdesc="$pkgdesc (getcap utility)"
+
+	amove usr/sbin/getcap
+}
+
+setcap() {
+	pkgdesc="$pkgdesc (setcap utility)"
+
+	amove usr/sbin/setcap
+}
+
+utils() {
+	pkgdesc="$pkgdesc (extra utils)"
+	depends="$pkgname-getcap=$pkgver-r$pkgrel $pkgname-setcap=$pkgver-r$pkgrel"
+
+	amove usr/sbin
+}
+
+libcap2() {
+	replaces="$pkgname<2.64-r1"
+	default_libs
+}
+
+sha512sums="
+c783cb43ffb40eb005fb880efe18e72667c743af79d647f67ee3201d5ff1e64446f9c850cced935a04b63a8ee3380bbf28dd91e2dfbcbddb561c8d096da610d0  libcap-2.77.tar.xz
+"

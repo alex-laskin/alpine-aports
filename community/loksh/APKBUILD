@@ -1,31 +1,30 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
 pkgname=loksh
-pkgver=6.3
+pkgver=7.7
 pkgrel=0
 pkgdesc="A Linux port of OpenBSD's ksh"
 url="https://github.com/dimkr/$pkgname"
 arch="all"
-license="ISC"
-replaces="oksh"
-depends=""
-depends_dev=""
-makedepends=""
+license="Public-Domain"
+makedepends="ncurses-dev meson"
 install="$pkgname.post-install $pkgname.post-upgrade $pkgname.pre-deinstall"
 options="!check" # upstream doesn't have a test suite
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/dimkr/$pkgname/archive/$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+source="loksh-$pkgver.tar.xz::https://github.com/dimkr/loksh/releases/download/$pkgver/loksh-$pkgver.tar.xz"
 
 build() {
-	make -C "$builddir"
+	abuild-meson \
+		--prefix=/ \
+		--bindir=/bin \
+		. output
+	meson compile -C output
 }
 
 package() {
-	make DESTDIR="$pkgdir" \
-		PREFIX="/usr" \
-		BIN_DIR="/bin" \
-		-C "$builddir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="414d25c10096485bd1bb6574d0f91526f452ee0102924398aff0b1451128e5bf3d5d7344bcc746f574ad1acdefd39a92ee59d0b86b05f0c149418302c4d2d3fb  loksh-6.3.tar.gz"
+sha512sums="
+002e3099a16052517f679f891293387dd55497aceedb5e959f2ae46fc3339b21856e48e402d7fcbffa1a17f1f9c6f433c32622284bd723293a02efe11dc755b9  loksh-7.7.tar.xz
+"

@@ -2,33 +2,38 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=fatback
 pkgver=1.3
-pkgrel=0
+pkgrel=2
 pkgdesc="A tool for recovering files from FAT file systems"
-url="http://fatback.sourceforge.net/"
+url="https://sourceforge.net/projects/fatback/"
 arch="all"
 license="GPL-2.0"
-depends=""
-makedepends="flex-dev"
-install=""
+makedepends="byacc flex-dev"
+options="!check" # no tests
 subpackages="$pkgname-doc"
-source="http://downloads.sourceforge.net/$pkgname/$pkgname-$pkgver.tar.gz"
-_builddir="$srcdir"/$pkgname-$pkgver
+source="https://downloads.sourceforge.net/fatback/fatback-$pkgver.tar.gz
+	gcc14.patch
+	"
+
+prepare() {
+	default_prepare
+
+	# regenerate with flex & byacc
+	rm -v setl.c sety.c
+}
 
 build() {
-	cd "$_builddir"
 	./configure \
 		--prefix=/usr \
 		--infodir=/usr/share/info \
-		--mandir=/usr/share/man \
-		|| return 1
-	make || return 1
+		--mandir=/usr/share/man
+	make
 }
 
 package() {
-	cd "$_builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 }
 
-md5sums="4f1beb13670a7eff5b66cff84e5fd42a  fatback-1.3.tar.gz"
-sha256sums="92fa7a8a8f3b2e9e5c51e8af55dd306bb97b29a78963f42d8c63e79070459410  fatback-1.3.tar.gz"
-sha512sums="be76a40eb981e3d33730811e846fc4fce6c6e4a7833ef37076d14da62e0741490b566bc17a4268f0861e004088493eb3e0d36771f4c7aa9bf7e765e5a0a65d82  fatback-1.3.tar.gz"
+sha512sums="
+be76a40eb981e3d33730811e846fc4fce6c6e4a7833ef37076d14da62e0741490b566bc17a4268f0861e004088493eb3e0d36771f4c7aa9bf7e765e5a0a65d82  fatback-1.3.tar.gz
+43f6368ddfc6baf6a7170fb7b399421e636e8a2a650ceec2f09cc002331850603c6753efe61ebeea6a97d77c51d32226fb9e22bd857655c169431e8ce95de2a7  gcc14.patch
+"

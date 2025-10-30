@@ -1,0 +1,37 @@
+# Contributor: lonjil <alpine@lonjil.xyz>
+# Maintainer: lonjil <alpine@lonjil.xyz>
+pkgname=qalculate-gtk
+# the pkgver must be kept in sync with: libqalculate
+pkgver=5.8.0
+pkgrel=0
+pkgdesc="Multi-purpose desktop calculator - GTK+ version"
+url="https://qalculate.github.io/"
+license="GPL-2.0-or-later"
+arch="all"
+makedepends="
+	glib-dev
+	gtk+3.0-dev
+	intltool
+	libqalculate-dev~${pkgver%.*}
+	"
+subpackages="$pkgname-doc $pkgname-lang"
+source="https://github.com/Qalculate/qalculate-gtk/releases/download/v$pkgver/qalculate-gtk-$pkgver.tar.gz"
+options="!check" # no test suite
+
+build() {
+	export CXXFLAGS="$CXXFLAGS -flto=auto"
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--mandir=/usr/share/man
+	make
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+}
+
+sha512sums="
+0462b1263ef2d129be1d8c463a748ef8d32382f5d844ab962a8503e34c3a9659034cffa43b9e067795b369cf41248b8d8b8760e1403fcae1271c8bdc3f9257b8  qalculate-gtk-5.8.0.tar.gz
+"

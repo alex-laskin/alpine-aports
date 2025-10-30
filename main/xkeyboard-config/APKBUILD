@@ -1,42 +1,38 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=xkeyboard-config
-pkgver=2.22
+pkgver=2.46
 pkgrel=0
 pkgdesc="X keyboard configuration files"
-url="http://www.freedesktop.org/wiki/Software/XKeyboardConfig"
+url="https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config"
 arch="noarch"
-license="custom"
-depends=
-subpackages=
-makedepends="xkbcomp intltool libx11-dev"
-source="http://www.x.org/archive/individual/data/xkeyboard-config/xkeyboard-config-$pkgver.tar.bz2
+license="MIT"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+depends_dev="$pkgname"
+makedepends="gettext meson perl libxslt"
+checkdepends="gawk"
+source="https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/archive/xkeyboard-config-$pkgver/xkeyboard-config-xkeyboard-config-$pkgver.tar.gz
 	"
-
-builddir="$srcdir/$pkgname-$pkgver"
+builddir="$srcdir"/xkeyboard-config-xkeyboard-config-$pkgver
 
 build() {
-	cd "$builddir"
-
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--with-xkb-base=/usr/share/X11/xkb \
-		--with-xkb-rules-symlink=xorg \
-		--enable-compat-rules=yes
-	make
+	abuild-meson . output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	rm -f "$pkgdir"/usr/share/X11/xkb/compiled
-	install -m755 -d "$pkgdir"/var/lib/xkb
-	install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	# apk bug: can't migrate directory -> symlink
+	# https://gitlab.alpinelinux.org/alpine/apk-tools/-/issues/11110
+	rm "$pkgdir"/usr/share/X11/xkb/
+	mv "$pkgdir"/usr/share/xkeyboard-config-2/ "$pkgdir"/usr/share/X11/xkb/
+	ln -s X11/xkb "$pkgdir"/usr/share/xkeyboard-config-2
 }
-sha512sums="1697cc1a49625eb608d8ab1f54f9f37e37facc482fc8bae5ebff9e3336efdd2f57e0ed95db0a9745d49f1bc21e2cfa792d0849f4057745d8be8f7abac4893f97  xkeyboard-config-2.22.tar.bz2"
+
+sha512sums="
+1bf0bd78dd9a8df9f9a1f0fcf949d4d80d281c8beb7395b68040ff46259879471772e373b132dd3caade7565e513d908a19238a8549f9cacfe1f956b48958535  xkeyboard-config-xkeyboard-config-2.46.tar.gz
+"

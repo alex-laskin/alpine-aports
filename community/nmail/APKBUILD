@@ -1,0 +1,66 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=nmail
+pkgver=5.7.3
+pkgrel=0
+pkgdesc="Terminal-based email client"
+url="https://github.com/d99kris/nmail"
+arch="all"
+license="MIT"
+depends="
+	bash
+	cyrus-sasl-login
+	w3m
+	"
+makedepends="
+	cmake
+	cyrus-sasl-dev
+	file-dev
+	libetpan-dev
+	linux-headers
+	ncurses-dev
+	openssl-dev
+	samurai
+	sqlite-dev
+	util-linux-dev
+	xapian-core-dev
+	"
+subpackages="$pkgname-doc $pkgname-oauth::noarch"
+source="https://github.com/d99kris/nmail/archive/v$pkgver/nmail-$pkgver.tar.gz
+	cmake-openssl.patch
+	"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DBUILD_SHARED_LIBS=ON \
+		-DBUILD_TESTING="$(want_check && echo ON || echo OFF)" \
+		-DCMAKE_BUILD_TYPE=None \
+		-DHAS_CUSTOM_LIBETPAN=OFF
+	cmake --build build
+}
+
+check() {
+	./build/nmail --version
+
+	# i want to run tests when upstream adds them
+	ctest --test-dir build --no-tests=ignore
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	install -Dvm644 LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname/
+}
+
+oauth() {
+	pkgdesc="$pkgdesc (OAuth2 Python helper script)"
+	depends="$pkgname=$pkgver-r$pkgrel py3-requests"
+
+	amove usr/bin/oauth2nmail
+}
+
+sha512sums="
+89f0c209e8c4263685495466f2b515b61eb5dc5ea42a66fea66451d3832506d068be8961debf5adb166b50abcbb3316a061345ca8c95be49851f193213ea4c8c  nmail-5.7.3.tar.gz
+6283b2f4b456edd840ef2f4bdcc02ffe6c61cfd326f6526920756fd8aeb19d46c660a7c38ef75f7021075710aca9b9dc32a5c5f4d2d2ddbe47252a260838d21e  cmake-openssl.patch
+"

@@ -1,39 +1,93 @@
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: team/gnome <pabloyoyoista@postmarketos.org>
 pkgname=gnome-desktop
-pkgver=3.26.0
+pkgver=44.4
 pkgrel=0
-pkgdesc="gnome desktop core libraries"
-url="https://www.gnome.org/"
+pkgdesc="GNOME desktop core libraries"
+url="https://gitlab.gnome.org/GNOME/gnome-desktop"
 arch="all"
-license="GPL"
-depends_dev="gvfs-dev libgudev-dev eudev-dev iso-codes-dev 
-	gobject-introspection-dev"
-makedepends="$depends_dev xkeyboard-config itstool libxml2-utils gtk+3.0-dev libseccomp-dev
-	gsettings-desktop-schemas-dev gtk-doc py-six"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="https://download.gnome.org/sources/$pkgname/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+license="GPL-2.0-or-later AND LGPL-2.1-or-later"
+depends_dev="gobject-introspection-dev gsettings-desktop-schemas-dev"
+makedepends="$depends_dev
+	eudev-dev
+	fontconfig-dev
+	gdk-pixbuf-dev
+	glib-dev
+	gtk-doc
+	gtk+3.0-dev
+	gtk4.0-dev
+	iso-codes-dev
+	itstool
+	libseccomp-dev
+	libxml2-utils
+	meson
+	xkeyboard-config-dev
+	"
+options="!check" # Can't find its own GSettings schemas
+subpackages="
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-lang
+	$pkgname-dbg
+	$pkgname-debug
+	libgnome-bg-4:bg_four
+	libgnome-desktop-3:three
+	libgnome-desktop-4:four
+	libgnome-rr-4:rr_four
+	"
+# Patch: https://gitlab.gnome.org/GNOME/gnome-desktop/-/merge_requests/158
+source="https://download.gnome.org/sources/gnome-desktop/${pkgver%.*}/gnome-desktop-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var
-	make
+	abuild-meson \
+		-Db_lto=true \
+		-Dudev=enabled \
+		-Dbuild_gtk4=true \
+		-Dlegacy_library=true \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	depends="
+		libgnome-bg-4=$pkgver-r$pkgrel
+		libgnome-desktop-3=$pkgver-r$pkgrel
+		libgnome-desktop-4=$pkgver-r$pkgrel
+		libgnome-rr-4=$pkgver-r$pkgrel
+		"
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="9d14d6b12d3435234f46d317f7481911e775223d36f0ae5887484f9e7cad6cf70f2e0c2cda14c92d3c9e082fc708f2c3524dd7ee36672bdcc12a37e8ea8ec103  gnome-desktop-3.26.0.tar.xz"
+bg_four() {
+	amove usr/lib/girepository-*/GnomeBG-4.0.typelib
+	amove usr/lib/libgnome-bg-4.so.*
+}
+
+three() {
+	depends="bubblewrap"
+	amove usr/lib/girepository-*/GnomeDesktop-3.0.typelib
+	amove usr/lib/libgnome-desktop-3.so.*
+}
+
+four() {
+	depends="bubblewrap"
+	amove usr/lib/girepository-*/GnomeDesktop-4.0.typelib
+	amove usr/lib/libgnome-desktop-4.so.*
+}
+
+rr_four() {
+	amove usr/lib/girepository-*/GnomeRR-4.0.typelib
+	amove usr/lib/libgnome-rr-4.so.*
+}
+
+debug() {
+	amove usr/libexec/gnome-desktop-debug
+}
+
+sha512sums="
+c93a800121a3b8cbc307a32ca689f55b0f2637d3079892f0a6b01e713025c3b960ccfef5403935d9903ba8f5dce5be4fab3d89029cc103c190a991326fd74797  gnome-desktop-44.4.tar.xz
+"

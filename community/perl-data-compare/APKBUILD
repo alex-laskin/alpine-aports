@@ -3,42 +3,37 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=perl-data-compare
 _pkgreal=Data-Compare
-pkgver=1.25
+pkgver=1.29
 pkgrel=1
 pkgdesc="Compare perl data structures"
-url="http://search.cpan.org/dist/Data-Compare/"
+url="https://metacpan.org/release/Data-Compare"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends="perl-file-find-rule"
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl perl-clone perl-file-find-rule"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/D/DC/DCANTRELL/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/D/DC/DCANTRELL/Data-Compare-$pkgver.tar.gz"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
 check() {
-        cd "$builddir"
-        make test
+	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="6db1235672030aa1afe52de1de9fac1f8a2af9eed99a3143d6c5b30669908125f584638fe06b8b33208f6d7fb734ccec7381c9411408a3f4fde1998707f748c9  Data-Compare-1.25.tar.gz"
+sha512sums="
+ce04d888798d4296c1f256d4debf2f64fed1a239da7e4c66ea0b9e45eb32e262d6dae3afbc7f9114dbb15c8ee81f294fd3b96476ee6cf1617a9d1351878209d3  Data-Compare-1.29.tar.gz
+"

@@ -1,0 +1,54 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=emacs-vterm
+pkgver=0_git20250111
+_gitrev=056ad74653704bc353d8ec8ab52ac75267b7d373
+pkgrel=0
+_pkgreal=vterm
+pkgdesc="Fully-fledged terminal emulator based on libvterm"
+url="https://github.com/akermu/emacs-libvterm"
+arch="all"
+license="GPL-3.0-or-later"
+depends="cmd:emacs"
+makedepends="
+	cmake
+	emacs-nox
+	libvterm-dev
+	samurai
+	"
+source="https://github.com/akermu/emacs-libvterm/archive/$_gitrev/emacs-vterm-$_gitrev.tar.gz"
+builddir="$srcdir/emacs-libvterm-$_gitrev"
+options="!check" # tests just run the terminal emulator for you to try out
+
+prepare() {
+	default_prepare
+
+	# use system header file
+	rm -v emacs-module.h
+}
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DUSE_SYSTEM_LIBVTERM=ON \
+		-DBUILD_SHARED_LIBS=ON \
+		-DCMAKE_BUILD_TYPE=None
+	cmake --build build
+
+	emacs -batch -q -no-site-file -L . \
+		-f batch-byte-compile \
+		./*.el
+}
+
+package() {
+	install -Dvm644 ./*.el ./*.elc vterm-module.so \
+		-t "$pkgdir"/usr/share/emacs/site-lisp/
+
+	cd "$pkgdir"/usr/share/emacs/site-lisp
+	emacs -batch -q -no-site-file \
+		-eval "(loaddefs-generate \".\" \"$_pkgreal-loaddefs.el\")"
+}
+
+sha512sums="
+728fc4589c0cfdcd8ec3ac1737ae617bd539ef075f7fd4df623ea6471f9bd38932bbed9e4c179cb5cba4d108dbb0ba01180c122dcdbb28a1a0adf24484229e8b  emacs-vterm-056ad74653704bc353d8ec8ab52ac75267b7d373.tar.gz
+"

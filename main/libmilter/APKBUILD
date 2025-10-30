@@ -1,31 +1,32 @@
-# Maintainer: Valery Kartel <valery.kartel@gmail.com>
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
 # Contributor: Stefan Wagner <stw@bit-strickerei.de>
+# Maintainer: Valery Kartel <valery.kartel@gmail.com>
 pkgname=libmilter
 _pkgname=sendmail
 # This library is part of sendmail, but it does not share the version number with it.
 # In order to find the right libmilter version number, check SMFI_VERSION definition
-# that can be found in ${S}/include/libmilter/mfapi.h (see also SM_LM_VRS_* defines).
+# that can be found in include/libmilter/mfapi.h (see also SM_LM_VRS_* defines).
 # For example, version 1.0.1 has a SMFI_VERSION of 0x01000001.
 pkgver=1.0.2
-_pkgver=8.15.2
-pkgrel=6
+_pkgver=8.18.1
+pkgrel=11
 pkgdesc="Sendmail Mail Filter API (Milter)"
-url="http://www.sendmail.com/sm/open_source"
+url="https://www.sendmail.com/sm/open_source"
 arch="all"
 options="!check"  # No independent test suite.
 license="Sendmail"
 makedepends="m4 linux-headers bsd-compat-headers"
 subpackages="$pkgname-dev $pkgname-doc"
-source="ftp://ftp.sendmail.org/pub/$_pkgname/$_pkgname.$_pkgver.tar.gz
+source="https://ftp.sendmail.org/$_pkgname.$_pkgver.tar.gz
 	libmilter-sharedlib.patch
-	default-pthread-stacksize.patch"
+	default-pthread-stacksize.patch
+	gcc-15.patch
+	"
 builddir="$srcdir/$_pkgname-$_pkgver"
 
 prepare() {
 	default_prepare
 
-	cd "$builddir"
 	cat >> devtools/Site/site.config.m4 <<-EOF
 		dnl enable ipv6
 		APPENDDEF(\`conf_libmilter_ENVDEF',\`-DNETINET6=1')
@@ -35,15 +36,12 @@ prepare() {
 }
 
 build() {
-	cd "$builddir"
-	make -j1 -C libmilter MILTER_SOVER=$pkgver
+	make -C libmilter MILTER_SOVER=$pkgver
 }
 
 package() {
-	cd "$builddir"
-
 	mkdir -p "$pkgdir"/usr/lib
-	make -j1 -C libmilter \
+	make -C libmilter \
 		INCOWN=root INCGRP=root INCMODE=644 \
 		LIBOWN=root LIBGRP=root LIBMODE=644 UBINMODE=755 \
 		MILTER_SOVER=$pkgver \
@@ -56,6 +54,9 @@ package() {
 	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/license
 }
 
-sha512sums="04feb37316c13b66b1518596507a7da7c16cb0bf1abf10367f7fd888a428fadb093a9efa55342fa55b936c3f0cbdc63b9e2505cd99201a69a0c05b8ad65f49f9  sendmail.8.15.2.tar.gz
+sha512sums="
+9ce713b44439d4de6faa9e3cdfa2226b44b4fbeb352a5f81584c062570e9472da244158287e489aabe258d28fe54ca4964565c7b0adc7e1763d212be42f98061  sendmail.8.18.1.tar.gz
 31c36b57739946c1b9c7c85307fe5c53c45d7f8cbf427a0f2248db8b74871a6f5a30ef1af524915821aeca54310d28272bcd0a587cb918192214fa5c30e4a8da  libmilter-sharedlib.patch
-d3e12943fe7e9babdf700a2d8c0229bc16fa2ea16097615600341dee13f137b157ffa4b03f76c92ba9c5552ca3bf01cb598f6a6201720408df3a37247001a219  default-pthread-stacksize.patch"
+d3e12943fe7e9babdf700a2d8c0229bc16fa2ea16097615600341dee13f137b157ffa4b03f76c92ba9c5552ca3bf01cb598f6a6201720408df3a37247001a219  default-pthread-stacksize.patch
+27d6e9745f1896aa001278198e0369b3e19622723162b9475ec2c79de56aa4044844e8e3336d79cb662833482a4bef747d04ad50e0495cddb77e31a719e1d5a2  gcc-15.patch
+"

@@ -1,0 +1,29 @@
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=fbvnc
+pkgver=0_git20250326
+pkgrel=0
+_gitrev=92213d626fe82f8b22a82ea3e9d4b3dfba53c5ab
+pkgdesc="Small framebuffer VNC viewer"
+url="https://github.com/aligrudi/fbvnc"
+arch="all"
+license="ISC"
+makedepends="
+	linux-headers
+	zlib-dev
+	"
+source="https://github.com/aligrudi/fbvnc/archive/$_gitrev/fbvnc-$_gitrev.tar.gz"
+builddir="$srcdir/$pkgname-$_gitrev"
+options="!check" # no test suite
+
+build() {
+	make
+}
+
+package() {
+	install -Dvm755 fbvnc -t "$pkgdir"/usr/bin/
+}
+
+sha512sums="
+e02edbc073fad41c54047c56fc44adb63563b8772cb8a91d51bad3fbf8fb5371fa11397d3d955bd8f0b9b6580418b346655ee2e953eabe16d14113ce578245ce  fbvnc-92213d626fe82f8b22a82ea3e9d4b3dfba53c5ab.tar.gz
+"

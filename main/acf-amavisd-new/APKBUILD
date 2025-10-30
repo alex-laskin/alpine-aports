@@ -2,24 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-amavisd-new
 pkgver=0.4.0
-pkgrel=2
+pkgrel=5
 pkgdesc="ACF module for amavis"
-url="https://git.alpinelinux.org/cgit/acf/acf-amavisd-new"
+url="https://gitlab.alpinelinux.org/acf/acf-amavisd-new"
 arch="noarch"
-license="GPL-2.0"
-depends="acf-core amavisd-new"
-makedepends=""
-install=
-subpackages=""
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+license="GPL-2.0-only"
+options="!check" # no test suite
+depends="acf-core amavis"
+source="https://gitlab.alpinelinux.org/acf/acf-amavisd-new/-/archive/v$pkgver/acf-amavisd-new-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-        cd "$srcdir/$pkgname-$pkgver"
-
-        make DESTDIR="$pkgdir" install
-
+	make DESTDIR="$pkgdir" install
 }
 
-md5sums="d200bf546067e287d2b825686f80daa3  acf-amavisd-new-0.4.0.tar.xz"
-sha256sums="75730088d302662d3c8fe6026f6f1b20b0cd5f445cca2dcaadd0a1018c451be7  acf-amavisd-new-0.4.0.tar.xz"
-sha512sums="d3012f1622b27ca661a0c3c20b9611b5f793fcfc1e08f0c8edf30c048e89f27bed6e6f2268c4a723b3cdcf808db29b922b15c5ad870d4af0e87d8d0e65968666  acf-amavisd-new-0.4.0.tar.xz"
+sha512sums="
+d950e91680ce607df580d368a8ab7a9e451c4e5d02a9a28ccd60bdc6382187267980eecf175c893e6501b1ba665888f9cfe78571d032e310d2ae2430abdb3574  acf-amavisd-new-v0.4.0.tar.gz
+"

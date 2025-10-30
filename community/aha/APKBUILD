@@ -1,31 +1,25 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=aha
-pkgver=0.4.10.6
-pkgrel=0
+pkgver=0.5.1
+pkgrel=3
 pkgdesc="ANSI color to HTML converter"
-url="http://anonscm.debian.org/gitweb/?p=collab-maint/aha.git;a=summary"
+url="https://github.com/theZiz/aha"
 arch="all"
 license="MPL-1.1"
-depends=""
-depends_dev=""
-makedepends=""
-install=""
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/theZiz/$pkgname/archive/$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+source="$pkgname-$pkgver.tar.gz::https://github.com/theZiz/aha/archive/$pkgver.tar.gz"
+options="!check" # Does not have a testsuite
 
 build() {
-	cd "$builddir"
-	make || return 1
+	make
 }
 
 package() {
-	cd "$builddir"
 	install -Dm 755 aha \
-		"$pkgdir"/usr/bin/aha || return 1
+		"$pkgdir"/usr/bin/aha
 	install -Dm 644 aha.1 \
-		"$pkgdir"/usr/share/man/man1/aha.1 || return 1
+		"$pkgdir"/usr/share/man/man1/aha.1
 }
 
-sha512sums="640fc0b802fbe026152143e66a2ef5e7e36342dfab01a1f4ed4a543d0fc822a7377a2434f1d5fca917126740eb102a7c6dd232e9c15815d5ca7ef80a4cb27e4b  aha-0.4.10.6.tar.gz"
+sha512sums="0eb88e681208c0956e344d6574f9d7ba155d38bfb386d0a9f17022c5e925fb16d0efb6aa04804191b4cac1697a87a0f16ba51bcd97b6135cc7606046eaf89288  aha-0.5.1.tar.gz"

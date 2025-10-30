@@ -1,39 +1,50 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=libgusb
-pkgver=0.3.0
+pkgver=0.4.9
 pkgrel=0
 pkgdesc="GLib wrapper around libusb"
 url="https://github.com/hughsie/libgusb"
 arch="all"
-license="LGPL"
-# disabled due to: gusb-self-test FAIL
-options="!check"
-makedepends="glib-dev libusb-dev gtk-doc vala eudev-dev gobject-introspection-dev meson"
-checkdepends="python3-dev"
-subpackages="$pkgname-dev $pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/hughsie/$pkgname/archive/$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
-
-prepare() {
-	default_prepare
-	cd "$builddir"
-	mkdir -p output
-}
+license="LGPL-2.1-or-later"
+makedepends="
+	eudev-dev
+	glib-dev
+	gobject-introspection-dev
+	json-glib-dev
+	libusb-dev
+	meson
+	py3-setuptools
+	python3-dev
+	vala
+	"
+checkdepends="hwids-usb"
+subpackages="$pkgname-dev $pkgname-utils"
+source="libgusb-$pkgver.tar.gz::https://github.com/hughsie/libgusb/archive/$pkgver.tar.gz"
+options="!check" # libusb needs hardware to run without umockdev
 
 build() {
-	cd "$builddir"
-	meson . ./output --prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--localstatedir=/var
-	ninja -C output/
+	abuild-meson \
+		-Db_lto=true \
+		-Ddocs=false \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	DESTDIR="$pkgdir" ninja -C output/ install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="1e55c1c9234287f9eda9babf194f573487fa6ce2da10e0fd89e1f7c6244f709933c1b980667d7eef38dba3c7f87d3272df71fedc9b6f36753f2b0b513ce995ca  libgusb-0.3.0.tar.gz"
+utils() {
+	pkgdesc="$pkgdesc (utils)"
+
+	amove usr/bin
+}
+
+sha512sums="
+22cce771c488963ea078cf2914b4e731afa9a7babb94570c9412147e6a3af142deac41b9a7a80cdf74960f9001bb30312923d53e0f96eb15bf99e96207b047d4  libgusb-0.4.9.tar.gz
+"

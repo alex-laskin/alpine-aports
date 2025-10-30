@@ -2,13 +2,13 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=md5ha1
 pkgver=0_git20171202
-pkgrel=0
+pkgrel=1
 pkgdesc="Tool for computing WWW-Digest MD5 HA1 string"
 url="https://github.com/miconda/md5ha1"
 arch="all"
 license="MIT"
 options="!check"
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.gz"
+source="https://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.gz"
 disturl="dev.alpinelinux.org:/archive/$pkgname"
 giturl="https://github.com/miconda/md5ha1.git"
 builddir="$srcdir/$pkgname-$pkgver"

@@ -1,39 +1,51 @@
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=simgear
-pkgver=2018.2.1
+pkgver=2024.1.1
 pkgrel=0
 pkgdesc="Sim library for FlightGear"
+options="!check" # Accepts boost only up to 1.71.0
 url="https://github.com/FlightGear/simgear"
 arch="all"
-license="GPL"
-makedepends="$depends_dev boost-dev cmake curl-dev mesa-dev openal-soft-dev
-	openscenegraph-dev zlib-dev"
-subpackages=
-source="https://downloads.sourceforge.net/project/flightgear/release-${pkgver%.[0-9]}/simgear-$pkgver.tar.bz2
-	musl-fixes.patch
+license="GPL-2.0-or-later"
+makedepends="
+	boost-dev
+	cmake
+	curl-dev
+	expat-dev
+	mesa-dev
+	openal-soft-dev
+	openscenegraph-dev
+	samurai
+	zlib-dev
 	"
-builddir="$srcdir"/$pkgname-$pkgver
-
-prepare() {
-	cd "$builddir"
-	default_prepare
-	mkdir sgbuild && cd sgbuild
-	cmake .. \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DCMAKE_INSTALL_LIBDIR=lib \
-		-D_POSIX_C_SOURCE=200112L
-}
+subpackages="$pkgname-dev"
+source="
+	https://gitlab.com/flightgear/simgear/-/archive/v$pkgver/simgear-v$pkgver.tar.bz2
+	gcc12.patch
+	musl-strerror_r.patch
+	"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 build() {
-	cd "$builddir/sgbuild"
-	make
+	# use system expat
+	rm -rf simgear/xml/*.h simgear/xml/*.c
+
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DSYSTEM_EXPAT=ON \
+		-DENABLE_TESTS=false \
+
+	cmake --build build
 }
 
 package() {
-	cd "$builddir/sgbuild"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-sha512sums="fe118fc3bcd2bfc1e26533f4b57b8e90e971c6f516470c9b440bf455fd29e6ac4962d5aff1b0d7f4f96441c9fb714af212ac9c169625d5c053ed04b293623c2e  simgear-2018.2.1.tar.bz2
-7efcf01c9328b0732ae9aa7af4edb52e14919663a8d3acbe429a0697f59a55e85a71628d9afaa3d38327d960dbf5dacc1f964e38dd6cb499b593ae2be918b140  musl-fixes.patch"
+sha512sums="
+621c126d4bbcb59c1b0b857fee7c6526a83f354d082f7821d5a4af8e3aecb7aa72acfb76f1f175f334635568e06eeee25f773a118bc668d653292c8c1ad0dda4  simgear-v2024.1.1.tar.bz2
+aea0bbc11b221d73706891d7ac9a79c4c359f4e7184752194737ede7f5938c65f79cd9d7b6b20ce236867761c03a5c883d468d698664f7e4583652ec448a8b8c  gcc12.patch
+0dac20e58c663227336e39b3c3c75fbf7e47d60b5a16dc30f0d7f8c9bbc3fec901b5f4e3511e28c682fad5ff925df0f0215604295989d1eb99e4155fd3dde685  musl-strerror_r.patch
+"

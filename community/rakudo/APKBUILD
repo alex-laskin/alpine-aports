@@ -1,0 +1,66 @@
+# Contributor: Curt Tilmes <Curt.Tilmes@nasa.gov>
+# Maintainer: Curt Tilmes <Curt.Tilmes@nasa.gov>
+pkgname=rakudo
+pkgver=2025.10
+pkgrel=0
+pkgdesc="Compiler for the Raku programming language"
+url="https://rakudo.org/"
+arch="all"
+license="Artistic-2.0"
+depends="nqp~$pkgver"
+makedepends="
+	moarvm-dev~$pkgver
+	perl-utils
+	"
+checkdepends="perl-test-harness"
+subpackages="$pkgname-dev $pkgname-doc"
+source="https://github.com/rakudo/rakudo/releases/download/$pkgver/rakudo-$pkgver.tar.gz
+	telemetry-tests-32bit.patch
+	"
+
+build() {
+	perl Configure.pl \
+		--prefix=/usr \
+		--backends=moar \
+		--rakudo-home=/usr/share/"$pkgname"
+	make
+}
+
+check() {
+	export RAKUDO_RUN_TIMING_TESTS=0
+	export ROAST_TIMING_SCALE=15
+	export TEST_JOBS=$JOBS
+	export HARNESS_VERBOSE=1
+	export CARCH
+
+	msg "Running $TEST_JOBS parallel test jobs"
+	make test
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+	ln -sv rakudo "$pkgdir"/usr/share/perl6
+
+	install -Dvm644 CONTRIBUTING.md CREDITS \
+		LICENSE README.md VERSION \
+		-t "$pkgdir"/usr/share/doc/"$pkgname"
+	cp -vr docs "$pkgdir"/usr/share/doc/"$pkgname"/
+}
+
+dev() {
+	default_dev
+
+	amove	usr/bin/perl6-debug* usr/bin/perl6-gdb-m \
+		usr/bin/perl6-lldb-m usr/bin/perl6-valgrind-m \
+		usr/bin/rakudo-debug* usr/bin/rakudo-gdb-m \
+		usr/bin/rakudo-lldb-m usr/bin/rakudo-valgrind-m \
+		usr/bin/raku-debug
+
+	mkdir -vp "$subpkgdir"/usr/share/"$pkgname"
+	cp -vr "$builddir"/tools "$subpkgdir"/usr/share/"$pkgname"/
+}
+
+sha512sums="
+83e842a126882a9caffb657aa1b46e494c816589627105e0358ef973e1f1e9b3ef3c110009b426b77fcb47787cf1b4ca1e8ee9100e5c8ebca9f9f6afc8933a3b  rakudo-2025.10.tar.gz
+1881c8e3e4ad956ba26dbbb0c818b4f26d39c8582bd2f47cc92ebb10620f0ed0803b5619a8a281350d6aceeadfb88675eca59cf52701c837ca20e966daa5deb3  telemetry-tests-32bit.patch
+"

@@ -1,0 +1,55 @@
+# Maintainer: Sertonix <sertonix@posteo.net>
+pkgname=py3-nanobind
+pkgver=2.9.2
+pkgrel=0
+pkgdesc="tiny and efficient C++/Python bindings"
+url="https://pypi.org/project/nanobind/"
+arch="noarch"
+license="BSD-3-Clause"
+depends="robin-map"
+makedepends="
+	cmake
+	python3-dev
+	py3-gpep517
+	py3-scikit-build-core
+	py3-wheel
+	"
+checkdepends="
+	eigen-dev
+	py3-numpy
+	py3-pytest
+	python3-tests
+	"
+subpackages="$pkgname-pyc"
+source="https://github.com/wjakob/nanobind/archive/refs/tags/v$pkgver/nanobind-$pkgver.tar.gz"
+builddir="$srcdir/nanobind-$pkgver"
+
+build() {
+	CMAKE_ARGS="-DNB_USE_SUBMODULE_DEPS=OFF" \
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+
+	if want_check; then
+		cmake -B test-build -G Ninja \
+			-DNB_USE_SUBMODULE_DEPS=OFF \
+			-DNB_TEST=ON \
+			-DNB_TEST_STABLE_ABI=ON \
+			-DNB_TEST_SHARED_BUILD=ON
+		cmake --build test-build
+	fi
+}
+
+check() {
+	cd test-build
+	pytest
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+05b2541896e64bb513f915ebc09820b2d3659efa9a1a4bdda9da79a761a23d84e41db22031c02ae816b1f729dab95efcb7c888e926dbb89fb4b34c8a329d59bf  nanobind-2.9.2.tar.gz
+"

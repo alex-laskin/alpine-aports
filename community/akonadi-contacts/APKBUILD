@@ -1,0 +1,65 @@
+# Contributor: Bart Ribbers <bribbers@disroot.org>
+
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=akonadi-contacts
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="Libraries and daemons to implement Contact Management in Akonadi"
+# s390x, riscv64 blocked by akonadi
+# ppc64le, armhf blocked by qt6-qtwebengine -> akonadi
+arch="all !armhf !s390x !riscv64 !ppc64le"
+url="https://community.kde.org/KDE_PIM"
+license="LGPL-2.0-or-later AND GPL-2.0-or-later AND BSD-3-Clause"
+depends_dev="
+	akonadi-dev
+	gpgme-dev
+	grantlee-dev
+	grantleetheme-dev
+	kcodecs-dev
+	kcompletion-dev
+	kconfig-dev
+	kcontacts-dev
+	kdbusaddons-dev
+	ki18n-dev
+	kiconthemes-dev
+	kio-dev
+	kmime-dev
+	kservice-dev
+	ktextaddons-dev
+	ktexttemplate-dev
+	ktextwidgets-dev
+	kwidgetsaddons-dev
+	kxmlgui-dev
+	libkleo-dev
+	prison-dev
+	qt6-qtbase-dev
+	"
+makedepends="$depends_dev
+	extra-cmake-modules
+	samurai
+	"
+checkdepends="xvfb-run"
+subpackages="$pkgname-dev $pkgname-lang"
+_repo_url="https://invent.kde.org/pim/akonadi-contacts.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/akonadi-contacts-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	xvfb-run -a ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+sha512sums="
+0de7b46b51ef4e32cc91c6264c89c71e5fbcf7dd2d157b5d79458759b8416fd501e1b31abc12f74aa9eff51b07695b37310d35d521a7aa38719fe645c617b8f1  akonadi-contacts-25.08.1.tar.xz
+"

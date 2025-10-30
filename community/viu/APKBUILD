@@ -1,0 +1,43 @@
+# Maintainer: omni <omni+alpine@hack.org>
+pkgname=viu
+pkgver=1.5.1
+pkgrel=0
+pkgdesc="Terminal image viewer"
+arch="all"
+url="https://github.com/atanunq/viu"
+license="MIT"
+makedepends="cargo libsixel-dev cargo-auditable"
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/atanunq/viu/archive/v$pkgver.tar.gz"
+
+prepare() {
+	default_prepare
+
+	# Build against system-provided sixel.
+	local target=$(rustc -vV | sed -n 's/host: //p')
+	mkdir -p .cargo
+	cat >> .cargo/config.toml <<-EOF
+		[target.$target]
+		sixel = { rustc-link-lib = ["sixel"] }
+	EOF
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --release --frozen --features sixel
+}
+
+check() {
+	cargo test --frozen
+}
+
+package() {
+	install -Dm0755 target/release/"$pkgname" -t "$pkgdir"/usr/bin
+	install -Dm0644 README.md -t "$pkgdir"/usr/share/doc/"$pkgname"
+	install -Dm0644 LICENSE-MIT -t "$pkgdir"/usr/share/licenses/"$pkgname"
+}
+
+sha512sums="
+e92e13f94e16da460f23ad99ca7cdc10be1d0da2f182b4e381694019f80f35aa4bfbc50da85697891889e16c8c740765f01c4eb9e1946c8d8477bfa6f3e7f0bc  viu-1.5.1.tar.gz
+"

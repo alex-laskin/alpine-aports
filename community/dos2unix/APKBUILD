@@ -1,35 +1,22 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: André Klitzing <aklitzing@gmail.com>
 pkgname=dos2unix
-pkgver=7.4.0
+pkgver=7.5.3
 pkgrel=0
 pkgdesc="Text file format converters"
-url="http://waterlan.home.xs4all.nl/dos2unix.html"
+url="https://waterlan.home.xs4all.nl/dos2unix.html"
 arch="all"
-license="BSD"
-depends=""
-makedepends=""
+license="BSD-2-Clause"
 checkdepends="gettext-dev perl-utils"
-install=""
 subpackages="$pkgname-doc"
-source="http://waterlan.home.xs4all.nl/${pkgname}/${pkgname}-${pkgver}.tar.gz"
-
-builddir="$srcdir"/$pkgname-$pkgver
-prepare() {
-	cd "$builddir"
-	sed -e '/^LDFLAGS/s|=|+=|' \
-		-e '/CFLAGS_OS \+=/d' \
-		-e '/LDFLAGS_EXTRA \+=/d' \
-		-e "/^CFLAGS/s|-O2|${CFLAGS}|" \
-		-i Makefile
-}
+source="https://waterlan.home.xs4all.nl/dos2unix/dos2unix-$pkgver.tar.gz"
 
 build() {
-	make ENABLE_NLS= -C "$builddir"
+	make ENABLE_NLS= LDFLAGS_USER="$LDFLAGS"
 }
 
 check() {
-	make check -C "$builddir"
+	make check
 }
 
 package() {
@@ -37,7 +24,9 @@ package() {
 		docsubdir=$pkgname \
 		ENABLE_NLS= \
 		DESTDIR="$pkgdir" \
-		-C "$builddir" install
+		install
 }
 
-sha512sums="41be6b0c747f4a8e316eccecd468c8250aa6791962485569eb9496def60818ae434d619b5cfb5f80f15f8d17800314f5aefe229dc5d37faaa34e1270575175e9  dos2unix-7.4.0.tar.gz"
+sha512sums="
+c586a3c8b3e800a58cfa66ec9f4f6ea5b2c5d3c5dbcc9e4f22798ddb89d2f29f1eba1b8102fd948be0b978b517b25a9f5f469eda215116a31170f223d46f3394  dos2unix-7.5.3.tar.gz
+"

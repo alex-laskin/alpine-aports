@@ -2,19 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-apk-tools
 pkgver=0.11.0
-pkgrel=1
+pkgrel=3
 pkgdesc="ACF module for apk"
-url="https://git.alpinelinux.org/cgit/acf/acf-apk-tools"
+url="https://gitlab.alpinelinux.org/acf/acf-apk-tools"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core lua-posix apk-tools"
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-apk-tools/-/archive/v$pkgver/acf-apk-tools-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
 	make DESTDIR="$pkgdir" install
 }
 
-md5sums="fcffab8837ef1bcfbcc29bdb845bbe3d  acf-apk-tools-0.11.0.tar.xz"
-sha256sums="8a9731e2f85fb6663266dad14ce56c6a1f5dea5e3171d966bedc0a2e577a8f2c  acf-apk-tools-0.11.0.tar.xz"
-sha512sums="f931d3aaa6e1275dd635b925d59a4d8c12cd2d0c6a0f1ed3df80bc477dadb8f305fdacb89be179e34a88342041e250d7cd1f3fd2706d2359d468f9432218f0ac  acf-apk-tools-0.11.0.tar.xz"
+sha512sums="
+33b10cdf418e951969c1dafce2027b4d1139901e0b57331b84a66c2863984f7a63b5002b38260b3bd9232fe6b28432d0613df19f00f70787bb29856cd04bc137  acf-apk-tools-v0.11.0.tar.gz
+"

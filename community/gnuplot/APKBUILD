@@ -1,20 +1,29 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: Fabian Affolter <fabian@affolter-engineering.ch>
+# Contributor: prspkt <prspkt@protonmail.com>
+# Contributor: Fabian Affolter <fabian@affolter-engineering.ch>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=gnuplot
-pkgver=5.2.2
-pkgrel=1
+pkgver=6.0.3
+pkgrel=2
 pkgdesc="Utility for plotting graphs"
-url="http://www.gnuplot.info/"
+url="https://gnuplot.sourceforge.net/"
 arch="all"
 license="MIT"
-makedepends="cairo-dev pango-dev gd-dev lua5.3-dev readline-dev
-	libpng-dev libjpeg-turbo-dev"
+_luaver=5.3
+makedepends="
+	cairo-dev
+	gd-dev
+	libcerf-dev
+	libjpeg-turbo-dev
+	libpng-dev
+	lua$_luaver-dev
+	pango-dev
+	readline-dev
+	"
 subpackages="$pkgname-doc"
-source="http://downloads.sourceforge.net/project/$pkgname/$pkgname/$pkgver/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="$pkgname-$pkgver-1.tar.gz::https://downloads.sourceforge.net/sourceforge/gnuplot/gnuplot-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
@@ -22,21 +31,23 @@ build() {
 		--localstatedir=/var \
 		--enable-stats \
 		--disable-wxwidgets \
-		--disable-qt
+		--without-qt
 	make
 }
 
 check() {
-	make GNUTERM=dumb -C "$builddir" check
+	make GNUTERM=dumb check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 
-	mkdir -p "$pkgdir"/usr/share/doc/$pkgname/
-	install -m644 BUGS ChangeLog NEWS PGPKEYS README* \
-		"$pkgdir"/usr/share/doc/$pkgname/
+	install -Dm644 BUGS NEWS PGPKEYS README* \
+		-t "$pkgdir"/usr/share/doc/$pkgname/
+	install -Dm644 Copyright \
+		-t "$pkgdir"/usr/share/licenses/$pkgname/
 }
 
-sha512sums="51d5b2234dae358580cc2794ed63f8a5b950baf73edc5362f5bb18d77e8066c3c010239c3b29840db11e5936cb9381bb57193de751bd274af5547a45d6d88b0b  gnuplot-5.2.2.tar.gz"
+sha512sums="
+33b0954ff70f1655e23ce0b6986b317a2b1be5ff6c3edda4df0499ef1e2db9bef97f2f3f5ca6c18272bd3375e60c8c07db3639f1c139be51416e8a6aba6e33c9  gnuplot-6.0.3-1.tar.gz
+"

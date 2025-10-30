@@ -1,37 +1,33 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=xfce4-cpufreq-plugin
-pkgver=1.1.3
-pkgrel=2
+pkgver=1.3.0
+pkgrel=0
 pkgdesc="CPU frequency plugin for the Xfce4 panel"
-url="http://goodies.xfce.org/projects/panel-plugins/xfce4-cpufreq-plugin"
+url="https://docs.xfce.org/panel-plugins/xfce4-cpufreq-plugin/start"
 arch="all"
-license="GPL-2.0"
-depends=
-makedepends="xfce4-panel-dev libxfce4ui-dev"
-install=
+license="GPL-2.0-or-later"
+makedepends="
+	xfce4-panel-dev
+	meson
+	libxfce4ui-dev
+	"
 subpackages="$pkgname-lang"
-source="http://archive.xfce.org/src/panel-plugins/xfce4-cpufreq-plugin/${pkgver%.*}/xfce4-cpufreq-plugin-${pkgver}.tar.bz2"
-
-_builddir="$srcdir"/$pkgname-$pkgver
+source="https://archive.xfce.org/src/panel-plugins/xfce4-cpufreq-plugin/${pkgver%.*}/xfce4-cpufreq-plugin-$pkgver.tar.xz"
 
 build() {
-	cd "$_builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--libexecdir=/usr/lib/xfce4 \
-		--localstatedir=/var \
-		--disable-static \
-		|| return 1
-	make || return 1
+	abuild-meson \
+		output .
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$_builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
-md5sums="859122da0a8cd991ee2fbeee434bc948  xfce4-cpufreq-plugin-1.1.3.tar.bz2"
-sha256sums="74a162c7e101db0495d5da147aba1f404c33544f04e8c34d7d1d705668102d33  xfce4-cpufreq-plugin-1.1.3.tar.bz2"
-sha512sums="fe67abc120c0715b653258abbafab19386289ce0a373e5053e544484219c3b05aafe1e84a23721f6603043db5aac24dc1230f2e7d4974ec483d5120aca11ca25  xfce4-cpufreq-plugin-1.1.3.tar.bz2"
+
+sha512sums="
+9d09c1ffcc4635f6bafe0c560a8e7252e9151e9ca35dbb82927122e76ed2f07cfe659445d18c21d7893285961218b4bdeb80618778a4db5c3c2a72ff79d72528  xfce4-cpufreq-plugin-1.3.0.tar.xz
+"

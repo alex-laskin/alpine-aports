@@ -1,0 +1,60 @@
+# Maintainer: omni <omni+alpine@hack.org>
+pkgname=xplr
+pkgver=1.0.1
+pkgrel=0
+pkgdesc="Hackable, minimal, fast TUI file explorer"
+url="https://xplr.dev"
+# s390x: nix crate
+arch="all !s390x"
+license="MIT"
+makedepends="cargo cargo-auditable lua5.4-dev"
+options="net"
+subpackages="$pkgname-doc"
+source="
+	https://github.com/sayanarijit/xplr/archive/refs/tags/v$pkgver/xplr-$pkgver.tar.gz
+	modified-field-lua54.patch
+	mlua-lua54.patch
+	"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --release --frozen --no-default-features
+}
+
+check() {
+	# cargo test doesn't build target/debug/xplr binary
+	cargo auditable build --frozen --no-default-features
+	cargo test --frozen --no-default-features
+}
+
+package() {
+	install -Dm755 target/release/xplr -t "$pkgdir"/usr/bin/
+
+	install -Dm644 "$builddir"/assets/desktop/xplr.desktop \
+		-t "$pkgdir"/usr/share/applications
+	install -Dm644 "$builddir"/assets/icon/xplr.svg \
+		"$pkgdir"/usr/share/pixmaps/xplr.svg
+	install -Dm644 "$builddir"/assets/icon/xplr.svg \
+		"$pkgdir"/usr/share/icons/hicolor/scalable/apps/xplr.svg
+	for res in 16 32 64 128; do
+		install -Dm 644 assets/icon/"$pkgname""$res".png \
+			"$pkgdir"/usr/share/icons/hicolor/"$res"x"$res"/apps/"$pkgname".png
+	done
+
+	install -Dm644 src/init.lua \
+		-t "$pkgdir"/usr/share/doc/"$pkgname"/examples/
+	install -Dm644 docs/en/src/* \
+		-t "$pkgdir"/usr/share/doc/"$pkgname"/
+	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/"$pkgname"/LICENSE
+}
+
+sha512sums="
+f2cc6df334b3c3dfbfe47cfb3c808fad3710e5c65b6289df8f86c56b57e6792d0289a41ea2fd9bb0da78deed22c70379938b0d8ee08ebae5c9833e6967628a8b  xplr-1.0.1.tar.gz
+c1e81b8a1f0be69aa8b2d4d9d1c89096db950ab4ed6accd5d63d2cd0e16925e3eb7c619f87131e69dd2a3180e8c40efc842170169435d118d413b76aac2ead68  modified-field-lua54.patch
+94d1f749bfa642f3a37f88fd1c9e14002565247abc1a377c7b53bb452bbb2ba1f36fa28817cc405adc6320db3ffb77ff85ec8e960ae543f2cfafbca79f790739  mlua-lua54.patch
+"

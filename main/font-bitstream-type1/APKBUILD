@@ -1,42 +1,37 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-bitstream-type1
-pkgver=1.0.3
-pkgrel=0
+pkgver=1.0.4
+pkgrel=2
 pkgdesc="X.org bitstream Type1 fonts"
-url="http://xorg.freedesktop.org/"
-arch="all"
-license="custom"
-depends="encodings font-alias mkfontscale mkfontdir fontconfig"
+url="https://xorg.freedesktop.org/"
+arch="noarch"
+license="Bitstream-Charter"
+options="!check"
+depends="encodings font-alias mkfontscale fontconfig"
 makedepends="font-util-dev bdftopcf"
-install=
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$srcdir"/$pkgname-$pkgver
-	update_config_sub || return 1
-}
+source="https://www.x.org/releases/individual/font/font-bitstream-type1-$pkgver.tar.xz"
+subpackages="$pkgname-doc"
 
 build() {
-	cd "$srcdir"/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-mapfiles=/usr/share/fonts/util \
-		--with-fontdir=/usr/share/fonts/Type1 \
-		|| return 1
-	make || return 1
+		--with-fontdir=/usr/share/fonts/Type1
+	make
 }
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-	make -j1 DESTDIR="$pkgdir" \
+	make DESTDIR="$pkgdir" \
 		MKFONTDIR=: \
 		MKFONTSCALE=: \
 		FCCACHE=: \
-		install || return 1
+		install
+
+	install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/COPYING"
 }
 
-md5sums="5e0c9895d69d2632e2170114f8283c11  font-bitstream-type1-1.0.3.tar.bz2"
-sha256sums="c6ea0569adad2c577f140328dc3302e729cb1b1ea90cd0025caf380625f8a688  font-bitstream-type1-1.0.3.tar.bz2"
-sha512sums="71883f7fc0a68b4fb8ef30b8b8bdfd73ae1194b6d6495abde6c819eef7a91d6365ef1b4cae026d6c3fa7fddecc643b46b7ba1232cec404fcada49a92aaf1af61  font-bitstream-type1-1.0.3.tar.bz2"
+sha512sums="
+f09d60abb88c9be6227c57f5519f08e5e3c59c916183d32a512d3c2ace0047eaad2b377c3725c8987e8b4c55468eb7821322ff5447f000d4c2be6cb909f6219b  font-bitstream-type1-1.0.4.tar.xz
+"

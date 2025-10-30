@@ -1,31 +1,34 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=alien
-pkgver=8.95
+pkgver=8.95.8
 pkgrel=0
 pkgdesc="Alien is a program that converts between the rpm, dpkg, stampede slp, and slackware tgz file formats"
 url="http://joeyh.name/code/alien"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
 depends="perl"
-depends_dev=""
-makedepends="$depends_dev"
-install=""
 subpackages="$pkgname-doc"
-source="http://ftp.de.debian.org/debian/pool/main/a/$pkgname/${pkgname}_$pkgver.tar.xz"
+source="https://deb.debian.org/debian/pool/main/a/alien/alien_$pkgver.tar.xz"
+options="!check" # Has no tests
+builddir="$srcdir/$pkgname"
 
-builddir="${srcdir}"/${pkgname}-${pkgver}
 build() {
-	cd "$builddir"
-	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
+	PERL_MM_USE_DEFAULT=1 perl Makefile.PL \
+		INSTALLDIRS=vendor \
+		NO_PACKLIST=1 \
+		NO_PERLLOCAL=1
+	make
+}
+
+check() {
+	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
-	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
+	make DESTDIR="$pkgdir" install
 }
 
-md5sums="4b7fcb47616593578c87102f74c20d63  alien_8.95.tar.xz"
-sha256sums="37a22587c33810feab323474bdadbf969fda2eb4e720b2ca01b40d82d6f71a17  alien_8.95.tar.xz"
-sha512sums="c46d3c82542dc3d96eeabea0f0c7ab5b572acaf67d15e2064ea01df32d69a2cf6e083754be49269df6cd7431ec5b3e09ddcb83fbe2ee17843b22e9cd3e73073c  alien_8.95.tar.xz"
+sha512sums="
+32b459ffe125de16a5a72d9eed80c34076d22e6b9a5a710660e8f96caef6ab78ac034dc753c83f539a95b8e3553bcdf81b5839ee0a03493894426957fecd8c85  alien_8.95.8.tar.xz
+"

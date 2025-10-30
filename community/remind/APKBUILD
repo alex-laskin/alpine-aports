@@ -1,20 +1,18 @@
-# Contributor: Kaarle Ritvanen <kaarle.ritvanen@datakunkku.fi>
+# Contributor: Kaarle Ritvanen <kunkku@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=remind
-pkgver=3.1.15
-_pkgver=03.01.15
+pkgver=06.00.01
 pkgrel=0
 pkgdesc="Sophisticated calendar and alarm program"
-url="https://www.roaringpenguin.com/products/remind"
+url="https://dianne.skoll.ca/projects/remind/"
 arch="all"
-license="GPL-2.0"
+license="GPL-2.0-only"
+checkdepends="tzdata"
 options="!check"
 subpackages="$pkgname-doc tkremind::noarch"
-source="https://www.roaringpenguin.com/files/download/$pkgname-$_pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$_pkgver
+source="https://dianne.skoll.ca/projects/remind/download/remind-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -22,18 +20,22 @@ build() {
 	make
 }
 
+check() {
+	make -j1 test
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
 tkremind() {
-	depends="remind tk"
+	depends="$pkgname=$pkgver-r$pkgrel tk tcl-lib"
 
-	local src="$pkgdir"/usr/bin
-	local dest="$subpkgdir"/usr/bin
-	mkdir -p "$dest"
-	mv "$src"/cm2rem.tcl "$src"/tkremind "$dest"
+	amove usr/bin/tkremind
+	amove usr/share/applications/tkremind.desktop
+	amove usr/share/pixmaps/tkremind.png
 }
 
-sha512sums="335f3ca88237f1ae53768b9ecdeb03f0bb1e706a8afd3ba36121ec76048a08fbc0d5ec72b05e552394b4cf2131be335c49533e1212b7e713ef16002a0621fc84  remind-03.01.15.tar.gz"
+sha512sums="
+1d35f3ed846e78add90ae23417775c6502b6c2cdfdeb62ba2c586c8551a34fb448308caa37c2813285c1f314ff7363cff7955e28723902e6cf5eff3f18549615  remind-06.00.01.tar.gz
+"

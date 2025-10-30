@@ -1,26 +1,20 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=pciutils
-pkgver=3.5.6
+pkgver=3.14.0
 pkgrel=0
 pkgdesc="PCI bus configuration space access library and tools"
 url="http://mj.ucw.cz/pciutils.html"
 arch="all"
-license="GPL"
+license="GPL-2.0-only"
 depends="hwdata-pci"
 makedepends="linux-headers"
 options="!check"
-install=
 subpackages="$pkgname-doc $pkgname-dev $pkgname-libs"
-source="http://www.kernel.org/pub/software/utils/$pkgname/$pkgname-$pkgver.tar.gz
-	fix-linking-pci-malloc-Makefile.patch
-	pread.patch
-	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/pciutils/pciutils/archive/refs/tags/v$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	sed -i -e "106s/^/\#/" Makefile
-	make OPT="$CFLAGS" ZLIB=no \
+	make OPT="$CFLAGS -fPIC -flto=auto" ZLIB=no \
 		SHARED=yes \
 		PREFIX=/usr \
 		SHAREDIR=/usr/share/hwdata \
@@ -29,22 +23,18 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make PREFIX="$pkgdir"/usr \
 		SHARED=yes \
 		SHAREDIR="$pkgdir"/usr/share/hwdata \
 		MANDIR="$pkgdir"/usr/share/man \
-		install
+		install install-lib
 
-	install -d "$pkgdir"/usr/lib
-	ln -s libpci.so.${pkgver%%.*} "$pkgdir"/usr/lib/libpci.so
-	install -D -m 644 lib/libpci.pc "$pkgdir"/usr/lib/pkgconfig/libpci.pc
-	for i in config.h header.h pci.h types.h; do
-		install -D -m 644 lib/${i} "$pkgdir"/usr/include/pci/${i}
-	done
-
+	# this is now supplied by the hwids package
+	rm -rf "$pkgdir"/usr/sbin/update-pciids
+	rm -rf "$pkgdir"/usr/share/man/man8/update-pciids.8
+	rm -rf "$pkgdir"/usr/share/hwdata
 }
 
-sha512sums="d9bac2d1744db21937d84d27ad1fe8d508d421468b6adeb179fb550aab4b9a57c0a67230a425f28dbc0a91caa276f6a069e99d929daf350607c61e65f7918e73  pciutils-3.5.6.tar.gz
-520b39602078e4325d7dac2d460547b360f7b52c668d88cf3d776c59246c8cfcb537b7b4f50575da9d2fcea1e207b3e99626ce4f23df890d2565b7dac1db2d94  fix-linking-pci-malloc-Makefile.patch
-aa1d3272500180256929b39a5fc4ea38ddb6a9fad090d732832ded9cc396303cf56efc91cfdeb76edbcfefc9a7c8eb058562c3c2b09a9090a59d3e68c27cec62  pread.patch"
+sha512sums="
+7b5ba4c5b3d5db33c84c6e5642a6efb21f46a073d42887762bee97b597585d360e8cd014c3538d3dd200d122bbfa65b6729f47f1e4c3b96c6576ab033b704c14  pciutils-3.14.0.tar.gz
+"

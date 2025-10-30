@@ -1,0 +1,131 @@
+# Contributor: The one with the braid <info@braid.business>
+# Maintainer: The one with the braid <info@braid.business>
+pkgname=polycule
+# git due to https://gitlab.com/polycule_client/polycule/-/issues/23
+pkgver=0.2.5_git20250604
+_rev=b1b3422c3eadddef2d87c53bc74f710e49d9d813
+pkgrel=2
+pkgdesc="A geeky and efficient [matrix] client for power users."
+url="https://gitlab.com/polycule_client/polycule"
+arch="aarch64 x86_64"	# flutter
+license="EUPL-1.2"
+# libsecret: pub/flutter_secure_storage
+# xdg-user-dirs: pub/path_provider
+# olm: pub/matrix
+# mimalloc2: pub/media_kit
+# libnotify: pub/flutter_local_notifications
+# dbus: pub/flutter_local_notifications
+# openssl-dev: pub/sqlcipher_flutter_libs
+# mpv-dev: pub/media_kit
+depends="
+	jsoncpp
+	libsecret
+	xdg-user-dirs
+	olm
+	mimalloc2
+	libnotify
+	dbus
+	"
+makedepends="
+	ca-certificates
+	flutter-desktop
+	libsecret-dev
+	patchelf
+	openssl-dev
+	mpv-dev
+	"
+sonameprefix="$pkgname:"
+source="
+	https://gitlab.com/polycule_client/polycule/-/archive/${_rev:-"v$pkgver"}/polycule-${_rev:-v"$pkgver"}.tar.gz
+	system-flutter.patch
+	flutter-3.35.patch
+	media-kit-broken-by-design.patch.pubdev
+	"
+builddir="$srcdir/polycule-${_rev:-"v$pkgver"}"
+# net: pub dependencies
+# !check: no tests
+options="net !check"
+
+export _pkgorg="business.braid.polycule"
+export _pkgexec="polycule"
+
+case "$CARCH" in
+	aarch64) _flutter_arch="arm64" ;;
+	x86_64) _flutter_arch="x64" ;;
+esac
+
+export PUB_CACHE="$srcdir/pub_cache"
+
+export CFLAGS="$CFLAGS -O2 -Wno-error -Wno-unknown-warning-option -Wno-unused-command-line-argument"
+export CXXFLAGS="$CXXFLAGS -O2 -Wno-error -Wno-unknown-warning-option -Wno-unused-command-line-argument"
+
+export CC=clang
+export CXX=clang++
+export AR=llvm-ar
+export NM=llvm-nm
+export LD=clang++
+
+prepare() {
+	default_prepare
+
+	flutter pub get --enforce-lockfile
+	flutter gen-l10n
+
+	# if there is a binary in the pub_cache, we sure did not build it.
+	for elf in $(scanelf -RA -F "%F" "$PUB_CACHE"); do
+		rm -f "$elf"
+	done
+
+	# credits to jane400 <alpine@j4ne.de>
+	cd "$srcdir"
+	patch -p1 -i "$srcdir/media-kit-broken-by-design.patch.pubdev"
+}
+
+build() {
+	flutter build linux -v --release \
+		--dart-define=POLYCULE_IS_STABLE=true \
+		--dart-define=POLYCULE_VERSION=v$pkgver
+
+	local rpath="/usr/lib/$pkgname"
+
+	patchelf --set-rpath "$rpath/lib" build/linux/"$_flutter_arch"/release/bundle/$_pkgexec
+	for _elf in build/linux/"$_flutter_arch"/release/bundle/lib/lib*.so; do
+		# running patchelf on libapp (the AOT snapshot of the whole Dart codebase)
+		# breaks it with "[FATAL:flutter/runtime/dart_vm_initializer.cc(89)]
+		# Error while initializing the Dart VM: Invalid vm isolate snapshot seen".
+		#
+		# it has no rpath and only links to libc soname anyway. 🤷‍♀️
+		[ "$(basename "$_elf")" != "libapp.so" ] || continue
+
+		patchelf --set-rpath "$rpath" "$_elf"
+	done
+}
+
+package() {
+	local bundle="$builddir"/build/linux/$_flutter_arch/release/bundle
+
+	install -Dm755 "$bundle"/$_pkgexec "$pkgdir"/usr/lib/$pkgname/$_pkgexec
+	cp -rv "$bundle"/lib "$pkgdir"/usr/lib/$pkgname/lib
+	cp -rv "$bundle"/data "$pkgdir"/usr/lib/$pkgname/data
+
+	mkdir -p "$pkgdir"/usr/bin
+	ln -sv /usr/lib/$pkgname/$_pkgexec "$pkgdir"/usr/bin/$_pkgexec
+
+	install -Dm644 "$bundle"/data/flutter_assets/NOTICES.Z "$pkgdir"/usr/share/licenses/$pkgname/NOTICES.Z
+	install -Dm644 "$builddir"/LICENSE "$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	for font in "$builddir"/assets/fonts/* ; do
+		install -Dm644 "$font"/LICENSE.txt "$pkgdir"/usr/share/licenses/$pkgname/"$(basename "$font")".txt
+	done
+	install -Dm644 linux/$_pkgorg.desktop "$pkgdir"/usr/share/applications/$_pkgorg.desktop
+	install -Dm644 linux/$_pkgorg-daemon.desktop "$pkgdir"/etc/xdg/autostart/$_pkgorg-daemon.desktop
+	install -Dm644 linux/$_pkgorg.service "$pkgdir"/usr/share/dbus-1/services/$_pkgorg.service
+	install -Dm644 linux/$_pkgorg.metainfo.xml "$pkgdir"/usr/share/metainfo/$_pkgorg.metainfo.xml
+	install -Dm644 assets/logo/logo-circle.svg "$pkgdir"/usr/share/icons/hicolor/scalable/apps/$_pkgorg.svg
+}
+
+sha512sums="
+52bf10563edc8bf820c7b3ebc564ad13f8b233ff9ed5382f9c60c8f3463409caedc0d228d0a0a2bb255b9896cb33451dcee0a8d6108ec641b6504ef0d0bc9e35  polycule-b1b3422c3eadddef2d87c53bc74f710e49d9d813.tar.gz
+00108c868dbb776ca4ce41861b31dd3e833b691d26f25a23c9b7a619be262f433ec655158c3e2e8dcb7c16ff900baf9e6eb51f7edadb945821df841e5e6b8bc2  system-flutter.patch
+1ae8cd6d081cda734d58e812688a3bd183545f5a4970c3a266469e53ac7fd3f2eee750963ce291247a4ceb88f4b9481fc3b0d21a30ca1c65e022f2b84a8ae6dd  flutter-3.35.patch
+be8b90853aad9768d58a501d8e85e205a0b770b3d2cdc23a4b5b8878923d3368cc2463869ed6537b3220126c083360503305b65a671ca3f9e5c073ad18547e9d  media-kit-broken-by-design.patch.pubdev
+"

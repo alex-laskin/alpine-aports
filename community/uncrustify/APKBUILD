@@ -1,38 +1,33 @@
 # Maintainer: André Klitzing <aklitzing@gmail.com>
 pkgname=uncrustify
-pkgver=0.67
-pkgrel=1
-pkgdesc="A source code beautifier"
+pkgver=0.81.0
+pkgrel=0
+pkgdesc="Source code beautifier"
 url="https://github.com/uncrustify/uncrustify"
 arch="all"
-license="GPL-2.0"
-makedepends="cmake python2"
+license="GPL-2.0-or-later"
+makedepends="cmake python3 samurai"
 subpackages="$pkgname-doc"
-source="http://downloads.sourceforge.net/$pkgname/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir"
+source="$pkgname-$pkgver.tar.gz::https://github.com/uncrustify/uncrustify/archive/uncrustify-$pkgver.tar.gz"
+builddir="$srcdir/uncrustify-uncrustify-$pkgver"
 
 build() {
-	cd "$builddir"
-	[ "$CARCH" = "s390x" ] && sed -i '/^12004/d' tests/c-sharp.test
-	mkdir -p build
-	cd build
-	cmake -DCMAKE_INSTALL_PREFIX=/usr ..
-	make
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr
+	cmake --build build
 }
 
 check() {
-	cd "$builddir/build"
-	make test
+	ctest --test-dir build
 }
 
 package() {
-	cd "$builddir"
-	install -d -m755 "$pkgdir"/usr/share/$pkgname
-	install -m644 etc/*.cfg "$pkgdir"/usr/share/$pkgname
-	install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	DESTDIR="$pkgdir" cmake --install build
 
-	cd build
-	make DESTDIR="$pkgdir" PREFIX=/usr install
+	install -Dm644 etc/*.cfg -t "$pkgdir"/usr/share/$pkgname
 }
 
-sha512sums="fbdd25c774284b3fb2d84084d6e35cace093eafa22b7ce9b988f2e2b26e05f2a56f664eb182ef2319abe494c0743c76e04a6bb1cc013fea79cd1edea33b8f8d2  uncrustify-0.67.tar.gz"
+sha512sums="
+464dfe5806dfb1eaa5070ae6917bb838d3f247255f4aea7e56dd6daf0d25fadaa887960d992a8d038187d629b5ecbb5b7ae0162de37a4fe5da928132aeda42d2  uncrustify-0.81.0.tar.gz
+"

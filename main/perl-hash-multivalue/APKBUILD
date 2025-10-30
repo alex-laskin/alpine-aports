@@ -1,32 +1,27 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=perl-hash-multivalue
 pkgver=0.16
-pkgrel=0
+pkgrel=4
 pkgdesc="Hash::MultiValue perl module"
-url="http://search.cpan.org/dist/Hash-MultiValue/"
+url="https://metacpan.org/release/Hash-MultiValue/"
 arch="noarch"
-license="GPL-2.0 or Artistic"
+license="Artistic-1.0-Perl OR GPL-1.0-or-later"
 depends="perl"
-makedepends="perl-dev"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/A/AR/ARISTOTLE/Hash-MultiValue-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/A/AR/ARISTOTLE/Hash-MultiValue-$pkgver.tar.gz"
 
 builddir="$srcdir/Hash-MultiValue-$pkgver"
 
 build() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }

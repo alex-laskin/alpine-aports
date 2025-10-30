@@ -3,31 +3,29 @@
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=perl-number-format
 _pkgreal=Number-Format
-pkgver=1.75
-pkgrel=0
+pkgver=1.76
+pkgrel=1
 pkgdesc="Perl extension for formatting numbers"
-url="http://search.cpan.org/dist/Number-Format/"
+url="https://metacpan.org/release/Number-Format/"
 arch="noarch"
 license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends="perl-test-simple"
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+depends="perl"
+makedepends="perl-test-simple"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/W/WR/WRW/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/R/RJ/RJBS/$_pkgreal-$pkgver.tar.gz"
 options="!check"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
 	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
 	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
@@ -42,4 +40,6 @@ check() {
 	make test
 }
 
-sha512sums="fa712a82b33ba062308e6bf29a4d99e73245f95495206e2c4252d8735d1851136553ec719a00683163aea0d3dddaa6bcc1261ef643439b870605df8ab17a40ef  Number-Format-1.75.tar.gz"
+sha512sums="
+c7132bbd036522d35082ee18a5ca534ee8820e3d8901293621a7f573a0f44ee6c652a91a7ca9d44c8a9185e1c9306dfbd79757c9b3818dc6de3cca761883790a  Number-Format-1.76.tar.gz
+"

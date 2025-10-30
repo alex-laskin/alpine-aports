@@ -1,23 +1,24 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=ldns
-pkgver=1.7.0
-pkgrel=0
+pkgver=1.8.4
+pkgrel=1
 pkgdesc="Lowlevel DNS(SEC) library"
-url="http://nlnetlabs.nl/projects/ldns/"
+url="https://nlnetlabs.nl/projects/ldns/"
 arch="all"
-license="Custom"
-depends=
-depends_dev="libressl-dev"
-makedepends="$depends_dev libpcap-dev perl"
-install=""
-subpackages="$pkgname-dev $pkgname-doc drill $pkgname-tools"
-source="http://nlnetlabs.nl/downloads/ldns/ldns-$pkgver.tar.gz
-	"
+license="BSD-3-Clause"
+options="!check" # tests not shipped in tarball
+depends_dev="openssl-dev>3"
+makedepends="$depends_dev libpcap-dev perl autoconf automake libtool"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc drill $pkgname-tools"
+source="https://nlnetlabs.nl/downloads/ldns/ldns-$pkgver.tar.gz"
 
-builddir="$srcdir"/ldns-$pkgver
+# secfixes:
+#   1.7.0-r1:
+#     - CVE-2017-1000231
+#     - CVE-2017-1000232
+
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -33,25 +34,28 @@ build() {
 	make
 }
 
+check() {
+	make test
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 
 	mkdir -p "$pkgdir"/usr/lib/pkgconfig
-	cat > "$pkgdir"/usr/lib/pkgconfig/libldns.pc<<EOF
-prefix=/usr
-exec_prefix=\${prefix}
-libdir=\${exec_prefix}/lib
-includedir=\${prefix}/include
+	cat > "$pkgdir"/usr/lib/pkgconfig/libldns.pc<<-EOF
+	prefix=/usr
+	exec_prefix=\${prefix}
+	libdir=\${exec_prefix}/lib
+	includedir=\${prefix}/include
 
-Name: ldns
-Description: Library for DNS programming
-URL: http://www.nlnetlabs.nl/projects/ldns
-Version: $pkgver
-Requires.private: libcrypto
-Libs: -L\${libdir} -lldns
-Libs.private: -lcrypto
-Cflags: -I\${includedir}
+	Name: ldns
+	Description: Library for DNS programming
+	URL: http://www.nlnetlabs.nl/projects/ldns
+	Version: ${pkgver}
+	Requires.private: libcrypto
+	Libs: -L\${libdir} -lldns
+	Libs.private: -lcrypto
+	Cflags: -I\${includedir}
 EOF
 }
 
@@ -62,9 +66,11 @@ drill() {
 }
 
 tools() {
-	pkgdesc="ldsn example tools"
+	pkgdesc="ldns example tools"
 	mkdir -p "$subpkgdir"/usr
 	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
 }
 
-sha512sums="8a4e48bcc2a244b92447a9830b60efbb656fb7955f3559ef2eb6f8e724c4c0208776350c44ccf7dcf1ffe0b7b9d9ccc4cbddc5bc16e8888db494ab4d0bce3bd8  ldns-1.7.0.tar.gz"
+sha512sums="
+3ee26289bfe587fb19b7441412917d7f7197e385cc1329847c1ae707650709a1ccef7d4a645bd85da89effad95715ec868ef312e5f336d3fe2e408e8109439fc  ldns-1.8.4.tar.gz
+"

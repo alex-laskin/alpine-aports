@@ -1,39 +1,31 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libxdamage
-pkgver=1.1.4
-pkgrel=1
+pkgver=1.1.6
+pkgrel=5
 pkgdesc="X11 damaged region extension library"
-url="http://xorg.freedesktop.org/"
+url="https://xorg.freedesktop.org/"
 arch="all"
-license="custom"
+license="MIT"
 options="!check"  # No test suite.
-depends=
-depends_dev="damageproto fixesproto"
-makedepends="damageproto libx11-dev libxfixes-dev util-macros xextproto xproto"
+makedepends="xorgproto libx11-dev libxfixes-dev util-macros"
 subpackages="$pkgname-dev"
-source="http://www.x.org/releases/individual/lib/libXdamage-$pkgver.tar.bz2"
-
+source="https://www.x.org/releases/individual/lib/libXdamage-$pkgver.tar.xz"
 builddir="$srcdir"/libXdamage-$pkgver
 
-prepare() {
-	cd "$builddir"
-	chmod 644 "$builddir"/config.sub
-	update_config_sub
-	default_prepare
-}
-
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
-		--sysconfdir=/etc
+		--sysconfdir=/etc \
+		--disable-static
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
-sha512sums="1058cef11a8f0edfcae7265837369e492b007c34d56ae04145b558e5f02a163827aba1d0b80656f4c8e5d1e9a40f5077d93b7ff4f5e704f7409060dceba03904  libXdamage-1.1.4.tar.bz2"
+
+sha512sums="
+624dcefa1c79064569df952892f7f1351dc19ad338ce73d1a57041e406cb3e18abe531bab352b93d1f0f5c9b5c6b2652cc84a8f1fbfcbba648343812695a8acb  libXdamage-1.1.6.tar.xz
+"

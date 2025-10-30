@@ -1,24 +1,20 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=libedit
-pkgver=20170329.3.1
+pkgver=20251016.3.1
 _ver=${pkgver/./-}
-pkgrel=3
+pkgrel=0
 pkgdesc="BSD line editing library"
-url="http://www.thrysoee.dk/editline/"
+url="https://www.thrysoee.dk/editline"
 arch="all"
-license="BSD"
-depends=""
-depends_dev="ncurses-dev"
-makedepends="$depends_dev"
-install=""
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://www.thrysoee.dk/editline/libedit-$_ver.tar.gz"
-
+license="BSD-3-Clause"
+depends_dev="bsd-compat-headers ncurses-dev"
+makedepends_host="$depends_dev"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc"
+source="https://www.thrysoee.dk/editline/libedit-$_ver.tar.gz"
 builddir="$srcdir"/libedit-$_ver
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -31,14 +27,23 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
-	rm "$pkgdir"/usr/share/man/man3/history.3*
+
+	# Prevent conflict with editline-doc and readline-doc
+	mv "$pkgdir"/usr/share/man/man3/editline.3 \
+		"$pkgdir"/usr/share/man/man3/libedit.3
+
+	# update symlinks
+	find "$pkgdir"/usr/share/man/man3/ -type l | while IFS= read -r path; do
+		[ "$(readlink "$path")" != 'editline.3' ] && continue
+		ln -v -s -f -T -- 'libedit.3' "$path"
+	done
 }
 
-sha512sums="597ed2282240be6dc3c4a7bb8b4ade31fe16ebfeb2229e3aec58643a65882653cc91deb300343d1b1cc588959dbf95698122c4005e47dfb947efa3e6b134bb82  libedit-20170329-3.1.tar.gz"
+sha512sums="
+a084895f92d7b373eb5aff7d4497d395fb141343fdce86de5387fedd5f77b0695ea68f061e461e35d248e66cf4cc0c62a364309f908a42db27e4fa70b530e2cf  libedit-20251016-3.1.tar.gz
+"

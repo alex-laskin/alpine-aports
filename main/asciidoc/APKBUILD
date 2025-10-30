@@ -1,44 +1,36 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=asciidoc
-pkgver=8.6.10
+pkgver=10.2.1
 pkgrel=0
 pkgdesc="Text based documentation"
-url="http://asciidoc.org/"
+url="https://asciidoc.org/"
 arch="noarch"
-license="GPL-2.0"
-depends="python2 libxml2-utils docbook-xsl"
-makedepends="autoconf"
-subpackages="$pkgname-doc $pkgname-vim::noarch"
-source="$pkgname-$pkgver.tar.gz::https://github.com/asciidoc/asciidoc/archive/$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+license="GPL-2.0-or-later AND MIT"
+depends="python3 libxml2-utils docbook-xsl"
+makedepends="py3-gpep517 py3-setuptools py3-wheel"
+checkdepends="py3-pytest py3-pytest-mock"
+subpackages="$pkgname-pyc $pkgname-doc"
+source="https://github.com/asciidoc-py/asciidoc-py/releases/download/$pkgver/asciidoc-$pkgver.tar.gz"
+options="!check" # py3-pytest-mock
 
-prepare() {
-	default_prepare
-	autoconf
-}
+replaces="$pkgname-vim"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info
-	make
+	gpep517 build-wheel --wheel-dir .dist --output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+	install -Dm644 doc/*.1 -t "$pkgdir"/usr/share/man/man1/
+	install -Dm644 asciidoc/api.py -t "$pkgdir"/usr/lib/python3*/site-packages/asciidoc/
 }
 
-vim() {
-	pkgdesc="Vim syntax for $pkgname"
-	depends=""
-	install -Dm644 "$builddir"/vim/syntax/$pkgname.vim \
-		"$subpkgdir"/usr/share/vim/vimfiles/syntax/$pkgname.vim
-}
-
-sha512sums="6ecc86977baaf1c756691e3f661e43ef2bb24e606898f6075bfa6f174d1fdc5e77d00853ffe014847e295364349d6ad34f3b8209cb97870e0233012fc38a281a  asciidoc-8.6.10.tar.gz"
+sha512sums="
+02d064aab8dfb05af4ae49a7c7bd1381156c6c90f95b2494218c80f01c39987cb971d68c533b5519abade77be9832b3fab653d8ae2ca7bb682c5bb720612839f  asciidoc-10.2.1.tar.gz
+"

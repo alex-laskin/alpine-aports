@@ -1,0 +1,68 @@
+# Contributor: solidnerd <niclas@mietz.io>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=glab
+pkgver=1.74.0
+pkgrel=0
+pkgdesc="Open source GitLab CLI tool written in Go"
+url="https://gitlab.com/gitlab-org/cli"
+arch="all"
+license="MIT"
+depends="git"
+makedepends="go"
+options="!check"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	$pkgname-fish-completion
+	"
+source="$pkgname-$pkgver.tar.gz::https://gitlab.com/gitlab-org/cli/-/archive/v$pkgver/cli-v$pkgver.tar.gz
+	no-telemetry.patch
+	"
+builddir="$srcdir/cli-v$pkgver"
+
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
+
+build() {
+	# date seems a little broken to override
+	go build -ldflags "
+		-X main.debugMode=false
+		-X main.version=v$pkgver
+		-X main.buildDate=$(date -u "+%Y-%m-%d" ${SOURCE_DATE_EPOCH:+-d @$SOURCE_DATE_EPOCH})
+		-extldflags \"$LDFLAGS\"
+		" \
+		-o build/bin/glab \
+		./cmd/glab/main.go
+
+	go run ./cmd/gen-docs/docs.go --manpage --path ./build/man
+
+	# XXX: When glab is run in fakeroot it segfaults for some reason
+	# on ppc64le. By generating the compilation files here we
+	# workaround that but we need to investigate why it segfaults in
+	# fakeroot eventually.
+	mkdir -p build/shell
+	build/bin/glab completion --shell bash > build/shell/bash.comp
+	build/bin/glab completion --shell zsh > build/shell/zsh.comp
+	build/bin/glab completion --shell fish > build/shell/fish.comp
+}
+
+package() {
+	install -Dm755 build/bin/glab -t "$pkgdir"/usr/bin/
+
+	install -Dm644 build/man/*.1 -t "$pkgdir"/usr/share/man/man1/
+
+	install -Dm644 build/shell/bash.comp \
+		"$pkgdir"/usr/share/bash-completion/completions/glab.bash
+	install -Dm644 build/shell/zsh.comp \
+		"$pkgdir"/usr/share/zsh/site-functions/_glab
+	install -Dm644 build/shell/fish.comp \
+		"$pkgdir"/usr/share/fish/vendor_completions.d/glab.fish
+}
+
+sha512sums="
+c2fdda2cc8f72decfab23bce70d8fe0e8712f804dd84ef3883c521c77476ea83d0dbd0e2d4a218f8211242eedd9e3d9ca7e1aee762b5853616f168829a6cfc59  glab-1.74.0.tar.gz
+675a5bcaf13de2be6d0e570721e99ec95e5c4de76d4ae952bdc575f7bd57dba4e3596cdeb2a2c0e2aa7af0286da01bc336cf28bbf245671edac5372331be4ecb  no-telemetry.patch
+"

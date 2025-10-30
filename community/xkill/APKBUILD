@@ -1,22 +1,17 @@
 # Contributor: ScrumpyJack <scrumpyjack@st.ilet.to>
 # Maintainer: ScrumpyJack <scrumpyjack@st.ilet.to>
 pkgname=xkill
-pkgver=1.0.5
-pkgrel=0
+pkgver=1.0.6
+pkgrel=1
 pkgdesc="Kill tool for the X Window System"
-url="http://www.x.org"
+url="https://www.x.org/"
 arch="all"
 license="MIT"
-depends=""
-depends_dev=""
 makedepends="libx11-dev libxmu-dev"
-install=""
 subpackages="$pkgname-doc"
-source="http://www.x.org/releases/individual/app/${pkgname}-${pkgver}.tar.bz2"
-builddir="${srcdir}/${pkgname}-${pkgver}"
+source="https://www.x.org/releases/individual/app/$pkgname-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -26,8 +21,9 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="4603a1794f114f5cea2c885020c9d073c8421d1e785c99ff6b936ae97139c8dac8020a187b5bbd0fa6d56ed6fab879441b42ba900cc5f2f5a534dafdc86b9249  xkill-1.0.5.tar.bz2"
+sha512sums="
+a755a8db51d7860b9942161776390007b9b530c2f7fcf8ddb3383311d36d185a6f08a44c5f6f7735576b146902e66aca21cbd7e746c1289d035e79332e8173b6  xkill-1.0.6.tar.xz
+"

@@ -1,0 +1,57 @@
+# Maintainer: John Vogel <jvogel@stygian.me>
+maintainer="John Vogel <jvogel@stygian.me>"
+pkgname=pam_mount
+pkgver=2.21
+pkgrel=0
+pkgdesc="Pluggable Authentication Module that can mount volumes for a user session"
+url="https://codeberg.org/jengelh/pam_mount"
+arch="all"
+license="LGPL-2.1-or-later"
+makedepends="
+	cryptsetup-dev
+	libhx-dev
+	libxml2-dev
+	linux-pam-dev
+	openssl-dev
+	pcre2-dev
+	perl
+	util-linux-dev
+	zstd
+	"
+subpackages="
+	$pkgname-dev
+	$pkgname-doc
+	libcryptmount
+	"
+source="https://inai.de/files/pam_mount/pam_mount-$pkgver.tar.zst"
+
+build() {
+	./configure \
+		--prefix=/usr \
+		--host=$CHOST \
+		--build=$CBUILD \
+		--sysconfdir=/etc \
+		--localstatedir=/var \
+		--with-rundir=/run \
+		--with-slibdir=/usr/lib \
+		--disable-dependency-tracking
+	make
+}
+
+check() {
+	make check
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+}
+
+libcryptmount() {
+	pkgdesc="$pkgdesc (libcryptmount library)"
+
+	amove usr/lib/libcryptmount.so.*
+}
+
+sha512sums="
+f14cbd870e6a663ad9011905c3aaed7a8a223be7fad2ff650c292ea87299b65a2f43597c4481b57ce5c8db1b53d719e20b7ef7f8a82ce413e91926f4bfddd62a  pam_mount-2.21.tar.zst
+"

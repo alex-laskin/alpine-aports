@@ -1,0 +1,50 @@
+maintainer="Hoang Nguyen <folliekazetani@protonmail.com>"
+pkgname=cue-cli
+pkgver=0.14.2
+pkgrel=0
+pkgdesc="CLI for CUE configuration and validation language"
+url="https://cuelang.org/"
+arch="all"
+license="Apache-2.0"
+makedepends="go"
+subpackages="
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	"
+options="net" # download Go modules
+source="$pkgname-$pkgver.tar.gz::https://github.com/cue-lang/cue/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/cue-$pkgver"
+
+build() {
+	go build -v -o bin/cue \
+		-ldflags "-X cuelang.org/go/cmd/cue/cmd.version=v$pkgver" \
+		./cmd/cue/
+
+	for shell in bash fish zsh; do
+		./bin/cue completion $shell > cue.$shell
+	done
+}
+
+check() {
+	# Use a directory outside aports repository for test artifacts to pass TestScript test case.
+	# (the test expects `git VCS not found in any parents of ".+"` message in stderr)
+	unset GOTMPDIR
+
+	go test ./...
+}
+
+package() {
+	install -Dm755 bin/cue -t "$pkgdir"/usr/bin/
+
+	install -Dm644 cue.bash \
+		"$pkgdir"/usr/share/bash-completion/completions/cue
+	install -Dm644 cue.fish \
+		"$pkgdir"/usr/share/fish/vendor_completions.d/cue.fish
+	install -Dm644 cue.zsh \
+		"$pkgdir"/usr/share/zsh/site-functions/_cue
+}
+
+sha512sums="
+ca38221952b5434c4404e72a09430aca61d6a0f5cc906ad6172907556422c4f76a06053b71962127bb63d49a64feda52d500cc772f13981309897b556f587608  cue-cli-0.14.2.tar.gz
+"

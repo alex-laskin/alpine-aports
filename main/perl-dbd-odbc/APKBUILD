@@ -1,41 +1,39 @@
 # Contributor: Jeff Bilyk <jbilyk at gmail>
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=perl-dbd-odbc
-_pkgname=DBD-ODBC
-pkgver=1.58
-pkgrel=0
+_pkgreal=DBD-ODBC
+pkgver=1.61
+pkgrel=7
 pkgdesc="Perl CPAN DBD::ODBC module"
-url="http://search.cpan.org/dist/DBD-ODBC/"
+url="https://metacpan.org/release/DBD-ODBC/"
 arch="all"
-license="GPL PerlArtistic"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
 depends="perl perl-dbi"
-makedepends="perl perl-dev unixodbc-dev"
+makedepends="perl-dev unixodbc-dev"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/M/MJ/MJEVANS/DBD-ODBC-$pkgver.tar.gz"
-builddir="$srcdir"/${_pkgname}-$pkgver
+source="https://cpan.metacpan.org/authors/id/M/MJ/MJEVANS/DBD-ODBC-$pkgver.tar.gz"
+builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
-	cd "$builddir"
+	default_prepare
+
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-       cd "$builddir"
-       export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
-       make
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
+	make
 }
 
 check() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="7549536c0c6585417f4329bb428b9234ee18e33c066ddee52e4a9a37fcd6cbaf9506631205329d57dfcdbcb5358125df8341fba32033d82ef0730839ddbc6615  DBD-ODBC-1.58.tar.gz"
+sha512sums="cd20a505b64fd6a6d9a5158c134f9337a9f40879516e4fcb45270dcc20d88ade1ddcf856e36db72b8ca57e34052284f794532f55f0a1f6469cd3d8dff0103435  DBD-ODBC-1.61.tar.gz"

@@ -1,40 +1,52 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=shotwell
-pkgver=0.27.4
-pkgrel=0
-pkgdesc="A digital photo organizer designed for the GNOME desktop environment"
-url="https://wiki.gnome.org/Apps/Shotwell"
-arch="all !armhf !aarch64"
-license="LGPL-2.1"
-install="shotwell.post-upgrade shotwell.post-install shotwell.pre-deinstall"
+pkgver=0.32.13
+pkgrel=1
+pkgdesc="Digital photo organizer designed for the GNOME desktop environment"
+url="https://gitlab.gnome.org/GNOME/shotwell"
+arch="all"
+license="CC-BY-SA-3.0 AND LGPL-2.1-or-later"
 subpackages="$pkgname-lang $pkgname-doc"
-makedepends="intltool vala libgee-dev libunique3-dev webkit2gtk-dev libexif-dev
-	librsvg-dev sqlite-dev libgudev-dev dbus-glib-dev libgphoto2-dev
-	gexiv2-dev libraw-dev librsvg-dev json-glib-dev gnome-doc-utils
-	m4 gst-plugins-base-dev bash gtk+3.0-dev rest-dev desktop-file-utils
-	gcr-dev itstool libgdata-dev"
-source="https://download.gnome.org/sources/$pkgname/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir"/$pkgname-$pkgver
+makedepends="
+	desktop-file-utils
+	gcr-dev
+	gexiv2-dev
+	gst-plugins-base-dev
+	gtk+3.0-dev
+	itstool
+	json-glib-dev
+	libexif-dev
+	libgdata-dev
+	libgee-dev
+	libgphoto2-dev
+	libgudev-dev
+	libportal-dev
+	libraw-dev
+	libsecret-dev
+	meson
+	sqlite-dev
+	vala
+	webkit2gtk-4.1-dev
+	"
+checkdepends="appstream-glib"
+source="https://download.gnome.org/sources/shotwell/${pkgver%.*}/shotwell-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--enable-static=no \
-		--disable-schemas-compile
-	make
+	abuild-meson \
+		-Db_lto=true \
+		-Dinstall_apport_hook=false \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="9f67893018a750199b51ac42e357c850195a356db8fdb5b1f8836375e01291d716f82257b2b030aa41e9ead59227b442fd38239fad5b5f46bf2701ec968e383f  shotwell-0.27.4.tar.xz"
+sha512sums="
+1d1ebd54582769b3a0c5d2199efe395ecad52b9fa8c419b215425566444257f01ceb74b1acc26eaca4641f780d6fbd4b4508a834ac1514b887b1a4b8a75bbb3c  shotwell-0.32.13.tar.xz
+"

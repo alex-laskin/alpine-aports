@@ -1,27 +1,28 @@
 # Contributor: André Klitzing <aklitzing@gmail.com>
 # Maintainer: André Klitzing <aklitzing@gmail.com>
 pkgname=moe
-pkgver=1.9
+pkgver=1.14
 pkgrel=0
-pkgdesc="A powerful and user-friendly text editor"
+pkgdesc="powerful and user-friendly text editor"
 url="https://www.gnu.org/software/moe/moe.html"
 arch="all"
-license="GPL"
+license="GPL-2.0-or-later"
 makedepends="ncurses-dev texinfo"
 subpackages="$pkgname-doc"
-source="http://ftp.gnu.org/gnu/moe/moe-$pkgver.tar.lz"
+source="https://ftp.gnu.org/gnu/moe/moe-$pkgver.tar.lz"
 options="!check"
-builddir="$srcdir/"$pkgname-$pkgver
 
 build() {
-	cd "$builddir"
-	./configure --prefix=/usr --sysconfdir=/etc
-	make
+	./configure \
+		--prefix=/usr \
+		--sysconfdir=/etc
+	make CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS"
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="277700e4a796e1a7aee42de55ba4599a350a612f95a1a2eca5078d85f6f9a7db190fb5611eb2f286c98580af847a2934bf38a4bce10176db4c5cddc2d257f929  moe-1.9.tar.lz"
+sha512sums="
+db45f7c05b9a1a06085b2604eb8e9857caeb7d3a56a4815df208806bbbf19cc47b19776619635c70860142cb8bb775c0eaf31b9b07698cc83b74f1c6d6f47d5c  moe-1.14.tar.lz
+"

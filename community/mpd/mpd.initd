@@ -1,10 +1,20 @@
 #!/sbin/openrc-run
 
-# init.d file for music player daemon
+name="Music Player Daemon"
+description="A daemon for playing music"
 
-NAME=mpd
-DAEMON=/usr/bin/$NAME
-CONF=/etc/mpd.conf
+# M_USER and M_GROUP is for backward compatibility (Alpine <3.17)
+: ${command_user:="${M_USER:-mpd}:${M_GROUP:-audio}"}
+
+command=/usr/bin/mpd
+# MPD_OPTS is for backward compatibility (Alpine <3.17)
+command_args="${command_args:-$MPD_OPTS}"
+command_args_foreground="--no-daemon"
+
+# Allow mpd to configure real-time scheduling.
+# See https://www.musicpd.org/doc/html/user.html#real-time-scheduling.
+# (This is supported since OpenRC 0.45)
+capabilities="^cap_sys_nice"
 
 depend() {
 	need localmount
@@ -12,37 +22,7 @@ depend() {
 	after firewall
 } 
 
-checkconfig() {
-	[ -f "$CONF" ] && return 0
-	eerror "configuration file $CONF is missing"
-	return 1
-}
-
-get_pidfile() {
-	pidfile=$(awk '$1 == "pid_file" { print $2 }' "$CONF" | sed 's/"//')
-	pidfile=${pidfile:-/var/run/mpd/$NAME.pid}
-}
-
-start() {
-	checkconfig || return 1
-	get_pidfile
-	checkpath --owner ${M_USER:-mpd}:${M_GROUP:-audio} \
-		--directory ${pidfile%/*}
-
-	ebegin "Starting ${NAME}"
-		start-stop-daemon --start --quiet \
-			--exec ${DAEMON} -- ${MPD_OPTS}
-	eend $?
-}
-
-stop() {
-	get_pidfile
-	ebegin "Stopping ${NAME}"
-		mpd --kill
-	eend $?
-}
-
 start_pre() {
-	checkpath --directory --owner ${M_USER:-mpd} \
-		--mode 0775 /var/run/$NAME
+	checkpath --directory --quiet \
+		--owner "${command_user%:*}" --mode 0775 /run/mpd
 }

@@ -1,36 +1,34 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=yad
-pkgver=0.40.0
+pkgver=14.1
 pkgrel=0
-pkgdesc="A fork of zenity - display graphical dialogs from shell scripts or command line"
-url="https://sourceforge.net/projects/yad-dialog"
+pkgdesc="Fork of zenity - display graphical dialogs from shell scripts or command line"
+url="https://sourceforge.net/projects/yad-dialog/"
 arch="all"
-license="GPL-3.0"
+license="GPL-3.0-or-later"
 depends="hicolor-icon-theme"
-makedepends="gtk+2.0-dev intltool"
+makedepends="gtk+3.0-dev webkit2gtk-4.1-dev intltool"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="https://sourceforge.net/projects/yad-dialog/files/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir"/$pkgname-$pkgver
+source="https://github.com/v1cont/yad/releases/download/v$pkgver/yad-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
 		--enable-icon-browser \
-		--disable-html
+		--enable-html
 	make
 }
 
 check() {
-	cd "$builddir"
+	echo "src/util.c" >> po/POTFILES.in
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" install
-	mkdir -p "$pkgdir/usr/share/doc/$pkgname"
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="103193b316b74cafe8ef3da982df66e3dae17a206bc1c6852eb321507bba93fc7b54c25e959d2dbbdddc267c72b639a8cd9f1f22c03c9bccce283b4c29b8af44  yad-0.40.0.tar.xz"
+sha512sums="
+c2949846d9d6c34bc0c8f482a5b30fb978865308bcafe656694d8eb1bb903e9af76f9d3cdd748ecb0dac389e1a0204a15b10ab29b99262cdeffc44ed16ce902e  yad-14.1.tar.xz
+"

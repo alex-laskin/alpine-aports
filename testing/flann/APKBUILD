@@ -1,36 +1,38 @@
 # Contributor: Bradley J Chambers <brad.chambers@gmail.com>
 # Maintainer: Bradley J Chambers <brad.chambers@gmail.com>
 pkgname=flann
-pkgver=1.9.1
-pkgrel=0
+pkgver=1.9.2
+pkgrel=1
 pkgdesc="Fast Library for Approximate Nearest Neighbors"
-url="https://www.cs.ubc.ca/research/flann/"
+url="https://github.com/flann-lib/flann"
 arch="all"
 license="BSD-3-Clause"
-# FLANN tests are broken, test data is invalid
-options="!check"
-depends=""
-makedepends="cmake"
-subpackages="$pkgname-dev"
-source="$pkgname-$pkgver.tar.gz::https://github.com/mariusmuja/$pkgname/archive/$pkgver.tar.gz
-        cmake.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="
+	cmake
+	gtest-dev
+	hdf5-dev
+	lz4-dev
+	samurai
+	"
+subpackages="$pkgname-doc $pkgname-dev"
+source="$pkgname-$pkgver.tar.gz::https://github.com/flann-lib/flann/archive/$pkgver.tar.gz"
+options="!check" # No tests
 
 build() {
-        cd "$builddir"
-
-        mkdir build && cd build
-        cmake .. \
-                -DCMAKE_INSTALL_PREFIX=/usr \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DBUILD_SHARED_LIBS=ON
-        make
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=None \
+		-DBUILD_SHARED_LIBS=True
+	cmake --build build
 }
 
 package() {
-        cd "$builddir"/build
-        make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
+
+	# Install license files
+	install -Dm644 "$builddir"/COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
 }
 
-sha512sums="0da78bb14111013318160dd3dee1f93eb6ed077b18439fd6496017b62a8a6070cc859cfb3e08dad4c614e48d9dc1da5f7c4a21726ee45896d360506da074a6f7  flann-1.9.1.tar.gz
-786558070bb50e60f4f133242d9b77ce72d248aaa45012345c1d768cf648d9d083698663c4ba54f63ae301fc2fe09859a32b12ef0bff20c53e45d57b424c9f48  cmake.patch"
+sha512sums="
+e1235383e4e3919607cd1417738220c1601342dcf908071a6f75039c45116bd558d9f0534be037b1a8ac5b4ba5b0be5b62bf1d96e44911f14b34f73d941addb2  flann-1.9.2.tar.gz
+"

@@ -1,33 +1,44 @@
+# Contributor: Dmitry Zakharchenko <dmitz@disroot.org>
+# Contributor: Leo <thinkabit.ukim@gmail.com>
 # Contributor: Stefan Wagner <stw@bit-strickerei.de>
 # Maintainer: Stefan Wagner <stw@bit-strickerei.de>
 pkgname=dunst
-pkgver=1.3.1
+pkgver=1.12.2
 pkgrel=0
-pkgdesc="A customizable and lightweight notification-daemon"
-url="http://knopwob.org/dunst/"
+pkgdesc="Customizable and lightweight notification-daemon"
+url="https://dunst-project.org/"
+license="BSD-3-Clause"
 arch="all"
-license="BSD"
-makedepends="libxscrnsaver-dev libxdg-basedir-dev libxft-dev
-	libxinerama-dev dbus-dev freetype-dev glib-dev pango-dev
-	cairo-dev gtk+2.0-dev libxrandr-dev"
-subpackages="$pkgname-doc"
-source="http://knopwob.org/public/dunst-release/$pkgname-$pkgver.tar.bz2"
+depends="dunstify"
+makedepends="libxscrnsaver-dev libxinerama-dev libxrandr-dev
+	libnotify-dev dbus-dev wayland-dev perl pango-dev wayland-protocols"
+checkdepends="dbus librsvg bash ttf-dejavu"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	dunstify
+	"
 source="$pkgname-$pkgver.tar.gz::https://github.com/dunst-project/dunst/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+
+build() {
+	make all dunstify
+}
 
 check() {
-	cd "$builddir"
 	make test
 }
 
-build() {
-	cd "$builddir"
-	make
-}
-
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" PREFIX=/usr install
+	make DESTDIR="$pkgdir" SYSCONFDIR=/etc PREFIX=/usr install
 }
 
-sha512sums="da34ddf9a2b5e32472e74c739881b8afed65874956c1a47ebc68a3903114801ffecb7b6f59a4b6863800f723be9a603f601a87c05c2c0dc41a995df548b747b3  dunst-1.3.1.tar.gz"
+dunstify() {
+	pkgdesc="notify-send compatible command with additional features"
+	amove usr/bin/dunstify
+}
+
+sha512sums="
+f4fabcc5e260cf2dbd16eecd29129df24125ff1444d724202b835415242ed92b9857d42b23ad1e03c6cadd98de7b7ebd5ce20a0e41162baf55b15a71cb90b768  dunst-1.12.2.tar.gz
+"

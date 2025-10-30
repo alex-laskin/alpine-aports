@@ -1,42 +1,47 @@
 # Contributor: Johannes Matheis <jomat+alpinebuild@jmt.gr>
-# Maintainer: Johannes Matheis <jomat+alpinebuild@jmt.gr>
+# Maintainer: Patrycja Rosa <alpine@ptrcnull.me>
 pkgname=i3lock
-pkgver=2.10
+pkgver=2.15
 pkgrel=0
 pkgdesc="An improved screenlocker based upon XCB and PAM"
 url="https://i3wm.org/i3lock/"
 arch="all"
 license="MIT"
 depends="xkeyboard-config"
-makedepends="libev-dev cairo-dev linux-pam-dev libxkbcommon-dev xcb-util-image-dev"
+makedepends="
+	cairo-dev
+	libev-dev
+	libxkbcommon-dev
+	linux-pam-dev
+	meson
+	xcb-util-image-dev
+	xcb-util-xrm-dev
+	"
 subpackages="$pkgname-doc"
-source="$url/$pkgname-$pkgver.tar.bz2"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://i3wm.org/i3lock/i3lock-$pkgver.tar.xz"
+# fails if running under a wayland session even for version output
+options="!check"
 
 prepare() {
 	default_prepare
 
-	cd "$builddir"
-
 	# Fix ticket FS#31544, sed line taken from gentoo
-	sed -i -e 's:login:base-auth:g' i3lock.pam
+	sed -i -e 's:login:base-auth:g' pam/i3lock
 }
 
 build() {
-	cd "$builddir"
-	make
+	abuild-meson . output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	./i3lock -v
+	./output/i3lock -v
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	install -m755 -d "$pkgdir/usr/share/man/man1/"
-	install -m644 $pkgname.1 "$pkgdir/usr/share/man/man1/"
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-sha512sums="ea865b202668212b58d0b97d0263171847e1bd0c529e2fd3d26c15ef253861b9a8357ff2efaa6a4f342c4d0d1ab03bc00f95f4d4008760ec8e0767ac29195517  i3lock-2.10.tar.bz2"
+sha512sums="
+6079f5233c0820c6e38f3cd8f3732d585e95e7d670408e4fb18ab580a2e1face8f3d6ea13eaaeedc8671f74def917183667e736b35306bf7c630d40625b41ac2  i3lock-2.15.tar.xz
+"

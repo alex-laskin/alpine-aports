@@ -1,0 +1,40 @@
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=py3-pbs-installer
+pkgver=2025.10.28
+pkgrel=0
+pkgdesc="Installer for python-build-standalone"
+url="https://github.com/frostming/pbs-installer"
+arch="noarch"
+license="MIT"
+makedepends="
+	py3-gpep517
+	py3-pdm-backend
+	py3-setuptools
+	py3-wheel
+	"
+checkdepends="py3-pytest"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/frostming/pbs-installer/archive/refs/tags/$pkgver.tar.gz"
+builddir="$srcdir/pbs-installer-$pkgver"
+options="!check" # no tests
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+81ecd0c9b3d01be9a02b897da64fa2fd9361c9024012af83a2bdb5fba3c9df85d6d5fa035b8a03bbccdb9283c656792eac58dce889dffa79ff5e94a2e2b4dd85  py3-pbs-installer-2025.10.28.tar.gz
+"

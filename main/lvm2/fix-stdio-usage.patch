@@ -1,6 +1,44 @@
---- ./tools/lvmcmdline.c
-+++ ./tools/lvmcmdline.c
-@@ -1252,7 +1252,7 @@
+diff --git a/lib/commands/toolcontext.c b/lib/commands/toolcontext.c
+index 60739af..8b3fdf7 100644
+--- a/lib/commands/toolcontext.c
++++ b/lib/commands/toolcontext.c
+@@ -1661,6 +1661,7 @@ struct cmd_context *create_toolcontext(unsigned is_clvmd,
+ 	reset_lvm_errno(1);
+ 
+ 	/* Set in/out stream buffering before glibc */
++#ifdef __GLIBC__
+ 	if (set_buffering
+ 	    && !cmd->running_on_valgrind /* Skipping within valgrind execution. */
+ #ifdef SYS_gettid
+@@ -1704,6 +1705,7 @@ struct cmd_context *create_toolcontext(unsigned is_clvmd,
+ 	} else if (!set_buffering)
+ 		/* Without buffering, must not use stdin/stdout */
+ 		init_silent(1);
++#endif
+ 
+ 	/*
+ 	 * Environment variable LVM_SYSTEM_DIR overrides this below.
+@@ -2038,6 +2040,7 @@ void destroy_toolcontext(struct cmd_context *cmd)
+ 	if (cmd->cft_def_hash)
+ 		dm_hash_destroy(cmd->cft_def_hash);
+ 
++#ifdef __GLIBC__
+ 	if (!cmd->running_on_valgrind && cmd->linebuffer) {
+ 		int flags;
+ 		/* Reset stream buffering to defaults */
+@@ -2061,6 +2064,7 @@ void destroy_toolcontext(struct cmd_context *cmd)
+ 
+ 		free(cmd->linebuffer);
+ 	}
++#endif
+ 
+ 	destroy_config_context(cmd);
+ 
+diff --git a/tools/lvmcmdline.c b/tools/lvmcmdline.c
+index 7209ebd..778c8c0 100644
+--- a/tools/lvmcmdline.c
++++ b/tools/lvmcmdline.c
+@@ -3378,7 +3378,7 @@ static int _check_standard_fds(void)
  	int err = is_valid_fd(STDERR_FILENO);
  
  	if (!is_valid_fd(STDIN_FILENO) &&
@@ -9,7 +47,7 @@
  		if (err)
  			perror("stdin stream open");
  		else
-@@ -1262,7 +1262,7 @@
+@@ -3388,7 +3388,7 @@ static int _check_standard_fds(void)
  	}
  
  	if (!is_valid_fd(STDOUT_FILENO) &&
@@ -18,7 +56,7 @@
  		if (err)
  			perror("stdout stream open");
  		/* else no stdout */
-@@ -1270,7 +1270,7 @@
+@@ -3396,7 +3396,7 @@ static int _check_standard_fds(void)
  	}
  
  	if (!is_valid_fd(STDERR_FILENO) &&
@@ -27,23 +65,3 @@
  		printf("stderr stream open: %s\n",
  		       strerror(errno));
  		return 0;
---- ./lib/commands/toolcontext.c.orig
-+++ ./lib/commands/toolcontext.c
-@@ -1860,7 +1860,7 @@
- 	/* FIXME Make this configurable? */
- 	reset_lvm_errno(1);
- 
--#ifndef VALGRIND_POOL
-+#if !defined(VALGRIND_POOL) && defined(__GLIBC__)
- 	/* Set in/out stream buffering before glibc */
- 	if (set_buffering) {
- 		/* Allocate 2 buffers */
-@@ -2241,7 +2241,7 @@
- 	if (cmd->libmem)
- 		dm_pool_destroy(cmd->libmem);
- 
--#ifndef VALGRIND_POOL
-+#if !defined(VALGRIND_POOL) && defined(__GLIBC__)
- 	if (cmd->linebuffer) {
- 		/* Reset stream buffering to defaults */
- 		if (is_valid_fd(STDIN_FILENO) &&

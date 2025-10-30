@@ -1,60 +1,70 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
-# Maintainer: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
+# Maintainer: Johannes Heimansberg <git@jhe.dedyn.io>
 pkgname=domoticz
-pkgver=3.8153
+pkgver=2024.7
 pkgrel=2
 pkgdesc="Open source Home Automation System"
-url="http://www.domoticz.com/"
-arch="all !armhf"
-license="GPL"
+url="https://www.domoticz.com/"
+arch="all"
+license="GPL-3.0-or-later"
+options="!check" # missing pytest_bdd module
 pkgusers="$pkgname"
 pkggroups="$pkgname"
-makedepends="cmake libressl-dev zlib-dev curl-dev boost-dev sqlite-dev
-	lua5.2-dev mosquitto-dev libusb-compat-dev openzwave-dev python3-dev
+makedepends="
+	boost-dev
+	cereal
+	cmake
+	curl-dev
+	jsoncpp-dev
+	libusb-compat-dev
+	lua5.3-dev
+	minizip-dev
+	mosquitto-dev
+	openssl-dev>3
+	openzwave-dev
+	python3-dev
+	samurai
+	sqlite-dev
+	zlib-dev
 	"
+checkdepends="py3-pytest"
+subpackages="$pkgname-openrc"
 install="$pkgname.pre-install"
 source="domoticz-$pkgver.tar.gz::https://github.com/domoticz/domoticz/archive/$pkgver.tar.gz
-	boost-1.66.patch
+	luafix.patch
 	domoticz.confd
 	domoticz.initd
 	"
-builddir="$srcdir/domoticz-$pkgver"
-
 build() {
-	cd "$builddir"
-	cmake \
+	cmake -B build -G Ninja \
 		-DBUILD_SHARED_LIBS=True \
 		-DUSE_STATIC_LIBSTDCXX=OFF \
-		-DOpenZWave=/usr/lib/libopenzwave.so \
-		-DUSE_STATIC_OPENZWAVE=OFF \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_PREFIX=/var/lib/domoticz \
-		-DUSE_BUILTIN_LUA=OFF \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr/share/domoticz \
 		-DUSE_BUILTIN_MQTT=OFF \
-		-DUSE_BUILTIN_SQLITE=OFF
-	make
+		-DUSE_BUILTIN_SQLITE=OFF \
+		-DUSE_BUILTIN_MINIZIP=OFF \
+		-DUSE_BUILTIN_JSONCPP=OFF \
+		-DUSE_STATIC_BOOST=NO \
+		-DUSE_STATIC_LIBSTDCXX=NO \
+		-DUSE_LUA_STATIC=NO \
+		-DUSE_OPENSSL_STATIC=NO
+	cmake --build build
 }
 
 check() {
-	"$builddir"/$pkgname --help > /dev/null
+	pytest -rA --tb=no test/gherkin/
 }
 
 package() {
-	cd "$builddir"
+	DESTDIR="$pkgdir" cmake --install build
 
-	make DESTDIR="$pkgdir" install
-
-	mkdir -p "$pkgdir"/usr/bin \
+	mkdir -p \
+		"$pkgdir"/usr/bin \
 		"$pkgdir"/usr/share/$pkgname
-	mv "$pkgdir"/var/lib/domoticz/domoticz \
+	mv "$pkgdir"/usr/share/domoticz/domoticz \
 		"$pkgdir"/usr/bin/
-	mv "$pkgdir"/var/lib/domoticz/www \
-		"$pkgdir"/usr/share/$pkgname/
-	mv "$pkgdir"/var/lib/domoticz/Config \
-		"$pkgdir"/usr/share/$pkgname/
-	rm -f "$pkgdir"/var/lib/domoticz/updatedomo
-
-	chown -R $pkgname "$pkgdir"/var/lib/domoticz
+	rm -f "$pkgdir"/usr/share/domoticz/updatedomo
 
 	install -D -m755 "$srcdir"/$pkgname.initd \
 		"$pkgdir"/etc/init.d/$pkgname
@@ -62,7 +72,9 @@ package() {
 		"$pkgdir"/etc/conf.d/$pkgname
 }
 
-sha512sums="6c4e30b28fa4a5969ddf8a2c275e390394087b036af795921b114c7a734e966b546b33dd353b9aeefce39b30ce502067aadc8616c0fb25b3d97d58aa31922786  domoticz-3.8153.tar.gz
-42f89bf2311f20ce6fc4e1d24d6f7443f1572936aa813e364319a1d8eccf539f6ade593cbb00aceb98d24350cefd127b06e3c1c78083edec3c3e108e4aca7a02  boost-1.66.patch
+sha512sums="
+0eee91f62cebc9dccb1bb25ed9749f2bc99036311cf8d034e5a57e5ad6e6340552ee9782bbcd5b9ed60466d97f2682d05673b4c8a0122511aab4af6a69704c3b  domoticz-2024.7.tar.gz
+83e568a2e5e310ffd22c8e8546f96ee15824817a6a65d6027195689a8a7668ec54107c68d54b70cc998cbef36a2b976c9636080ab94e91462b2280de0ac12058  luafix.patch
 724440da335f1e22c8dc181df62dac9ad2bcca98b39bff059de4be5901a93a0a8cb6864d92262092041d796ee7d3933f62cf337316d35a800bbb44f84a1709e0  domoticz.confd
-3ddbd3848cce2247a52e4673307a078717d75cb3fea2937d9f2442d94dccd0efc63120f1b0324c7091ae158cd0ec4fd36334af43bb887d45ff4a93e6a96e9bd2  domoticz.initd"
+aee1461afa96b6c9af6b88450a2e179990aca8ab74974b03242f58f786843f121fa1dec1177e82c143a775ad2e3db8603f54f341614e9fd55f645085c370b54d  domoticz.initd
+"

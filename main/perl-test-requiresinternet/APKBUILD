@@ -2,38 +2,33 @@
 pkgname=perl-test-requiresinternet
 _pkgreal=Test-RequiresInternet
 pkgver=0.05
-pkgrel=1
+pkgrel=4
 pkgdesc="Easily test network connectivity"
-url="http://search.cpan.org/dist/Test-RequiresInternet/"
+url="https://metacpan.org/release/Test-RequiresInternet/"
 arch="noarch"
-license="GPL PerlArtistic"
-makedepends="perl-dev"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/M/MA/MALLEN/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/M/MA/MALLEN/$_pkgreal-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
 	default_prepare
-
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
 check() {
-	cd "$builddir"
 	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make test
 }

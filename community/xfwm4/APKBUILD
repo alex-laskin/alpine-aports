@@ -1,21 +1,32 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=xfwm4
-pkgver=4.12.4
+pkgver=4.20.0
 pkgrel=1
 pkgdesc="Xfce window manager, compatible with Gnome, Gnome2, KDE2, and KDE3"
 url="https://xfce.org/"
 arch="all"
-license="GPL-2.0"
+license="GPL-2.0-or-later"
 depends="hicolor-icon-theme"
+makedepends="
+	intltool
+	libepoxy-dev
+	libwnck3-dev
+	libxcomposite-dev
+	libxdamage-dev
+	libxfce4ui-dev
+	libxfixes-dev
+	libxpresent-dev
+	libxrandr-dev
+	libxrender-dev
+	"
 subpackages="$pkgname-lang"
-makedepends="libxfce4ui-dev libwnck-dev libxrandr-dev libxcomposite-dev
-	libxfixes-dev libxdamage-dev libxrender-dev libepoxy-dev"
-install=
-source="http://archive.xfce.org/src/xfce/xfwm4/${pkgver%.*}/xfwm4-$pkgver.tar.bz2"
+source="https://archive.xfce.org/src/xfce/xfwm4/${pkgver%.*}/xfwm4-$pkgver.tar.bz2
+	compositor-render-full-screen-after-startup.patch
+	"
 
-build () {
-	cd "$builddir"
+build() {
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -25,17 +36,22 @@ build () {
 		--localstatedir=/var \
 		--disable-static \
 		--enable-compositor \
+		--enable-poswin \
+		--enable-startup-notification \
+		--enable-xpresent \
 		--enable-xsync
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
-sha512sums="a33530b08f094456c45ad7c627ba34d3772eaeacdc9f422a3a54a16194d494cb1d6798122398d917fb8bc970db7e1184d9dc8edefc365dacc86de22be397b43d  xfwm4-4.12.4.tar.bz2"
+
+sha512sums="
+1fa22d5bdf44d5907cbe362d20b7a99a610cfd38954a6cb5b7efad3481de5b450deb4fbf14ae2c1642ab5f7a39179016bb0f1558fe2941997cd931e9f8cc8dc8  xfwm4-4.20.0.tar.bz2
+eef67a0e0f33bed001d04a106a7d82054aff1ced37fd87f196b1fb9e857bc2c4ccc98e0fea25645abfadcccdd305561bc98a1d3d4f2184b43e7d67b501cb8891  compositor-render-full-screen-after-startup.patch
+"

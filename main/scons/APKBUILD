@@ -1,31 +1,56 @@
-# Contributor: William Pitcock <nenolod@dereferenced.org>
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Contributor: Nicolas Lorin <androw95220@gmail.com>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=scons
-pkgver=3.0.1
-pkgrel=2
+pkgver=4.10.0
+pkgrel=0
 pkgdesc="Software construction system"
-url="http://www.scons.org"
+url="https://scons.org/"
 arch="noarch"
 license="MIT"
-# before upgrade to python3, make sure that packages like serf builds with scons with python3
-depends="python2"
-makedepends="python2-dev"
-source="http://downloads.sourceforge.net/$pkgname/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+depends="python3"
+makedepends="py3-gpep517 py3-setuptools py3-wheel"
+checkdepends="xz"
+subpackages="$pkgname-pyc $pkgname-doc"
+# fetching both sources, because only github tarball has tests
+# and only sourceforge tarball has prebuilt manpages
+# building the scons manpages requires working scons install...
+source="https://github.com/SCons/scons/archive/$pkgver/scons-$pkgver.tar.gz
+	https://downloads.sourceforge.net/project/scons/scons/$pkgver/SCons-$pkgver.tar.gz
+	"
 
-build() {
-	cd "$builddir"
-	python2 setup.py build
+# tests need py3-psutil from community
+options="!check"
+
+prepare() {
+	default_prepare
+
+	# remove failing test
+	case $CARCH in
+	ppc64le) rm test/builderrors.py ;;
+	esac
 }
 
-package() {
-	cd "$builddir"
-	python2 setup.py install --prefix=/usr --root="$pkgdir"
+build() {
+	gpep517 build-wheel --wheel-dir .dist --output-fd 3 3>&1 >&2
 }
 
 check() {
-	cd "$builddir"
-	python2 setup.py check
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 runtest.py -a
 }
 
-sha512sums="b7be40ba507366cc678f31b910553cadaf59781c3a91833a34acbd29d9cad0cda38f6753034bf92c3af55d1e0c2f72aba5d81f1ec67205d0345b005d286f7084  scons-3.0.1.tar.gz"
+package() {
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+
+	# find and remove directories containing docbook files
+	find "$pkgdir" -name 'docbook' -type d -exec rm -rf {} +
+
+	install -Dm644 scons.1 scons-time.1 sconsign.1 \
+		-t "$pkgdir"/usr/share/man/man1/
+}
+
+sha512sums="
+c6203b1f95627b908fefcc4d9d4a89c9e0d9869c16bef30a9ea16ad32ae0eae45795e36ab92eeb58ab41a1cf53d09094fadfe474e663cdb5da642cfbf7fcb80a  scons-4.10.0.tar.gz
+5f9a4ac2cfc88b9862d56683f2cf8a1f649d6f7c96af7675fab6ffbd6461e2dd416279dc36fcc9aa347ea48b5fffd23fc59e5664b93a9b3e32a24241ec516337  SCons-4.10.0.tar.gz
+"

@@ -1,77 +1,78 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=xapian-bindings
-pkgver=1.4.5
-pkgrel=0
+pkgver=1.4.27
+pkgrel=1
 pkgdesc="Binding libraries for xapian"
 url="http://www.xapian.org"
 arch="all"
+arch="" # blocked by py3-sphinx-autobuild -> uvicorn
 license="GPL-2.0-or-later"
 # Disabled check for now since ruby smoketest fails
 options="!check"
-_py_makedepends="python-dev
-	py-sphinx-autobuild py2-sphinx
-	py2-requests py-setuptools py2-typing
-    py-urllib3 py-chardet py-idna
-    python3-dev py3-requests py3-certifi"
-_php_makedepends="php7-dev"
+
+_lua_ver=5.3
+_php_ver=8.2
+_py_ver=3
+_tcl_ver=8.6
+_perl_ver=5
+
+_py_makedepends="
+	py$_py_ver-sphinx-autobuild py$_py_ver-sphinx
+	py$_py_ver-requests py$_py_ver-setuptools
+	py$_py_ver-urllib3 py$_py_ver-chardet py$_py_ver-idna
+	python$_py_ver-dev py$_py_ver-certifi"
 _perl_makedepends="perl-dev"
-_lua_makedepends="lua5.3-dev"
-_ruby_makedepends="ruby-dev ruby ruby-rdoc ruby-irb"
+_lua_makedepends="lua$_lua_ver-dev lua$_lua_ver-libs lua5.1-dev"
+_ruby_makedepends="ruby-dev ruby ruby-rdoc"
 _tcl_makedepends="tcl-dev"
+_php_makedepends="php${_php_ver/./}-dev"
 
 makedepends="automake autoconf libtool bash xapian-core-dev sphinx
 	$_py_makedepends
-	$_php_makedepends
 	$_perl_makedepends
 	$_lua_makedepends
 	$_ruby_makedepends
-	$_tcl_makedepends"
+	$_tcl_makedepends
+	$_php_makedepends"
 subpackages="$pkgname-perl $pkgname-lua $pkgname-doc
-	$pkgname-python $pkgname-python3 $pkgname-ruby $pkgname-tcl
-	$pkgname-php7"
-source="http://www.oligarchy.co.uk/xapian/$pkgver/$pkgname-$pkgver.tar.xz"
-
-builddir="$srcdir"/$pkgname-$pkgver
+	$pkgname-python$_py_ver $pkgname-ruby $pkgname-tcl $pkgname-php${_php_ver/./}"
+source="http://www.oligarchy.co.uk/xapian/$pkgver/xapian-bindings-$pkgver.tar.xz"
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 	aclocal && autoconf
 	libtoolize
 	autoreconf -fvi
 	# workaround for non-existing-dir while build docs for python
-	mkdir -p python/docs/_static
 	mkdir -p python3/docs/_static
 }
 
 build() {
-	cd "$builddir"
-	export LUA=/usr/bin/lua5.3
-	export LUA_INC=/usr/include/lua5.3
-	export LUA_LIB=/usr/lib/lua/5.3
+	export LUA=/usr/bin/lua$_lua_ver
+	export LUA_INC=/usr/include/lua$_lua_ver
+	export LUA_LIB=/usr/lib/lua/$_lua_ver
 	export LUA_SO=.so
 	export PERL=/usr/bin/perl
-	export PERL_LIB=/usr/share/perl5/vendor_perl
-	export PERL_ARCH=/usr/share/perl5/vendor_perl
-	export PHP7=/usr/bin/php7
-	export PHP_CONFIG7=/usr/bin/php-config7
-	export PYTHON2=/usr/bin/python2
-	export PYTHON3=/usr/bin/python3
+	export PERL_LIB=/usr/share/perl$_perl_ver/vendor_perl
+	export PERL_ARCH=/usr/share/perl$_perl_ver/vendor_perl
+	export PHP=/usr/bin/php${_php_ver/./}
+	export PHP_CONFIG=/usr/bin/php-config${_php_ver/./}
+	export PYTHON3=/usr/bin/python$_py_ver
 	export RUBY=/usr/bin/ruby
 	export RUBY_LIB=/usr/lib/ruby
 	export RUBY_LIB_ARCH=/usr/lib/ruby
-	export TCLSH=/usr/bin/tclsh8.6
-	export TCL_LIB=/usr/lib/tcl8.6/$pkgname-$pkgver
+	export TCLSH=/usr/bin/tclsh$_tcl_ver
+	export TCL_LIB=/usr/lib/tcl$_tcl_ver/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-perl \
 		--with-lua \
-		--with-php7 \
-		--with-python \
-		--with-python3 \
+		--with-php \
+		--without-php7 \
+		--with-python$_py_ver \
 		--with-ruby \
 		--with-tcl \
 		XAPIAN_CONFIG=/usr/bin/xapian-config
@@ -79,51 +80,28 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR=$pkgdir install
-}
-
-php7() {
-	pkgdesc="PHP7 bindings for the Xapian search engine library"
-
-	install -d "$subpkgdir"/usr/share/php7 \
-		"$subpkgdir"/usr/lib/php7/modules \
-		"$subpkgdir"/etc/php7/conf.d
-	echo ';extension=xapian.so' > "$subpkgdir/etc/php7/conf.d/xapian.ini"
-
-	if [ -d "$pkgdir"/usr/lib/php7/modules ]; then
-		mv "$pkgdir"/usr/lib/php7/modules/* "$subpkgdir"/usr/lib/php7/modules/
-	else
-		mv "$pkgdir"/usr/lib/php7/* "$subpkgdir"/usr/lib/php7/
-	fi
 }
 
 perl() {
 	pkgdesc="Perl bindings for the Xapian search engine library"
 
-	install -d "$subpkgdir"/usr/share/perl5
-	mv "$pkgdir"/usr/share/perl5 "$subpkgdir"/usr/share/
+	install -d "$subpkgdir"/usr/share/perl$_perl_ver
+	mv "$pkgdir"/usr/share/perl$_perl_ver "$subpkgdir"/usr/share/
 }
 
 lua() {
-	pkgdesc="Lua 5.3 bindings for the Xapian search engine library"
+	pkgdesc="Lua $_lua_ver bindings for the Xapian search engine library"
 
 	install -d "$subpkgdir"/usr/lib
 	mv "$pkgdir"/usr/lib/lua "$subpkgdir"/usr/lib
 }
 
-python() {
-	pkgdesc="Python bindings for the Xapian search engine library"
-
-	install -d "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/python2.7 "$subpkgdir"/usr/lib
-}
-
 python3() {
-	pkgdesc="Python3 bindings for the Xapian search engine library"
+	pkgdesc="Python$_py_ver bindings for the Xapian search engine library"
 
 	install -d "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/python3* "$subpkgdir"/usr/lib
+	mv "$pkgdir"/usr/lib/python$_py_ver* "$subpkgdir"/usr/lib
 }
 
 ruby() {
@@ -136,8 +114,19 @@ ruby() {
 tcl() {
 	pkgdesc="Tcl bindings for the Xapian search engine library"
 
-	install -d "$subpkgdir"/usr/lib/tcl8.6
-	mv "$pkgdir"/usr/lib/tcl8.6/$pkgname-$pkgver "$subpkgdir"/usr/lib/tcl8.6
+	install -d "$subpkgdir"/usr/lib/tcl$_tcl_ver
+	mv "$pkgdir"/usr/lib/tcl$_tcl_ver/$pkgname-$pkgver "$subpkgdir"/usr/lib/tcl$_tcl_ver
 }
 
-sha512sums="e39ece495e25077990db3d06554306567c52c6f45ad55a65005cb97e18086ee18947e41d0d612157b891b61e015881385bcb082a03aa0c6452565e90d09e8275  xapian-bindings-1.4.5.tar.xz"
+php82() {
+	pkgdesc="PHP8 bindings for the Xapian search engine library"
+	mkdir -p "$subpkgdir"/etc/php${_php_ver/./}/conf.d
+	echo ';extension=xapian.so' > "$subpkgdir/etc/php${_php_ver/./}/conf.d/xapian.ini"
+
+	amove usr/lib/php${_php_ver/./}
+}
+
+
+sha512sums="
+ca7195329500aebe96a4dd0ecee4b8357e790fd798dddd0d13fe2d5e901a8fb09e3e56b3661ebec5dac57ee8c4ff3d36beb97c39d440899f0284c845b0edef87  xapian-bindings-1.4.27.tar.xz
+"

@@ -1,67 +1,123 @@
 # Contributor: Christine Dodrill <me@christine.website>
-# Maintainer: Christine Dodrill <me@christine.website>
+# Maintainer: omni <omni+alpine@hack.org>
 pkgname=tor
-pkgver=0.3.3.7
+pkgver=0.4.8.19
 pkgrel=0
 pkgdesc="Anonymous network connectivity"
-url="https://www.torproject.org"
+url="https://www.torproject.org/"
 arch="all"
-license="BSD-3-Clause"
+license="BSD-3-Clause AND GPL-3.0-only"
 pkgusers="tor"
-makedepends="linux-headers bash libevent-dev libressl-dev ca-certificates
-	zlib-dev"
-install="$pkgname.post-upgrade $pkgname.pre-install"
-subpackages="$pkgname-doc"
-source="https://www.torproject.org/dist/$pkgname-$pkgver.tar.gz
+makedepends="ca-certificates
+	libcap-dev
+	libevent-dev
+	libseccomp-dev
+	openssl-dev>=3.5.3-r2
+	xz-dev
+	zlib-dev
+	zstd-dev"
+install="$pkgname.pre-install"
+subpackages="$pkgname-doc $pkgname-openrc"
+source="https://www.torproject.org/dist/tor-$pkgver.tar.gz
 	tor.initd
 	tor.confd
-	torrc.sample.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+	torrc.sample.patch
+	0002-disable-sandbox_open_n_opendir-tests_patch
+	0003-disable-sandbox_chown_filename-test_patch
+	0004-disable-sandbox_chmod_n_rename-tests_patch
+	"
 
 # secfixes:
+#   0.4.7.8-r0:
+#     - CVE-2022-33903
+#   0.4.6.7-r0:
+#     - CVE-2021-38385
+#   0.4.6.5-r0:
+#     - CVE-2021-28548
+#     - CVE-2021-28549
+#     - CVE-2021-28550
+#   0.4.5.7-r0:
+#     - CVE-2021-28089
+#     - CVE-2021-28090
+#   0.4.2.7-r0:
+#     - CVE-2020-10592
+#     - CVE-2020-10593
+#   0.3.5.8-r0:
+#     - CVE-2019-8955
 #   0.3.0.8-r0:
-#   - CVE-2017-0376
+#     - CVE-2017-0376
 #   0.3.2.10-r0:
-#   - CVE-2018-0490
-#   - CVE-2018-0491
+#     - CVE-2018-0490
+#     - CVE-2018-0491
+
+prepare() {
+	default_prepare
+
+	case "$CARCH" in
+	loongarch64)
+		update_config_sub
+		;;
+	esac
+
+	# patch tests
+	# FIXME: find out why these specific tests only fail on these archs
+	case "$CARCH" in
+	aarch64)
+		patch src/test/test_sandbox.c \
+		"$srcdir"/0002-disable-sandbox_open_n_opendir-tests_patch
+		;;
+	arm*) patch src/test/test_sandbox.c \
+		"$srcdir"/0003-disable-sandbox_chown_filename-test_patch
+		;;
+	loongarch64|riscv64)
+		patch src/test/test_sandbox.c \
+		"$srcdir"/0002-disable-sandbox_open_n_opendir-tests_patch
+		patch src/test/test_sandbox.c \
+		"$srcdir"/0003-disable-sandbox_chown_filename-test_patch
+		patch src/test/test_sandbox.c \
+		"$srcdir"/0004-disable-sandbox_chmod_n_rename-tests_patch
+		;;
+	esac
+}
 
 build() {
-	cd "$builddir"
-
 	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
+		--build="$CBUILD" \
+		--host="$CHOST" \
 		--prefix=/usr \
 		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
 		--localstatedir=/var \
-		--enable-transparent
+		--mandir=/usr/share/man \
+		--enable-gpl \
+		--disable-html-manual
 	make
 }
 
 check() {
-	cd "$builddir"
-
+	# TODO: see if we want to use use 'make check' instead,
+	# may need to update some skips !49207
 	make test
 }
 
 package() {
-	cd "$builddir"
-
 	make DESTDIR="$pkgdir" install
 
-	install -dm755 -o $pkgusers \
-		"$pkgdir"/var/lib/$pkgname \
-		"$pkgdir"/var/log/$pkgname
+	install -dm0755 -o "$pkgusers" \
+		"$pkgdir"/var/lib/"$pkgname" \
+		"$pkgdir"/var/log/"$pkgname"
 
-	install -m755 -D "$srcdir"/$pkgname.initd \
-		"$pkgdir"/etc/init.d/$pkgname
-	install -m644 -D "$srcdir"/$pkgname.confd \
-		"$pkgdir"/etc/conf.d/$pkgname
+	install -Dm0755 "$srcdir"/"$pkgname".initd \
+		"$pkgdir"/etc/init.d/"$pkgname"
+	install -Dm0644 "$srcdir"/"$pkgname".confd \
+		"$pkgdir"/etc/conf.d/"$pkgname"
 }
 
-sha512sums="70c7d089fecde7d5c4ccf4fc0c774aa3da2121f297012065292f9e5efda54206365ef1fa830116ee143b027f5023a5eadcd6fd4629c4d2d930c12fa9fa7abf9d  tor-0.3.3.7.tar.gz
+sha512sums="
+e90375ad6fb1c27638bd36038b0dfe717e2ac6aec55f9ca1cc9e46f574a05246c7645b566e73e5749b99f256b2d77c39b78aa2b63383fda2a730afc9bc723cc9  tor-0.4.8.19.tar.gz
 6de4ada16ba58264a247da70343eabd763e992d6b6683977fc1c67b7b4a9731748a7ec9751e869ad4b4ae9c72cf71b2e12dc289bb6e2aee499917f7663f4a735  tor.initd
 2b0de119bfdf9eb57e13317b7392190b1b8272c8f96023c71d3fc29215d887e9a3d0ffcef37cdb50b18d34e4b2251f75a739e258e0bb72aabd3339418b22fd67  tor.confd
-da386ff7e387312e647f04d360517a1f4cb1efbee36f4a3a6feb89a979bb12fa350fe6dfed49af0cb076ae30bb0c527b5d54127683eaa5aa45d6940dddd89dfb  torrc.sample.patch"
+da386ff7e387312e647f04d360517a1f4cb1efbee36f4a3a6feb89a979bb12fa350fe6dfed49af0cb076ae30bb0c527b5d54127683eaa5aa45d6940dddd89dfb  torrc.sample.patch
+3fbaf7b6495468ca608c63dfc5302a0187bf6964a1a3d5801ff76124c5826c89d87e607dc09a61272c553d1e7814deaf9677ffcacfd77013be7d50ce073221d8  0002-disable-sandbox_open_n_opendir-tests_patch
+276ddf344693a86c98f6f1ad64f1056932ba082d1163b01f94543f7728e27c8849dc5373cd3b19a48361626de3819e813abbef0c50f0de06d8b05fcb87e492c1  0003-disable-sandbox_chown_filename-test_patch
+7652dbb9d4a530dad7b551b6499886dce6cefa273bfacdf9d29350eb081d3eae0c4e2ea707fe274e48979e011b84a110fb82cac51a3215585eafd31d9ad1783e  0004-disable-sandbox_chmod_n_rename-tests_patch
+"

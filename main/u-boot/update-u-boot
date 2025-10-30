@@ -10,13 +10,18 @@ get_defaults() {
 	if [ -z "$board" -a -e /sys/firmware/devicetree/base/compatible ]; then
 		case "$(cat /sys/firmware/devicetree/base/compatible 2>/dev/null)" in
 		wand,*) board=wand ;;
+		pine64,pine64-plus*) board=pine64_plus ;;
+		pine64,pinebook-pro*) board=pinebook-pro-rk3399 ;;
+		# Assume boot mode with default firmware
+		riscv64-virtio) board=qemu-riscv64_smode ;;
 		esac
 	fi
 
 	if [ -z "$device" ]; then
 		case "$board" in
 		wand|cubie|cubie2) device=/dev/mmcblk0p0 ;;
-		mx6cuboxi) device=/dev/mmcblk0 ;;
+		pinebook-pro-rk3399) device=/dev/mmcblk2 ;;
+		mx6cuboxi|*rk33*|pine64_plus) device=/dev/mmcblk0 ;;
 		esac
 	fi
 
@@ -39,7 +44,7 @@ usage: $0 [-b|--board <board-type>] [-d|--device <device>]
 
 options:
 
- -b,--board <board>       Specify the board type: wand, cubie, cubie2, cuboxi
+ -b,--board <board>       Specify the board type: wand, cubie, cubie2, cuboxi, pine64-lts, etc.
                           (current default: ${board:-none})
 
  -d,--device <device>     Specify the device where to install u-boot
@@ -62,6 +67,7 @@ while [ $# -gt 0 ]; do
 		wand|wandboard) board="wand" ;;
 		cubie|cubieboard) board="cubie" ;;
 		cuboxi|mx6cuboxi) board="mx6cuboxi" ;;
+		pine64-lts|pinebook|orangepi_3|teres_i|a64-olinuxino|a64-olinuxino-emmc|nanopi_neo2|*rk33*|pine64_plus|qemu-riscv64*) board="$1" ;;
 		*) usage; exit 1;;
 		esac
 		shift
@@ -114,6 +120,21 @@ mx6cuboxi)
 	[ -e "$imagedir/mx6cuboxi" ] || die "iMX6 Cubox-i images not installed, apk add u-boot-cuboxi"
 	$dryrun dd if=$imagedir/mx6cuboxi/SPL of=$device bs=1k seek=1 status=none
 	$dryrun dd if=$imagedir/mx6cuboxi/u-boot.img of=$device bs=1k seek=69 status=none
+	;;
+pine64-lts|pinebook|orangepi_3|teres_i|a64-olinuxino|a64-olinuxino-emmc|nanopi_neo2|pine64_plus)
+	[ -e "$imagedir/$board" ] || die "sunxi images not installed, apk add u-boot-sunxi"
+	$dryrun dd if=$imagedir/$board/u-boot-sunxi-with-spl.bin of=$device bs=1k seek=8 status=none
+	;;
+*rk33*)
+	[ -e "$imagedir/$board" ] || die "$board images not installed, apk add u-boot-$board"
+
+	echo "Writing u-boot image"
+	$dryrun dd conv=notrunc if=$imagedir/$board/u-boot-rockchip.bin of=$device seek=64
+	;;
+qemu-riscv64|qemu-riscv64_smode)
+	[ -e "$imagedir/$board" ] || die "$board images not installed, apk add u-boot-qemu"
+	echo "Please copy $imagedir/$board/u-boot.bin outside of your virtual machine."
+	echo "Then set -kernel path/to/copy/u-boot.bin in your next QEMU call."
 	;;
 esac
 $dryrun sync

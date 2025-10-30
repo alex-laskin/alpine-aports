@@ -1,39 +1,42 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=dynamips
-pkgver=0.2.18
-pkgrel=0
+pkgver=0.2.23
+pkgrel=1
 pkgdesc="Cisco router emulator"
 url="https://github.com/GNS3/dynamips"
-arch="all"
+# x86:
+# common/ppc32_x86_trans.h:63:4: error: 'asm' operand has impossible constraints
+#    63 |    asm volatile ("movl %0,%%edi"::"r"(cpu):
+arch="all !x86"
 license="GPL-2.0"
-makedepends="cmake libpcap-dev libelf-dev linux-headers paxmark libnsl-dev"
+makedepends="cmake libpcap-dev elfutils-dev linux-headers libnsl-dev samurai"
 subpackages="$pkgname-doc"
-source="${pkgname}-${pkgver}.tar.gz::https://github.com/GNS3/${pkgname}/archive/v${pkgver}.tar.gz
-	s390x-support.patch"
-builddir="$srcdir"/$pkgname-$pkgver
+source="$pkgname-$pkgver.tar.gz::https://github.com/GNS3/dynamips/archive/v$pkgver.tar.gz
+	add-loongarch64-support.patch
+	"
+options="!check" # no tests
 
 prepare() {
-	cd "$builddir"
 	sed -e "s:^set ( DYNAMIPS_FLAGS:#&:" -i cmake/dependencies.cmake
 	default_prepare
 }
 
 build() {
-	cd "$builddir"
-	if test $CARCH == x86_64; then
+	if [ "$CARCH" = "x86_64" ]; then
 		export DYNAMIPS_ARCH=amd64
 	fi
-	export CFLAGS="$CFLAGS -Wno-enum-compare"
-	export CXXFLAGS="$CXXFLAGS -Wno-enum-compare"
-	cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr
+	cmake3.5 -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr
+	cmake --build build
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR=${pkgdir} install
-	paxmark -m "$pkgdir"/usr/bin/dynamips
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-sha512sums="d66e32d72ecc9ebff5232377ac9aa5b966ceb08884cc7f8dc4a8cf3f56305e7cefd677624ba66278f6603a3b275c384bd0ff3905932461b1f8056106cd272a4c  dynamips-0.2.18.tar.gz
-151f9c7d53c0edd9d300b3e84ce50d500018a533d6d131609ac0c25244db640d65d2322104c126e7c0e311cc0b197c07976f21fa28909a92d48cf31b6208431b  s390x-support.patch"
+sha512sums="
+b68af39cd66f10555d860437f55e63887aefdb5a949bacacf3a308cc0c4eaaab3bb9a496c5ac32fd19d3920bada807bff2af8eb66b01d8d735419fec5d134746  dynamips-0.2.23.tar.gz
+b62d8c8dd91bd7d8614884ff93c66c0e9bec46ba97ae923742ded3aa8423a606db78201f1adf2c774445aca0052029dae70696338395bfc2f09b2bb755fb5d42  add-loongarch64-support.patch
+"

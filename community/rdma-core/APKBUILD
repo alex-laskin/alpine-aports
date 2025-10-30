@@ -1,0 +1,39 @@
+# Maintainer: Duncan Bellamy <dunk@denkimushi.com>
+pkgname=rdma-core
+pkgver=59.0
+pkgrel=0
+pkgdesc="RDMA core userspace libraries and daemons"
+url="https://github.com/linux-rdma/rdma-core"
+license="GPL-2.0-only OR BSD-2-Clause"
+arch="all !s390x" # s390x ftbfs
+options="!check" # tests are for installation
+depends_dev="$pkgname=$pkgver-r$pkgrel"
+makedepends="
+	cmake
+	eudev-dev
+	libdrm-dev
+	libnl3-dev
+	py3-docutils
+	samurai
+	"
+subpackages="$pkgname-libs $pkgname-dev $pkgname-doc $pkgname-openrc"
+source="https://github.com/linux-rdma/rdma-core/releases/download/v$pkgver/rdma-core-$pkgver.tar.gz"
+
+build() {
+	CFLAGS="$CFLAGS -flto=auto" \
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_SYSCONFDIR=/etc \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+	rm -rf "$pkgdir"/usr/lib/systemd
+}
+
+sha512sums="
+f2d2001240e875ad3fec4f2f01e90573468daa040e07ec2f6cc81e875cf7b950c2dfeab10962b8b3d70852ecfe0ede2644ff7bea87560a45084baa47bd2d5401  rdma-core-59.0.tar.gz
+"

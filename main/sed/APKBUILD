@@ -1,26 +1,19 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=sed
-pkgver=4.4
+pkgver=4.9
 pkgrel=2
-subpackages="$pkgname-doc"
 pkgdesc="GNU stream editor"
 url="https://www.gnu.org/software/sed"
 arch="all"
-options="!checkroot"
-license="GPL-3.0+"
-makedepends="perl"
-checkdepends="diffutils"
+license="GPL-3.0-or-later"
 install="$pkgname.post-deinstall"
-source="http://ftp.gnu.org/pub/gnu/$pkgname/$pkgname-$pkgver.tar.xz
-	disable-mbrtowc-test.patch
-	localename-test-fix.patch
-	"
-# testsuite fails because busybox provides a /usr/bin/timeout
-options="!check"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="perl"
+checkdepends="diffutils coreutils"
+subpackages="$pkgname-doc"
+source="https://ftp.gnu.org/pub/gnu/sed/sed-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -34,18 +27,16 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 
 	rm -rf "$pkgdir"/usr/lib/charset.alias || true
 	rmdir -p "$pkgdir"/usr/lib 2>/dev/null || true
 }
 
-sha512sums="4e1b0a7403913f1e25047eb2292a0a9b3488b15b4463ce2803e05eaecbc2da19f477a18e6a70c992461c38ced90774415091aa2d8ce85cb74e391610d9eedb70  sed-4.4.tar.xz
-aeb55f85a5c724f0dacbf2f39e0f99ae4c66159115b00aa36d65f234f87e52e660878cb18b772a494349632dfa1b616b9306a4cafe87e91182ea8936c308506a  disable-mbrtowc-test.patch
-3fbf7f5fbdef19f1212c4efad560b85e62744eecfe60eceaba1c8d093764f34bff844d31d704afdc064ca3d31bb7e46860a4b91e671b96930554a72953e88edf  localename-test-fix.patch"
+sha512sums="
+36157a4b4a2430cf421b7bd07f1675d680d9f1616be96cf6ad6ee74a9ec0fe695f8d0b1e1f0b008bbb33cc7fcde5e1c456359bbbc63f8aebdd4fedc3982cf6dc  sed-4.9.tar.xz
+"

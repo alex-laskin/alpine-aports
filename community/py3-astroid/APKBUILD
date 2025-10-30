@@ -1,0 +1,41 @@
+# Contributor: Fabian Affolter <fabian@affolter-engineering.ch>
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=py3-astroid
+pkgver=4.0.1
+pkgrel=0
+pkgdesc="A new abstract syntax tree from Python's ast"
+url="https://pylint.pycqa.org/projects/astroid/en/latest/"
+arch="noarch"
+license="LGPL-2.1-or-later"
+depends="python3 py3-lazy-object-proxy py3-wrapt"
+replaces="py-logilab-astng"
+makedepends="
+	py3-gpep517
+	py3-installer
+	py3-setuptools
+	py3-wheel
+	"
+checkdepends="py3-pytest py3-typing-extensions py3-mypy"
+subpackages="$pkgname-pyc"
+source="py3-astroid-$pkgver.tar.gz::https://github.com/PyCQA/astroid/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/astroid-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	# pip test
+	pytest -k 'not test_no_user_warning'
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/astroid-*.whl
+}
+
+sha512sums="
+225e881a92d2d38349b5a21966687cc1924581a6043569cca65a06a2078bed8c5fe8c67b6c6cd24efc37b13640d9ce3a16e1d43994ae66c13559496d81c8329b  py3-astroid-4.0.1.tar.gz
+"

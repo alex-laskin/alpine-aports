@@ -1,0 +1,45 @@
+# Contributor: Antoine Martin (ayakael) <dev@ayakael.net>
+# Maintainer: Antoine Martin (ayakael) <dev@ayakael.net>
+pkgname=py3-atpublic
+pkgver=6.0.1
+pkgrel=0
+#_pkgreal is used by apkbuild-pypi to find modules at PyPI
+_pkgreal=atpublic
+pkgdesc="@public decorator for Python"
+url="https://gitlab.com/warsaw/public"
+arch="noarch"
+license="Apache-2.0"
+checkdepends="
+	py3-pytest-cov
+	py3-sybil
+"
+makedepends="
+	py3-setuptools
+	py3-hatchling
+	py3-gpep517
+	py3-wheel
+"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://gitlab.com/warsaw/public/-/archive/$pkgver/public-$pkgver.tar.gz"
+builddir="$srcdir/public-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer "$builddir"/.dist/*.whl
+	.testenv/bin/python3 -m pytest -v
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+12606e4e4211b966f74e2993d1c412d80f715ec0570092801789d58ce9d6b26966aec774650e2e8974ca04200498b1c9e04662b84e346e36ceaff31a99108545  py3-atpublic-6.0.1.tar.gz
+"

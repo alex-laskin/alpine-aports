@@ -1,35 +1,38 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
-# Maintainer:  Francesco Colista <fcolista@alpinelinux.org>
+# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=py3-sip
-_pkgname=sip
-pkgver=4.19.5
+pkgver=6.12.0
 pkgrel=0
-pkgdesc="A tool that makes it easy to create Python bindings for C and C++ libraries. Python 3 package."
-url="http://www.riverbankcomputing.com/software/sip/"
+pkgdesc="A tool that makes it easy to create Python bindings for C and C++ libraries"
+options="!check" # No testsuite
+url="https://www.riverbankcomputing.com/software/sip/"
 arch="all"
 license="custom:sip"
-makedepends="python3-dev"
-# upstram does not provide test
-options="!check"
-replaces="py-sip"
-subpackages="$pkgname-dev"
-source="https://sourceforge.net/projects/pyqt/files/$_pkgname/$_pkgname-$pkgver/$_pkgname-$pkgver.tar.gz"
-builddir="$srcdir"/$_pkgname-$pkgver
+depends="
+	py3-packaging
+	py3-ply
+	py3-setuptools
+	py3-toml
+	"
+makedepends="python3-dev py3-gpep517 py3-wheel"
+subpackages="$pkgname-pyc"
+source="https://pypi.python.org/packages/source/s/sip/sip-$pkgver.tar.gz"
+builddir="$srcdir/sip-$pkgver"
+
+replaces="py-sip" # Backwards comptibility
+provides="py-sip=$pkgver-r$pkgrel" # Backwards comptibility
 
 build() {
-	cd "$builddir"
-	local sip_api_major_nr=$(sed -nre 's:^#define SIP_API_MAJOR_NR\s+([0-9]+):\1:p' siplib/sip.h.in)
-	python3 configure.py
-	make CC="${CC:-gcc}" \
-		CXX="${CXX:-g++}" \
-		CFLAGS="$CFLAGS -fPIC" \
-		CXXFLAGS="$CXXFLAGS"
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	install -Dm644 LICENSE ${pkgdir}/usr/share/licenses/custom/${pkgname}/LICENSE
+	python3 -m installer -d "$pkgdir" \
+		.dist/sip-*.whl
 }
 
-sha512sums="15d0c0daacf11534a61cd3961613e0015afb9f61fd484094008d1b3d344765d03a2bed2eb08c92a347bbe6868622ab1f7dc0a3bd3e2e662a8e08a53ac8e88463  sip-4.19.5.tar.gz"
+sha512sums="
+332ebd635b4ab827e8af43fca6b7dd35a889ca7192044e8e5f9f720236ac6128008662a35dd04e01d08fd45e4b6717a3d4b1d18989f74a6e39f0eb345c103b46  sip-6.12.0.tar.gz
+"

@@ -1,0 +1,58 @@
+# Contributor: Lindsay Zhou <i@lin.moe>
+# Maintainer: Lindsay Zhou <i@lin.moe>
+pkgname=fcitx5-chinese-addons
+pkgver=5.1.9
+pkgrel=0
+pkgdesc="Chinese Addons for Fcitx"
+url="https://github.com/fcitx/fcitx5-chinese-addons"
+# riscv64, s390x, ppc64le, x86: qt6-qtwebengine
+# armhf: qt6-qtdeclarative-dev
+arch="all !armhf !riscv64 !s390x !ppc64le !x86"
+license="LGPL-2.1-or-later AND GPL-2.0-or-later"
+makedepends="
+	boost-dev
+	cmake
+	curl-dev
+	extra-cmake-modules
+	fcitx5-dev
+	fcitx5-lua-dev
+	fcitx5-qt-dev
+	fmt-dev
+	gettext-dev
+	libime-dev
+	libpinyin-dev
+	opencc-dev
+	qt6-qtbase-dev
+	qt6-qtwebengine-dev
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-lang"
+source="$pkgname-$pkgver.tar.gz::https://github.com/fcitx/fcitx5-chinese-addons/archive/refs/tags/$pkgver.tar.gz"
+options="net" # checksummed data modules
+
+build() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True \
+		-DCMAKE_BUILD_TYPE=None \
+		-DUSE_WEBKIT=OFF \
+		$CMAKE_CROSSOPTS
+	cmake --build build
+}
+
+check() {
+	cd build
+	ctest -E testchttrans
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+d762f5d9fd99f777afff05c49b30d8ae07073c7b0e806e9ba56ff97d3384dcf30b518f8d7203cc16d9035f55758006d08f495b72cb3c6efe98804d38845c7371  fcitx5-chinese-addons-5.1.9.tar.gz
+"

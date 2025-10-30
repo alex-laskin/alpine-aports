@@ -1,38 +1,66 @@
-# Con://github.com/saltstack/salttributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=xmltv
-pkgver=0.5.70
-pkgrel=0
+pkgver=1.4.0
+pkgrel=1
 pkgdesc="Set of utilities to download tv listings and format them in xml"
-url="http://xmltv.org/wiki"
+url="https://xmltv.org/wiki"
 arch="noarch"
-license="GPL-2.0"
-depends="perl-libwww perl-xml-parser perl-xml-twig perl-date-manip perl-xml-writer
-	perl-timedate perl-unicode-string perl-term-readkey perl-file-slurp perl-xml-libxml
-	perl-lingua-en-numbers-ordinate perl-lingua-preferred perl-compress-raw-zlib perl-io-gzip
-	perl-io-compress perl-term-progressbar perl-xml-treepp"
-depends_dev=""
-makedepends="$depends_dev perl-dev"
-install=""
+license="GPL-2.0-or-later"
+depends="
+	perl-compress-raw-zlib
+	perl-date-manip
+	perl-datetime
+	perl-datetime-format-iso8601
+	perl-datetime-format-sqlite
+	perl-datetime-format-strptime
+	perl-datetime-timezone
+	perl-dbd-sqlite
+	perl-dbi
+	perl-digest-sha1
+	perl-file-homedir
+	perl-file-slurp
+	perl-file-which
+	perl-http-cache-transparent
+	perl-http-message
+	perl-html-tree
+	perl-io-gzip
+	perl-io-stringy
+	perl-libwww
+	perl-lingua-en-numbers-ordinate
+	perl-lingua-preferred
+	perl-list-moreutils
+	perl-lwp-protocol-https
+	perl-lwp-useragent-determined
+	perl-term-progressbar
+	perl-term-readkey
+	perl-test-requiresinternet
+	perl-timedate
+	perl-unicode-string
+	perl-xml-libxml
+	perl-xml-parser
+	perl-xml-treepp
+	perl-xml-twig
+	perl-xml-writer
+	"
+makedepends="perl-dev"
 subpackages="$pkgname-doc"
-source="http://downloads.sourceforge.net/xmltv/xmltv-$pkgver.tar.bz2"
-builddir="$srcdir"/xmltv-$pkgver
+source="$pkgname-$pkgver.tar.gz::https://github.com/XMLTV/xmltv/archive/v$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	PERL_MM_USE_DEFAULT=1 yes | perl Makefile.PL INSTALLDIRS=vendor
+	yes | PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }
 
-sha512sums="36dd497dc20d296ca984ad0a1ca19f471c97cac7bfe7c5d4baeaae7faea565c36103bea10e7a7ae813c1cfc35c7ac376299edd2bf01c4c5da981cb5cca13317c  xmltv-0.5.70.tar.bz2"
+sha512sums="
+2035813d54ad5fabcfe214320b0896403807669a633b378bfde9aeacaa6c2dedb3892086f6e36a08c33964dbd847b6617abc0b97654b9105ee9c21883550a405  xmltv-1.4.0.tar.gz
+"

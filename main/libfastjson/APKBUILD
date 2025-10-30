@@ -1,37 +1,44 @@
 # Contributor: Ashley Sommer <ashleysommer@gmail.com>
 # Maintainer: Ashley Sommer <ashleysommer@gmail.com>
 pkgname=libfastjson
-pkgver=0.99.8
-pkgrel=1
-pkgdesc="A fork of the json-c library for rsyslog, optimized for liblognorm processing."
-url="http://www.rsyslog.com/"
+pkgver=1.2304.0
+pkgrel=4
+pkgdesc="fork of the json-c library for rsyslog, optimized for liblognorm processing."
+url="https://www.rsyslog.com/"
 arch="all"
 license="MIT"
 makedepends="autoconf automake libtool"
 subpackages="$pkgname-dev $pkgname-dbg"
-source="$pkgname-$pkgver.tar.gz::https://github.com/rsyslog/$pkgname/archive/v$pkgver.tar.gz"
+source="$pkgname-$pkgver.tar.gz::https://github.com/rsyslog/libfastjson/archive/v$pkgver.tar.gz"
 
-builddir="$srcdir/$pkgname-$pkgver"
+# secfixes:
+#   1.2304.0-r0:
+#     - CVE-2020-12762
+
+prepare() {
+	default_prepare
+	./autogen.sh
+}
 
 build() {
-        cd "$builddir"
-        sh autogen.sh \
+	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--sysconfdir=/etc \
-		--mandir=/usr/share/man
+		--mandir=/usr/share/man \
+		--disable-static
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="bd68705ab41d360582bb08b1f29be5b16f55d18674f26066cdd36c66a52a571873e013e31dbb0d21ea73684709a63d0f831be9eb12d8c6e9d8eaf5ec71ce6f18  libfastjson-0.99.8.tar.gz"
+sha512sums="
+a43dc809c0fc073f8bddaebdf91c996ccfc6275d7dcc312762e8dfb366dc121c7698c316b71bd5b43f2f7e9b3c326c90cfa927ce415824a7d32dd5e6667048ab  libfastjson-1.2304.0.tar.gz
+"

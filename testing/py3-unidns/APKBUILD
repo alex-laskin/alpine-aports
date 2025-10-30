@@ -1,0 +1,49 @@
+# Contributor: Jonas <spameier+alpine@proton.me>
+# Maintainer: Jonas <spameier+alpine@proton.me>
+pkgname=py3-unidns
+# _pkgreal is used by apkbuild-pypi to find modules at PyPI
+_pkgreal="unidns"
+pkgver=0.0.3
+pkgrel=0
+pkgdesc="Rudimentary async DNS client in Python"
+url="https://github.com/skelsec/unidns"
+arch="noarch"
+license="MIT"
+depends="
+	py3-asysocks
+	python3
+	"
+makedepends="
+	py3-gpep517
+	py3-wheel
+	py3-setuptools
+	"
+subpackages="
+	$pkgname-pyc
+	$pkgname-examples
+	"
+source="https://files.pythonhosted.org/packages/source/u/unidns/unidns-$pkgver.tar.gz"
+builddir="$srcdir/$_pkgreal-$pkgver"
+options="!check" # no tests provided
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+examples() {
+	pkgdesc="$pkgdesc (example client)"
+	depends="$pkgname=$pkgver-r$pkgrel"
+	amove usr/lib/python*/site-packages/unidns/examples
+	amove usr/bin
+}
+
+sha512sums="
+04fd1ad0a996ea865cb16d63bd311e5b0648606fc68b4a762d8513a2897feeafaa4898efc95a1087da5f0d5cbe970a20fed985bf42f1046e20a5e683b560993f  unidns-0.0.3.tar.gz
+"

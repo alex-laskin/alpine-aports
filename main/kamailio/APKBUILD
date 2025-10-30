@@ -1,42 +1,90 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
 # Contributor: Michael Mason <ms13sp@gmail.com>
 # Contributor: Leonardo Arena <rnalrd@gmail.com>
+# Contributor: Yann Vigara <yvigara@angarium.co.uk>
 # Maintainer: Nathan Angelacos <nangel@alpinelinux.org>
 
 pkgname=kamailio
-pkgver=5.1.3
+pkgver=6.0.3
 pkgrel=0
 
 # If building from a git snapshot, specify the gitcommit
-# If building a proper release, leave gitcommit blank
+# If building a proper release, leave gitcommit blank or commented
 #_gitcommit=991fe9b28e0e201309048f3b38a135037e40357a
 
-[ ! -z "${_gitcommit}" ] && pkgver="${pkgver}.$(date +%Y%m%d)"
-[ ! -z "${_gitcommit}" ] && _suffix="-${_gitcommit:0:7}"
-[ ! -z "${_gitcommit}" ] && builddir="$srcdir/$pkgname-$_gitcommit" || builddir="$srcdir/$pkgname-$pkgver"
-[ -z "${_gitcommit}" ] && _gitcommit="${pkgver}"
+[ -n "$_gitcommit" ] && pkgver="$pkgver.$(date +%Y%m%d)"
+[ -n "$_gitcommit" ] && _suffix="-${_gitcommit:0:7}"
+[ -n "$_gitcommit" ] && builddir="$srcdir/$pkgname-$_gitcommit" || builddir="$srcdir/$pkgname-$pkgver"
+[ -z "$_gitcommit" ] && _gitcommit="$pkgver"
 
 pkgdesc="Open Source SIP Server"
-url="http://www.kamailio.org/"
-arch="all"
+url="https://www.kamailio.org/"
 pkgusers="kamailio"
 pkggroups="kamailio"
 arch="all"
 license="GPL-2.0-or-later"
+options="!check" # no testsuite
 depends="gawk"
-makedepends="bison db-dev flex freeradius-client-dev expat-dev lksctp-tools-dev perl-dev postgresql-dev python2-dev pcre-dev mariadb-dev
-	libxml2-dev curl-dev unixodbc-dev confuse-dev ncurses-dev sqlite-dev
-	lua-dev openldap-dev libressl-dev net-snmp-dev libuuid libev-dev
-	jansson-dev json-c-dev libevent-dev linux-headers libmemcached-dev
-	rabbitmq-c-dev hiredis-dev libmaxminddb-dev libunistring-dev"
+makedepends="bison
+	cmake
+	confuse-dev
+	curl-dev
+	expat-dev
+	flex
+	freeradius-client-dev
+	hiredis-dev
+	jansson-dev
+	json-c-dev
+	libev-dev
+	libevent-dev
+	libmaxminddb-dev
+	libmemcached-dev
+	libmnl-dev
+	pcre2-dev
+	libpq-dev
+	libgcrypt-dev
+	libunistring-dev
+	libuuid
+	libxml2-dev
+	linux-headers
+	lksctp-tools-dev
+	lua-dev
+	mariadb-dev
+	mosquitto-dev
+	ncurses-dev
+	net-snmp-dev
+	openldap-dev
+	openssl-dev>3
+	openssl-libs-static
+	pcre-dev
+	perl-dev
+	python3-dev
+	rabbitmq-c-dev
+	ruby-dev
+	sqlite-dev
+	unixodbc-dev
+	zlib-static
+	"
+	# These are in testing  / community - can't enable for kamailio in main
+	# librdkafka-dev dnssec-tools-dev libmicrohttpd-dev
+source="kamailio-${pkgver}$_suffix.tar.gz::https://github.com/kamailio/kamailio/archive/$_gitcommit.tar.gz
+	kamailio.initd
+	"
+
 install="$pkgname.pre-install $pkgname.pre-upgrade"
+
+[ "$CARCH" = "armv7" ] && options="$options textrels"
+
+# secfixes:
+#   5.1.4-r0:
+#     - CVE-2018-14767
 
 # See Makefile.groups for the list of recommended modules for
 # each package.  What follows is a simplified version of Makefile.groups
 #
 # Alpine specific changes:
 #
-# _mod_list_debugger is not defined in the orginal
+# _mod_list_debugger is not defined in the original
 #
 # Move avp from _mod_list_extras to _mod_list_basic, so that we can create
 # a kamailio-extras package
@@ -49,27 +97,25 @@ _mod_list_basic="avp async auth benchmark blst cfg_rpc cfgt cfgutils corex count
 		maxfwd mediaproxy mqueue \
 		nat_traversal nathelper path pike pv ratelimit rr rtimer \
 		rtpproxy sanity sdpops siputils sl smsops statsc statistics \
-		textops textopsx tm tmx topoh topos xlog rtpengine stun sipt"
+		textops textopsx tm tmx topoh topos xlog rtpengine stun sipt \
+		pv_headers kemix dlgs"
 
 # - extra used modules, with no extra dependency
-_mod_list_extras="auth_diameter call_control cnxcc dmq domainpolicy log_custom \
-		msrp pdb qos sca seas sms sst timer tmrec tsilo uac_redirect \
-		xhttp xhttp_rpc xprint nosip dmq_usrloc statsd rtjson tcpops \
-		auth_xkeys"
+_mod_list_extras="auth_diameter auth_xkeys call_control call_obj cnxcc dmq dmq_usrloc \
+		domainpolicy file_out influxdbc log_custom msrp nosip pdb qos pvtpl \
+		rtjson sca seas sms sst statsd tcpops timer tmrec tsilo \
+		uac_redirect xhttp xhttp_rpc xprint"
 
 # - common modules depending on database
-_mod_list_db="acc alias_db auth_db avpops cfg_db db_berkeley db_flatstore \
+_mod_list_db="acc alias_db auth_db avpops cfg_db db_flatstore \
 		db_cluster dialog dispatcher domain drouting group \
-		htable imc matrix mohqueue msilo mtree p_usrloc pdt permissions \
+		htable topos_htable imc matrix mohqueue msilo mtree p_usrloc pdt permissions \
 		pipelimit prefix_route registrar sipcapture siptrace speeddial \
-		sqlops uac uri_db userblacklist usrloc"
+		sqlops uac uri_db userblocklist usrloc"
 
 # - common modules depending on database, using UID db schema
 _mod_list_dbuid="db2_ops uid_auth_db uid_avp_db uid_domain uid_gflags \
 		uid_uri_db"
-
-# - modules for devel purposes
-_mod_list_devel="malloc_test print print_lib"
 
 # - modules depending on pcre3 library
 _mod_list_pcre="dialplan lcr regex"
@@ -107,23 +153,20 @@ _mod_list_xmpp="xmpp"
 # - modules depending on confuse library
 _mod_list_carrierroute="carrierroute"
 
-# - modules depending on bdb (db4) library
-_mod_list_berkeley="db_berkeley"
-
 # - modules depending on curl library
 _mod_list_utils="utils http_client"
 
 # - async http_async_client
 _mod_list_http_async="http_async_client"
 
-# - modules depending on purple library
-_mod_list_purple="purple"
-
 # - modules depending on memcache library
 _mod_list_memcached="memcached"
 
 # - modules depending on openssl library
-_mod_list_tls="auth_identity crypto"
+_mod_list_tls="crypto tls"
+
+# - modules depending on static openssl library
+_mod_list_tlsa="tlsa"
 
 # - modules depending on openssl library
 _mod_list_outbound="outbound"
@@ -131,7 +174,7 @@ _mod_list_outbound="outbound"
 # - modules depending on unistring library
 _mod_list_websocket="websocket"
 
-# - modules depending on libval-threads libcrypto libsres libpthread
+# - modules depending on dnssec-tools-dev
 _mod_list_dnssec="dnssec"
 
 # - modules depending on libsctp
@@ -143,7 +186,7 @@ _mod_list_authephemeral="auth_ephemeral"
 # - modules related to SIMPLE presence extensions
 _mod_list_presence="presence presence_conference presence_dialoginfo \
 			presence_mwi presence_profile presence_reginfo \
-			presence_xml \
+			presence_xml presence_dfks \
 			pua pua_bla pua_dialoginfo pua_reginfo \
 			pua_rpc pua_usrloc pua_xmpp \
 			rls xcap_client xcap_server"
@@ -154,11 +197,20 @@ _mod_list_lua="app_lua"
 # - modules depending on perl library
 _mod_list_perl="app_perl db_perlvdb"
 
-# - modules depending on python library
-_mod_list_python="app_python"
+# - modules depending on python3 library
+_mod_list_python3="app_python3 app_python3s"
+
+# - modules depending on ruby library
+_mod_list_ruby="app_ruby app_ruby_proc"
 
 # - modules depending on rabbitmq
 _mod_list_rabbitmq="rabbitmq"
+
+# - modules depending on rdkafka library
+_mod_list_kafka=kafka
+
+# - modules depending on mqtt mosquitto and ev library
+_mod_list_mqtt=mqtt
 
 # - modules depending on geoip2 library
 _mod_list_geoip2="geoip2"
@@ -170,27 +222,25 @@ _mod_list_sqlite="db_sqlite"
 _mod_list_oracle="db_oracle"
 
 # - modules depending on json library
-_mod_list_json="json jsonrpcc jsonrpcs"
+_mod_list_json="json pua_json jsonrpcc jsonrpcs"
 
 # - modules depending on redis library
-_mod_list_redis="ndb_redis topos_redis"
+_mod_list_redis="db_redis ndb_redis topos_redis"
 
 # - modules depending on mono library
 _mod_list_mono="app_mono"
 
 # - modules related to IMS extensions
-_mod_list_ims="cdp cdp_avp ims_dialog ims_diameter_server ims_auth ims_isc ims_icscf ims_qos \
-		ims_registrar_pcscf ims_registrar_scscf ims_usrloc_pcscf \
-		ims_usrloc_scscf ims_charging"
+_mod_list_ims="cdp cdp_avp ims_dialog ims_diameter_server ims_auth ims_qos_npn \
+		ims_ipsec_pcscf ims_isc ims_icscf ims_qos ims_registrar_pcscf \
+		ims_registrar_scscf ims_usrloc_pcscf ims_ocs ims_usrloc_scscf \
+		ims_charging"
 
 # - modules depending on osp toolkit library
 _mod_list_osp="osp"
 
 # - modules depending on java library
 _mod_list_java="app_java"
-
-# - modules depending on iptables library
-_mod_list_iptrtpproxy="iptrtpproxy"
 
 # - modules depending on gzip library
 _mod_list_gzcompress="gzcompress"
@@ -208,13 +258,10 @@ _mod_list_kazoo="kazoo"
 _mod_list_mongodb="db_mongodb ndb_mongodb"
 
 # - modules depending on jansson library
-_mod_list_jansson="jansson janssonrpcc"
+_mod_list_jansson="jansson janssonrpcc acc_json"
 
 # - modules depending on libm
 _mod_list_jsdt="app_jsdt"
-
-# - modules depending on sqlang
-_mod_list_sqlang="app_sqlang"
 
 # - modules depending on rabbitmq
 _mod_list_rabbitmq="rabbitmq"
@@ -222,56 +269,55 @@ _mod_list_rabbitmq="rabbitmq"
 # - modules depending on sipdump
 _mod_list_sipdump="sipdump"
 
+# - modules depending on libgcrypt
+_mod_list_gcrypt="gcrypt"
+
+# - modules depending on libmicrohttpd
+_mod_list_microhttpd="microhttpd"
+
+# - modules depending on nghttp2 library
+_mod_list_nghttp2=nghttp2
 
 # Alpine Specific
-_mod_list_debugger="$_mod_list_devel benchmark debugger"
+_mod_list_debugger="benchmark debugger"
 
 # Standard modules in main pkg
 _module_group_kstandard="$_mod_list_basic $_mod_list_dbuid $_mod_list_pcre"
 
 # END Makefile.groups #############################################################
 
-subpackages="$pkgname-doc $pkgname-dbg"
+subpackages="$pkgname-doc $pkgname-dbg $pkgname-openrc"
 _modules="$_module_group_kstandard"
 for _i in db postgres sqlite dbtext mysql \
 	cpl xml unixodbc snmpstats xmpp carrierroute \
-	ldap utils tls presence lua ims outbound debugger \
+	ldap utils tls tlsa presence lua ims outbound debugger \
 	extras json websocket authephemeral \
-	uuid ev memcached redis geoip2 jansson sqlang sipdump \
-	jsdt http_async kazoo rabbitmq sctp radius perl python; do
+	uuid ev memcached redis geoip2 jansson sipdump \
+	jsdt http_async nghttp2 kazoo rabbitmq \
+	sctp radius perl python3 mqtt ruby gcrypt; do
 
-   subpackages="$subpackages $pkgname-$_i"
-   eval "_modules=\"\$_modules \$_mod_list_$_i\""
+	subpackages="$subpackages $pkgname-$_i"
+	eval "_modules=\"\$_modules \$_mod_list_$_i\""
 done
 
-source="${pkgname}-${pkgver}${_suffix}.tar.gz::https://github.com/kamailio/$pkgname/archive/$_gitcommit.tar.gz
-	0001-kamdbctl.base.patch
-	0004-src_core_tcp_read_c.patch
-	kamailio.initd
-	"
-
 snapshot() {
-        if [ ! -f "$SRCDEST"/${pkgname}-${pkgver}${_suffix}.tar.gz ]; then
-            wget -O "$SRCDEST"/${pkgname}-${pkgver}${_suffix}.tar.gz https://github.com/kamailio/$pkgname/archive/$_gitcommit.tar.gz
-        fi
-        SHA512SUM=$(sha512sum "$SRCDEST"/${pkgname}-${pkgver}${_suffix}.tar.gz | sed -e "s:$SRCDEST/::")
-        sed -i -e "s/^\(sha512sums=.\).*/\1$SHA512SUM/" APKBUILD
+	if [ ! -f "$SRCDEST"/$pkgname-${pkgver}$_suffix.tar.gz ]; then
+		wget -O "$SRCDEST"/$pkgname-${pkgver}$_suffix.tar.gz https://github.com/kamailio/$pkgname/archive/$_gitcommit.tar.gz
+	fi
+	SHA512SUM=$(sha512sum "$SRCDEST"/$pkgname-${pkgver}$_suffix.tar.gz | sed -e "s:$SRCDEST/::")
+	sed -i -e "s/^\(sha512sums=.\).*/\1$SHA512SUM/" APKBUILD
 }
 
 prepare() {
 	default_prepare
-	cd "$builddir"
-
 	cd utils/kamctl/
 	sed -i -e 's:/var/run/kamailio.pid:/var/run/kamailio/kamailio.pid:g' \
-		kamctl.base kamctlrc || return 1
-	# we actually dont need bash
-	sed -i -e 's:/bin/bash:/bin/sh:' kamctl kamdbctl \
-		|| return 1
+		kamctl.base kamctlrc
+	# we actually don't need bash
+	sed -i -e 's:/bin/bash:/bin/sh:' kamctl kamdbctl
 }
 
 build() {
-	cd "$builddir"
 	make FLAVOUR=kamailio STUN=1 \
 		PREFIX=/usr \
 		CC_EXTRA_OPTS="$CFLAGS -D_GNU_SOURCE" \
@@ -283,12 +329,11 @@ build() {
 		cfg_prefix="$pkgdir" \
 		cfg
 	make EMBEDDED_UTF8_DECODE=1 STUN=1 FREERADIUS=1 \
-		all || return 1
+		all
 }
 
 package() {
-	cd "$builddir"
-	make  FREERADIUS=1 -j1 install || return 1
+	make FREERADIUS=1 install
 
 	install -m755 -D "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
 	install -d -o kamailio "$pkgdir"/var/run/kamailio
@@ -297,8 +342,8 @@ package() {
 _mv_mod() {
 	local moddir=usr/lib/kamailio/modules i=
 	mkdir -p "$subpkgdir"/$moddir
-	for i in $@; do
-		mv "$pkgdir"/$moddir/$i.so "$subpkgdir"/$moddir/ || return 1
+	for i in "$@"; do
+		mv "$pkgdir"/$moddir/$i.so "$subpkgdir"/$moddir/
 	done
 }
 
@@ -308,19 +353,17 @@ _generic_pkg() {
 	_mv_mod $2
 }
 
-
 _db_driver() {
 	pkgdesc="Database drivers for $1"
 	depends="$pkgname $pkgname-db"
-	_mv_mod db_$2 || return 1
+	_mv_mod db_$2
 	mkdir -p "$subpkgdir"/usr/share/kamailio \
 		"$subpkgdir"/usr/lib/kamailio/kamctl
 	mv "$pkgdir"/usr/share/kamailio/$3 \
-		"$subpkgdir"/usr/share/kamailio/ || return 1
+		"$subpkgdir"/usr/share/kamailio/
 	mv "$pkgdir"/usr/lib/kamailio/kamctl/*.$4 \
-		"$subpkgdir"/usr/lib/kamailio/kamctl/ || return 1
+		"$subpkgdir"/usr/lib/kamailio/kamctl/
 }
-
 
 db() {
 	_generic_pkg "modules using a database backend" "$_mod_list_db"
@@ -339,13 +382,12 @@ sqlite() {
 }
 
 dbtext() {
-	_db_driver DBText text dbtext dbtext || return 1
+	_db_driver DBText text dbtext dbtext
 	# kamdbctl.dbtext is a python script - but we will not make python
-	# a dependency because kamdbctl is not normaly used
-	depends="$depends"
-	mkdir -p "$subpkgdir"/usr/lib/kamailio/kamctl || return 1
+	# a dependency because kamdbctl is not normally used
+	mkdir -p "$subpkgdir"/usr/lib/kamailio/kamctl
 	mv "$pkgdir"/usr/lib/kamailio/kamctl/dbtextdb \
-		"$subpkgdir"/usr/lib/kamailio/kamctl/ || return 1
+		"$subpkgdir"/usr/lib/kamailio/kamctl/
 }
 
 cpl() {
@@ -355,13 +397,13 @@ cpl() {
 
 xml() {
 	_generic_pkg "XML related modules: $_mod_list_xml" \
-		"$_mod_list_xml" || return 1
+		"$_mod_list_xml"
 	mkdir -p "$subpkgdir"/usr/share/kamailio
 	mv "$pkgdir"/usr/share/kamailio/xhttp_pi \
-		"$subpkgdir"/usr/share/kamailio || return 1
+		"$subpkgdir"/usr/share/kamailio
 	mkdir -p "$subpkgdir"/etc/kamailio/
 	mv "$pkgdir"/etc/kamailio/pi_framework.xml \
-		"$subpkgdir"/etc/kamailio || return 1
+		"$subpkgdir"/etc/kamailio
 }
 
 unixodbc() {
@@ -371,10 +413,10 @@ unixodbc() {
 
 snmpstats() {
 	_generic_pkg "SNMP statistics support" \
-		"$_mod_list_snmpstats" || return 1
+		"$_mod_list_snmpstats"
 	mkdir -p "$subpkgdir"/usr/share/snmp
 	mv "$builddir"/src/modules/snmpstats/mibs \
-		"$subpkgdir"/usr/share/snmp/ || return 1
+		"$subpkgdir"/usr/share/snmp/
 }
 
 xmpp() {
@@ -393,13 +435,18 @@ ldap() {
 }
 
 utils() {
-	_generic_pkg "miscelaneous utility functions" \
+	_generic_pkg "miscellaneous utility functions" \
 		"$_mod_list_utils"
 }
 
 tls() {
 	_generic_pkg "TLS support" \
 		"$_mod_list_tls"
+}
+
+tlsa() {
+	_generic_pkg "TLS support compiled statically against libssl and libcrypto" \
+		"$_mod_list_tlsa"
 }
 
 presence() {
@@ -482,7 +529,6 @@ jsdt() {
 		"$_mod_list_jsdt"
 }
 
-
 redis() {
 	_generic_pkg "Redis NoSQL support" \
 		"$_mod_list_redis"
@@ -513,27 +559,63 @@ perl() {
 		"$_mod_list_perl"
 }
 
-python() {
-	_generic_pkg "Python extensions for Kamailio" \
-		"$_mod_list_python"
+python3() {
+	_generic_pkg "Execute embedded Python3 scripts" \
+		"$_mod_list_python3"
 }
 
-sqlang() {
-	_generic_pkg "Squirrel Language (SQLang) for Kamailio" \
-		"$_mod_list_sqlang"
+ruby() {
+	_generic_pkg "Execute embedded Ruby scripts" \
+		"$_mod_list_ruby"
 }
+
+# Archived as of 5.8.0 (2024-03-29)
+#sqlang() {
+#	_generic_pkg "Squirrel Language (SQLang) for Kamailio" \
+#		"$_mod_list_sqlang"
+#}
+
+mqtt() {
+		_generic_pkg "MQTT publish/subscribe connector" \
+		"$_mod_list_mqtt"
+}
+
+# kafka() {
+#		_generic_pkg "Produce and send messages to a Kafka server" \
+#		"$_mod_list_kafka"
+# }
 
 rabbitmq() {
 	_generic_pkg "RabbitMQ related modules for Kamailio" \
 		"$_mod_list_rabbitmq"
 }
 
+# dnssec() {
+#	_generic_pkg "DNSSEC implementation for SIP routing" \
+#		"$_mod_list_dnssec"
+# }
+
 sipdump() {
 	_generic_pkg "This module writes SIP traffic and some associated details into local files" \
 		"$_mod_list_sipdump"
 }
 
-sha512sums="ca1fdfe872323fd8b55842bc78ca22ab838e92a78e264f6e93a1616f8aaf9eb164afb8295e83fcf86b437c7c535db0d7075d15c78a6edc0c1a16cd91a699e315  kamailio-5.1.3.tar.gz
-6badfb611c02ffcb4c2e9937731162ea1a4b737f042ed52120e2f96ebb80b5b7d240b5612c9ca565e693eec9b8c52c1ee5db04dfc47d204501021f984b4b11db  0001-kamdbctl.base.patch
-af8362201957eae6b66baf7368c9ca884024209a396d77c5c52180c9aabe13772e9c6513e59721d39503e5bb7a8c1030f5c10301ea9055bddafb7f01ee2f3076  0004-src_core_tcp_read_c.patch
-cd6e3b677d803cd78561ad14d9b2589fd35ad0096f48047fdcb4ddc7d9103871357efba3b350946844cb53dbb081210746421fc420c22ac845b90251168a628e  kamailio.initd"
+microhttpd() {
+	_generic_pkg "Simple HTTP server using libmicrohttpd" \
+		"$_mod_list_microhttpd"
+}
+
+nghttp2() {
+	_generic_pkg "HTTP2 server implementation using nghttp2 library" \
+		"$_mod_list_nghttp2"
+}
+gcrypt() {
+	_generic_pkg "Cryptography functions using libcrypt" \
+		"$_mod_list_gcrypt"
+}
+
+
+sha512sums="
+b6f2370e3751ba502b50a6f99286bd779f70198aea042b6431316855a85500380629bfa572f1aaf901cc1f48adad285e5fe02755a0bbede807b6d628c9c150ab  kamailio-6.0.3.tar.gz
+38a786b48d433b2e99a29249458c1ffcc3f449a1898df6ef1f4b8ebf7770e99d80ce6e3340ea680b44e725b951e65fd06d395ecb903600d7c8fdc0a736c4d9b1  kamailio.initd
+"

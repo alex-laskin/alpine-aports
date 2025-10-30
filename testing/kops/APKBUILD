@@ -1,38 +1,34 @@
-# Contributor: Kaarle Ritvanen <kaarle.ritvanen@datakunkku.fi>
+# Contributor: Kaarle Ritvanen <kunkku@alpinelinux.org>
+# Maintainer: Kevin Daudt <kdaudt@alpinelinux.org>
 pkgname=kops
-pkgver=1.8.0
-pkgrel=0
+pkgver=1.28.4
+pkgrel=14
 pkgdesc="Kubernetes Operations"
 url="https://github.com/kubernetes/kops"
 arch="x86_64"
 license="Apache-2.0"
 depends="kubernetes"
-makedepends="go"
-source="$pkgname-$pkgver.tar.gz::$url/archive/$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="go bash"
+options="net"
+source="$pkgname-$pkgver.tar.gz::https://github.com/kubernetes/kops/archive/v$pkgver.tar.gz"
 
-export GOPATH=$srcdir/go
-
-prepare() {
-	default_prepare
-
-	local dir=$GOPATH/src/k8s.io
-	mkdir -p "$dir"
-	ln -s "$builddir" "$dir/$pkgname"
-}
+export GOFLAGS="$GOFLAGS -modcacherw -mod=readonly"
+export GOCACHE="${GOCACHE:-"$srcdir/go-cache"}"
+export GOTMPDIR="${GOTMPDIR:-"$srcdir"}"
+export GOMODCACHE="${GOMODCACHE:-"$srcdir/go"}"
 
 build() {
-	cd "$builddir"
-	make
+	make kops
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	install -D "$GOPATH"/bin/kops "$pkgdir"/usr/bin/kops
+	install -Dm0755 .build/dist/linux/*/kops "$pkgdir"/usr/bin/kops
 }
 
-sha512sums="be1e8aac5d5704b80aea7f10a27287c5951660ff2644692d634d22fce917b145390d173b320ffed96b3a6bd5d363cef2b33703db5e175a81be419cf6d11e86da  kops-1.8.0.tar.gz"
+sha512sums="
+ca1f63bd1bec167cafa152fd1d510f6d927f301b05f2910e21ca015ded795fc00b7d9344e291acc3d3a6252143823d1adda8855fea52d5d8f5723534a056bb19  kops-1.28.4.tar.gz
+"

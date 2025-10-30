@@ -1,29 +1,34 @@
 # Contributor: Bartłomiej Piotrowski <bpiotrowski@alpinelinux.org>
 # Maintainer: André Klitzing <aklitzing@gmail.com>
-
 pkgname=arch-install-scripts
-pkgver=17
+pkgver=29
 pkgrel=0
-pkgdesc='Scripts to aid in installing Arch Linux'
-arch=noarch
-url='https://projects.archlinux.org/arch-install-scripts.git'
-license='GPL'
-depends='bash coreutils pacman util-linux'
-makedepends='m4'
-source="http://ftp.acc.umu.se/mirror/archlinux/other/arch-install-scripts/arch-install-scripts-$pkgver.tar.gz"
+pkgdesc="Scripts to aid in installing Arch Linux"
+arch="noarch"
+url="https://gitlab.archlinux.org/archlinux/arch-install-scripts"
+license="GPL-2.0-only"
+depends="bash coreutils pacman util-linux-misc"
+makedepends="m4 asciidoc"
+subpackages="
+	$pkgname-doc
+	$pkgname-zsh-completion
+	$pkgname-bash-completion
+	"
+source="https://gitlab.archlinux.org/archlinux/arch-install-scripts/-/archive/v$pkgver/arch-install-scripts-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 build() {
-  make -C "$srcdir"/$pkgname-$pkgver || return 1
+	make
 }
 
 check() {
-  make -C "$srcdir"/$pkgname-$pkgver check || return 1
+	make check
 }
 
 package() {
-  make -C "$srcdir"/$pkgname-$pkgver PREFIX=/usr DESTDIR="$pkgdir" install || return 1
+	make PREFIX=/usr DESTDIR="$pkgdir" install
 }
 
-md5sums="5d230b9b53c2374445d220f439db3471  arch-install-scripts-17.tar.gz"
-sha256sums="e42da8538e2c4c236fb5505c18650c592c37d9076c9178270abef5d0283f2ea7  arch-install-scripts-17.tar.gz"
-sha512sums="44f8e0dac5e56c50215328c5948f34fc8455d3359bd8c642481fc22694f94cc54f760aaeff3acd006f8c427534977e847aff6d9cebb8f58c8559bf3cc4d9e2a5  arch-install-scripts-17.tar.gz"
+sha512sums="
+2e25aa2ce951aa955b174007a209f7d82a0fcc86406ddfc13ca5041c6aa2d5b96e0960163b5df7c25e3329749d5128247ced2a49720b66fc36fc4c7742040f17  arch-install-scripts-v29.tar.gz
+"

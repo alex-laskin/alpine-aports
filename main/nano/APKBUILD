@@ -1,19 +1,18 @@
 # Contributor: Michael Mason <ms13sp@gmail.com>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=nano
-pkgver=2.9.8
+pkgver=8.6
 pkgrel=0
 pkgdesc="Enhanced clone of the Pico text editor"
-url="https://www.nano-editor.org"
+url="https://www.nano-editor.org/"
 arch="all"
 license="GPL-3.0-or-later"
-makedepends="file-dev linux-headers ncurses-dev"
+makedepends="linux-headers ncurses-dev"
 subpackages="$pkgname-doc $pkgname-syntax::noarch"
-source="https://www.nano-editor.org/dist/v${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://www.nano-editor.org/dist/v${pkgver%%.*}/nano-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -21,19 +20,17 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
-		--disable-nls \
-		--with-wordbounds
+		--localstatedir=/var \
+		--disable-libmagic \
+		--disable-nls
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-
 	make DESTDIR="$pkgdir" install
 	install -Dm644 doc/sample.nanorc \
 		"$pkgdir"/etc/nanorc
@@ -41,16 +38,15 @@ package() {
 	# Proper syntax highlighting for APKBUILDs
 	sed -i "/syntax/s/\"$/\" \"APKBUILD&/" \
 		"$pkgdir"/usr/share/nano/sh.nanorc
-
-	rm -rf "$pkgdir"/usr/lib/charset.alias
 }
 
 syntax() {
 	pkgdesc="Syntax highlighting definitions for $pkgname"
+	depends="$pkgname=$pkgver-r$pkgrel"
 
-	mkdir -p "$subpkgdir"/usr/share/$pkgname/
-	mv "$pkgdir"/usr/share/$pkgname/*.nanorc \
-		"$subpkgdir"/usr/share/$pkgname/
+	amove usr/share/nano
 }
 
-sha512sums="9a8230bb1312be4e7f44c5fb42c32d773dd4e488d41980c5aee1de0f9b5642b938a940649f3b5bfb848625c0c258ea15333cad861b5a368e3746f1f396df452b  nano-2.9.8.tar.xz"
+sha512sums="
+f783c59d2fb47e121c63779c4ce8c6d5e90c31184ca28449c6c9270933d02e19ee60d29b6c9a1122fe59de1132d56d9e402cc63fc88f847cea2b4af6302524ea  nano-8.6.tar.xz
+"

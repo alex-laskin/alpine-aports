@@ -1,50 +1,48 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
+# Contributor: Milan P. Stanić <mps@arvanta.net>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=shards
-pkgver=0.7.2
+pkgver=0.19.1
 pkgrel=0
-_minitestver=0.3.6
+_minitestver=0.5.0
+_molinillover=0.2.0
 pkgdesc="Dependency manager for the Crystal language"
 url="https://github.com/crystal-lang/shards"
-arch="x86_64 aarch64"  # limited by crystal aport
+arch="x86_64 aarch64"
 license="Apache-2.0"
-depends="crystal git"
+depends="crystal>=0.35.0 git"
 makedepends="yaml-dev"
 subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/crystal-lang/$pkgname/archive/v$pkgver.tar.gz
+source="$pkgname-$pkgver.tar.gz::https://github.com/crystal-lang/shards/archive/v$pkgver.tar.gz
 	minitest.cr-$_minitestver.tar.gz::https://github.com/ysbaddaden/minitest.cr/archive/v$_minitestver.tar.gz
-	use-git-bare-instead-of-mirror.patch
-	makefile-install.patch
+	molinillo-$_molinillover.tar.gz::https://github.com/crystal-lang/crystal-molinillo/archive/v$_molinillover.tar.gz
 	"
-builddir="$srcdir/$pkgname-$pkgver"
 
 export CRYSTAL_CACHE_DIR="$srcdir/.cache"
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 
 	mkdir -p lib
 	ln -s ../../minitest.cr-$_minitestver lib/minitest
+	ln -s ../../crystal-molinillo-$_molinillover lib/molinillo
 }
 
 build() {
-	cd "$builddir"
-	make release CRFLAGS=""
+	make
 }
 
 check() {
-	cd "$builddir"
 	export EMAIL="Test User <user@example.com>"
 	make test_integration
 }
 
 package() {
-	cd "$builddir"
 	make install DESTDIR="$pkgdir" PREFIX=/usr
 }
 
-sha512sums="a99648ae292095278578e47971b556a0da90743db62689a76aae9eab986ad2185ad7adc13c4340f12fce835c5383d8aac93e35258d01fa658e521314eafaf942  shards-0.7.2.tar.gz
-4f802475c6b1be0d1c8844fed1aeba09b8b2b893f413e25115c1687d35348357e9c0076169e38721bedc3cb31ac2463a7c1b243841554f3eca470608a62438a5  minitest.cr-0.3.6.tar.gz
-ab640ab81273042b303abcd23b459f45dfdb8a725bff41043118750d03e6ba0c6bb86a5507f90bb74bf83cb14288dd35ece83b12c63b300f01bf6110e67099cc  use-git-bare-instead-of-mirror.patch
-6d5ff4cd2cdf41a4805f17459c614ddc6fbc98df49304067c927e27aaa6c43460409789c7871cfbead27a6d13d3d9b92b80b2aec9a76eefb9b11cf9feb17045b  makefile-install.patch"
+sha512sums="
+42cf28c1fdd53a80eed1b9524d8f9ed7b4722f1e7a182abfc729ad574d6edf997c0ae08cb68c9b0ec632e85a4f4b737ecd27a46f7881b1f4725ced3ece8fa6fd  shards-0.19.1.tar.gz
+ecd0661340f4d5fa61a730c0ad4e9b8463fe5df32a54c979f28dfe663ed2e40ff19b212e18bb81c89275039474f8ec1072b3c2c5fdf5396973f8a9f641b653cb  minitest.cr-0.5.0.tar.gz
+7c00a6a3ee4864b712ad8b703557f10498ba0b25491a55ae2f6c02d574034ec5bf8b87df777c3d34eb9cc4c87eebdcf6567c153e9edf3bc3c1b9ac4306ce3dc2  molinillo-0.2.0.tar.gz
+"

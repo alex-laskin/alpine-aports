@@ -1,0 +1,91 @@
+# Maintainer: omni <omni+alpine@hack.org>
+maintainer="omni <omni+alpine@hack.org>"
+pkgname=minijinja-cli
+pkgver=2.12.0
+pkgrel=0
+pkgdesc="CLI using MiniJinja to render Jinja2 templates from the command line to stdout"
+_pkgname=minijinja
+url="https://docs.rs/minijinja/latest/minijinja/"
+arch="all"
+license="Apache-2.0"
+makedepends="cargo
+	cargo-auditable
+	py3-gpep517
+	py3-maturin
+	py3-setuptools
+	sequoia-sq
+	"
+checkdepends="py3-pytest"
+subpackages="
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
+	py3-$_pkgname-pyc
+	py3-$_pkgname:py3
+	"
+source="$_pkgname-$pkgver.tar.gz::https://github.com/mitsuhiko/minijinja/archive/refs/tags/$pkgver.tar.gz
+	minimal-workspace.patch
+	"
+builddir="$srcdir"/"$_pkgname-$pkgver"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	ASSET_OUT_DIR=asset_out_dir cargo auditable build --release --frozen \
+		--all-features --package "$pkgname"
+
+	cd minijinja-py
+	gpep517 build-wheel \
+		--wheel-dir .dist\
+		--config-json '{"build-args": "--locked", "build-option": "--target=$CTARGET --release --all-features --package minijinja-py"}' \
+		--output-fd 3 3>&1 >&2
+	# TODO: build minijinja-py with --frozen, currently failing to download
+	# android-tzdata, perhaps additional build-options
+	# TODO: cargo auditable build with maturin
+	# https://github.com/PyO3/maturin/issues/2495
+}
+
+check() {
+	cargo test --all --frozen
+
+	cd minijinja-py
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest \
+		-k 'not test_fucked_up_object' # Aborted (core dumped)
+}
+
+package() {
+	install -Dm755 target/release/"$pkgname" \
+		-t "$pkgdir"/usr/bin/
+
+	_asset_out_dir="$pkgname/asset_out_dir"
+	install -Dm644 "$_asset_out_dir"/man/* \
+		-t "$pkgdir"/usr/share/man/man1/
+	install -Dm644 "$_asset_out_dir"/completions/"$pkgname".bash \
+		"$pkgdir"/usr/share/bash-completion/completions/"$pkgname"
+	install -Dm644 "$_asset_out_dir"/completions/"$pkgname".fish \
+		-t "$pkgdir"/usr/share/fish/vendor_completions.d/
+	install -Dm644 "$_asset_out_dir"/completions/_"$pkgname" \
+		-t "$pkgdir"/usr/share/zsh/site-functions/
+
+	cd minijinja-py
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+}
+
+py3() {
+	pkgdesc="Python bindings for MiniJinja, a template engine compatible with Jinja/Jinja2"
+
+	mkdir -p "$subpkgdir"/usr/lib
+	mv "$pkgdir"/usr/lib/python3* "$subpkgdir"/usr/lib/
+}
+
+sha512sums="
+6619b708fbcb834ab66d0487533c78e5d479286c89c6135ab6ae5f03ee23f26c7ed700c2a5e8af061654b8040dec8d716c5cd78d519f2b1370a4269a9af6c837  minijinja-2.12.0.tar.gz
+45170fc977c874ca7e96906e32be307bc79ecc523eaa6ab9daf933f289238d6463065534483751d44c4e6abb46571b2774550f46801e5d3019173f587da940de  minimal-workspace.patch
+"

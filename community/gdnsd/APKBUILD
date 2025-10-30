@@ -1,23 +1,43 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Timo Teräs <timo.teras@iki.fi>
 pkgname=gdnsd
-pkgver=2.2.2
-pkgrel=0
+pkgver=3.8.2
+pkgrel=1
 pkgdesc="Geographic Authoritative DNS server"
-url="https://github.com/blblack/gdnsd/"
+url="https://github.com/gdnsd/gdnsd/"
 arch="all"
-license="GPL-3.0"
-depends=""
-depends_dev=""
-options="!checkroot"
-makedepends="userspace-rcu-dev libev-dev libcap-dev libmaxminddb-dev ragel autoconf automake libtool"
-checkdepends="perl perl-libwww perl-socket6 perl-io-socket-inet6 perl-http-daemon perl-test-harness perl-test-harness-utils"
+license="GPL-3.0-or-later"
+makedepends="
+	autoconf
+	automake
+	libcap-dev
+	libev-dev
+	libmaxminddb-dev
+	libsodium-dev
+	libtool
+	ragel
+	userspace-rcu-dev
+	"
+checkdepends="
+	perl
+	perl-http-daemon
+	perl-io-socket-inet6
+	perl-libwww
+	perl-net-dns
+	perl-socket6
+	perl-test-harness
+	perl-test-harness-utils
+	"
 install="$pkgname.pre-install"
-subpackages="$pkgname-dev $pkgname-doc"
-source="gdnsd-$pkgver.tar.gz::https://github.com/blblack/gdnsd/archive/v$pkgver.tar.gz
-	gdnsd.initd"
+subpackages="$pkgname-doc $pkgname-openrc"
+source="https://github.com/gdnsd/gdnsd/releases/download/v$pkgver/gdnsd-$pkgver.tar.xz
+	gdnsd.initd
+	net-dns-1.46.patch
+	net-dns-1.49.patch
+	"
 
-builddir="$srcdir"/gdnsd-$pkgver
+# secfixes:
+#   2.4.3-r0:
+#     - CVE-2019-13952
 
 prepare() {
 	default_prepare
@@ -25,7 +45,6 @@ prepare() {
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -37,16 +56,17 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
-        install -Dm755 "$srcdir"/gdnsd.initd \
-		"$pkgdir"/etc/init.d/gdnsd
+	install -Dm755 "$srcdir"/gdnsd.initd "$pkgdir"/etc/init.d/gdnsd
 }
 
-sha512sums="056f4976fb5e0ae7b7cef649e0b7be43fbcf85331781240c63b508367aa71d32c2cd2e12075fd520738ab313366cdd3bf79edd86950993e8fa2274f6a3ee64b0  gdnsd-2.2.2.tar.gz
-27b6ed95452072ddbf767c87202bde8f70fb5272395a599ad6fec1bd5d0eaf1cefc217abf08531e5e0c0d7846018e31ffd215c0f8e92b151fc0e419cdc81e3f1  gdnsd.initd"
+sha512sums="
+982d81cf3b4b20c0bbe640b3bd75697aaea08636c89077729def1c053f5cc3515854a46e1f5009367bfcb2671fa6a394152bde68307a92f3ce748a0badefa8d2  gdnsd-3.8.2.tar.xz
+7e66f9d3dab3a36334d47740f12ee7f3ffd363d416bd1fcca4b339db8ba858419555751786247ffc4e5faf68c6b5fa87b84c04ffa25133a17b186bdf83c365b9  gdnsd.initd
+4667b641eb3519fceb3884f25ae6dfff12f5b8dd0d3b55dad00d6a62394e797767520b493e78f57ee1fe8c5b8a53822594e197a35485e2de6bd2d78a7058964a  net-dns-1.46.patch
+0c6439c7b3092c37ec28acb8a1cde299ee255cb5d82cd6210a191ee01ca855f2f1d8e68b044e0259140f9b13f8d151ba86dc91534607ee66add1955499673ffd  net-dns-1.49.patch
+"

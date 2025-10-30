@@ -1,0 +1,39 @@
+# Contributor: mekyt <hello@mek.yt>
+# Maintainer: mekyt <hello@mek.yt>
+pkgname=resources
+pkgver=1.8.0
+pkgrel=1
+pkgdesc="Powerful monitor for your system resources and processes"
+url="https://github.com/nokyan/resources"
+license="GPL-2.0-or-later"
+# https://github.com/jasonwhite/syscalls?tab=readme-ov-file#architecture-support
+arch="aarch64 armhf x86 x86_64 riscv64"
+depends="lscpu"
+makedepends="
+	glib-dev
+	gtk4.0-dev
+	libadwaita-dev
+	meson
+	cargo
+	ninja
+	desktop-file-utils
+	appstream-glib
+"
+subpackages="$pkgname-lang"
+source="
+	$pkgname-$pkgver.tar.gz::https://github.com/nokyan/resources/archive/refs/tags/v$pkgver.tar.gz
+"
+options="!check net" # no test suite and download rust packages
+
+build() {
+	abuild-meson -Dprofile=default . output
+	meson compile -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+94b36b0fea71eaac93ffd153925a9924d530ea9ddd7e0503d255e1c523dfcd0371e7cee3a3cd0337711943423f27e0b306361637f59bd10e7b9ad3a43fe05627  resources-1.8.0.tar.gz
+"

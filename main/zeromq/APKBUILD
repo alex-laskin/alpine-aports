@@ -1,44 +1,67 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=zeromq
-pkgver=4.2.3
-pkgrel=0
+pkgver=4.3.5
+pkgrel=2
 pkgdesc="The ZeroMQ messaging library and tools"
-url="http://www.zeromq.org/"
+url="https://zeromq.org/"
 arch="all"
-license="LGPL-3.0-or-later with exceptions"
-makedepends="util-linux-dev libsodium-dev
-	perl python2 asciidoc xmlto autoconf automake
+license="MPL-2.0"
+makedepends="
+	asciidoc
+	cmake
+	libsodium-dev
+	perl
+	samurai
+	util-linux-dev
+	xmlto
 	"
-subpackages="$pkgname-dev $pkgname-doc libzmq:libs"
-source="https://github.com/zeromq/libzmq/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz
-	test-driver.patch
-	"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="libzmq-static $pkgname-dev libzmq:libs"
+source="https://github.com/zeromq/libzmq/releases/download/v$pkgver/zeromq-$pkgver.tar.gz"
+
+# secfixes:
+#   4.3.3-r0:
+#     - CVE-2020-15166
+#   4.3.2-r0:
+#     - CVE-2019-13132
+#   4.3.1-r0:
+#     - CVE-2019-6250
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--with-libsodium \
-		|| return 1
-	make || return 1
+	cmake3.5 -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DBUILD_TESTS="$(want_check && echo ON || echo OFF)" \
+		-DBUILD_STATIC=OFF \
+		-DWITH_LIBSODIUM=ON \
+		-DENABLE_CURVE=ON \
+		-DWITH_DOC=OFF
+	cmake --build build
+
+	cmake3.5 -B build-static -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DBUILD_TESTS=OFF \
+		-DBUILD_STATIC=ON \
+		-DBUILD_SHARED=OFF \
+		-DWITH_LIBSODIUM=ON \
+		-DWITH_LIBSODIUM_STATIC=ON \
+		-DENABLE_CURVE=ON \
+		-DWITH_DOC=OFF
+	cmake --build build-static
 }
 
 check() {
-	cd "$builddir"
-	make check
+	ulimit -n 2048 # Fix test failure on the builders
+	ctest --test-dir build -E test_security_curve --timeout 300 -j1
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	DESTDIR="$pkgdir" cmake --install build
+	install -Dm644 build-static/lib/*.a -t "$pkgdir"/usr/lib
+	# just the readme
+	rm -r "$pkgdir"/usr/share/zmq
 }
 
-sha512sums="8ac588a7a4db9d65586dd7b501999edac151e1d03056c1014d7ded6cd4bcf5bb4f81252b47d89d60c3ad7d527685218992bf5853b4656c0702e0f64c2d77712b  zeromq-4.2.3.tar.gz
-64e4ae2c89469359480743beeb4f1e08976a4c52dbfd2dd33020463df78e927993319e456299682901001e0832ebed85291eea0decc1d27a58de78a6c891e660  test-driver.patch"
+sha512sums="
+a71d48aa977ad8941c1609947d8db2679fc7a951e4cd0c3a1127ae026d883c11bd4203cf315de87f95f5031aec459a731aec34e5ce5b667b8d0559b157952541  zeromq-4.3.5.tar.gz
+"

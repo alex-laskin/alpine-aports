@@ -2,34 +2,28 @@
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=perl-getopt-argvfile
 pkgver=1.11
-_realname=Getopt-ArgvFile-$pkgver
-pkgrel=1
+_pkgreal=Getopt-ArgvFile
+pkgrel=4
 pkgdesc="Interpolates script options from files into @ARGV or another array"
-url="http://search.cpan.org/dist/Getopt-ArgvFile/"
+url="https://metacpan.org/release/Getopt-ArgvFile/"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends=""
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/J/JS/JSTENZEL/$_realname.tar.gz"
+source="https://cpan.metacpan.org/authors/id/J/JS/JSTENZEL/Getopt-ArgvFile-$pkgver.tar.gz"
 
-builddir="$srcdir/$_realname"
+builddir="$srcdir/$_pkgreal-$pkgver"
 
 build() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }

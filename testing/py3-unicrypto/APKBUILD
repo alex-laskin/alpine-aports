@@ -1,0 +1,47 @@
+# Contributor: Jonas <spameier+alpine@proton.me>
+# Maintainer: Jonas <spameier+alpine@proton.me>
+pkgname=py3-unicrypto
+_pyname=unicrypto
+pkgver=0.0.11
+pkgrel=0
+pkgdesc="Unified interface for cryptographic libraries"
+url="https://github.com/skelsec/unicrypto"
+arch="noarch"
+license="MIT"
+depends="
+	py3-cryptography
+	py3-mbedtls
+	py3-pycryptodome
+	py3-pycryptodomex
+	python3
+	"
+makedepends="
+	py3-gpep517
+	py3-wheel
+	py3-setuptools
+	"
+checkdepends="py3-pytest"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/skelsec/unicrypto/archive/refs/tags/$pkgver.tar.gz"
+builddir="$srcdir/$_pyname-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+	rm -rf "$pkgdir"/usr/lib/python3.*/site-packages/tests/ # remove tests
+}
+
+sha512sums="
+e5d17ba4cbf6a72c9e3ccbd0f7b3558dde263b9b72658c61e3b3688e07371d75f4773a891b5ba9eec8cc2e6535687be6b170e64df23bdcaa77d223478ecb9209  py3-unicrypto-0.0.11.tar.gz
+"

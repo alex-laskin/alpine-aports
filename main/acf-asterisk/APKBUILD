@@ -2,24 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-asterisk
 pkgver=0.7.0
-pkgrel=2
-pkgdesc="A web-based system administration interface for asterisk"
-url="https://git.alpinelinux.org/cgit/acf/acf-asterisk"
+pkgrel=4
+pkgdesc="Web-based system administration interface for asterisk"
+url="https://gitlab.alpinelinux.org/acf/acf-asterisk"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core asterisk"
-makedepends=""
-install=
-subpackages=""
-source="http://dev.alpinelinux.org/archive/acf-asterisk/acf-asterisk-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-asterisk/-/archive/v$pkgver/acf-asterisk-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
-
 	make DESTDIR="$pkgdir" install
-
 }
 
-md5sums="316e50415c7dfb1a6f0cdc1386b4f56f  acf-asterisk-0.7.0.tar.xz"
-sha256sums="46705e129eaf1f6fecfce875cdf082a3e61c12a61c7aed924476a95430884f10  acf-asterisk-0.7.0.tar.xz"
-sha512sums="40542c60ea2fa3b3c96fd310bf710d754c98f7da511180e685d1861482adb0500d1f80fcdc23878383b6d528f969751f2c28b2cdac17eea000b314867bc3f1f2  acf-asterisk-0.7.0.tar.xz"
+sha512sums="
+3d70b64d2bcf43b36d9cbd77f584a8c3abd71f72e336afa5c42c17d9a7d06d9dcc56c7231d515c178f41e1af2e499f99be5c18c42add4a7bb5179ef4ce00de6d  acf-asterisk-v0.7.0.tar.gz
+"

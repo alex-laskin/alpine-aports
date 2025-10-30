@@ -30,9 +30,13 @@ if [ -z "$rel" ]; then
 fi
 
 arch=$(abuild -A)
+if [ -z "$arch" ]; then
+	log "failed to determine arch"
+	printf "%s: could not determine arch" "$(date -Iseconds)" >>/tmp/aports-build.log
+	exit 1
+fi
 
 aports=${APORTS:-$HOME/aports}
-isodir=$HOME/alpine-iso
 packages=${REPOSDIR:-$HOME/packages}
 releasedir="$packages/releases/$arch"
 repos=${REPOS:-"main community testing"}
@@ -48,7 +52,7 @@ upload_iso="$upload_prefix/$rel/releases/$arch/"
 : ${status_msg:="mosquitto_pub -h $mqtt_broker -t build/$hostname -r -m"}
 : ${upload_msg:="mosquitto_pub -h $mqtt_broker -t rsync/$upload_host/$rel/$arch -m"}
 : ${logdir:="/var/cache/distfiles/buildlogs"}
-: ${logurlprefix:="http://build.alpinelinux.org/buildlogs"}
+: ${logurlprefix:="https://build.alpinelinux.org/buildlogs"}
 
 log() {
 	echo "$hostname: $@"
@@ -59,27 +63,54 @@ log() {
 create_release() {
 	local release="$1"
 	local release_deps="abuild apk-tools alpine-conf busybox fakeroot
-		xorriso rsync openssh-client squashfs-tools acct mkinitfs
+		xorriso rsync squashfs-tools acct mkinitfs
 		mtools"
 	case "$arch" in
-	aarch64|arm*) release_deps="$release_deps mtools grub-efi";;
-	x86*) release_deps="$release_deps syslinux mtools grub-efi";;
+	aarch64|arm*|loongarch64|riscv64) release_deps="$release_deps sfdisk dosfstools grub-efi";;
+	x86*) release_deps="$release_deps syslinux grub-efi";;
 	ppc64le) release_deps="$release_deps grub grub-ieee1275";;
+	s390x) release_deps="$release_deps s390-tools";;
 	esac
 
+	log "creating $release release"
 	cd "$aports"
 	abuild-apk add --virtual .alpine-release-deps $release_deps
-	sh scripts/mkimage.sh --repository $packages/main --yaml \
-		--tag "$release" --outdir $releasedir || return 1
+	(
+	if [ "$rel" = "edge" ]; then
+		sh scripts/mkimage.sh --repository $packages/main --yaml \
+			--tag "$release" --outdir $releasedir --profile "minirootfs netboot" \
+			|| return 1
+	else
+		sh scripts/mkimage.sh --repository $packages/main --yaml \
+			--tag "$release" --outdir $releasedir || return 1
+	fi
 
 	if $use_network; then
-		ssh $upload_host mkdir -p "${upload_iso#${upload_host}:}"
-		rsync -ruva "$releasedir"/* "$upload_iso" || return 1
+		log "uploading $release release"
+		rsync --archive \
+			--update \
+			--verbose \
+			--mkpath \
+			$rsync_opts \
+			"$releasedir"/* "$upload_iso" || return 1
 	fi
+	)
+	local rc=$?
 	abuild-apk del .alpine-release-deps
+	return $rc
 }
 
 build() {
+	# before starting a build cycle, we might have some stale deps that weren't
+	# removed from the previous run. this happens if buildrepo/abuild crash for
+	# some reason, builders crash, network goes offline and a rare hang in buildrepo
+	# happens (and then it gets killed), ..
+	# clean up the environment before starting. this should always make it consistent, because:
+	# - abuild cleans up after each build
+	# - if it doesn't, that means it crashed, which means buildrepo failed too (unless keep-going is set, but it's not by default)
+	# - so, buildrepo is started again, and prunes the deps, ..
+	# hence, no build should have stale makedepends installed with just this deletion at the start.
+	abuild-apk del .makedepends\*
 	( $buildrepo "$@" || echo "FAIL" ) | while read line; do
 		case "$line" in
 		FAIL) return 1;;
@@ -128,6 +159,12 @@ while true; do
 		log "$_old_tag -> $_current_tag"
 		do_release=true
 	fi
+
+	# don't create release candidates on edge
+	if [ "$rel" = "edge" ] && [ "${_current_tag%_rc*}" != "$_current_tag" ]; then
+		do_release=false
+	fi
+
 	if [ "$_old" = "$_current" ] && [ -f /tmp/uploaded ] && [ -z "$force" ] && [ "$_current_tag" = "$_old_tag" ]; then
 		break
 	fi
@@ -162,7 +199,7 @@ while true; do
 
 		# upgrade our running system
 		log "upgrading system"
-		sudo apk upgrade -U -a --quiet || log 'failed to apk upgrade'
+		abuild-apk upgrade -U -a --quiet || log 'failed to apk upgrade'
 
 		# copy for distribution
 		cd "$packages" || return 1
@@ -172,7 +209,13 @@ while true; do
 
 		log "uploading packages to $repo"
 		$use_network && for i in $upload_pkg; do
-			rsync -rui --delete-delay --delay-updates \
+			rsync --recursive \
+				--update \
+				--itemize-changes \
+				--delete-delay \
+				--delay-updates \
+				--mkpath \
+				$rsync_opts \
 				$repo/$arch $i/$repo/ > /tmp/upload-$repo
 			if [ $? -ne 0 ]; then
 				rc=1
@@ -181,7 +224,7 @@ while true; do
 			fi
 		done
 	done
-	[ $rc -eq 0 ] && touch /tmp/uploaded && sudo apk update
+	[ $rc -eq 0 ] && touch /tmp/uploaded && abuild-apk update
 
 	if $do_release && create_release ${_current_tag#v}; then
 		$upload_msg "$rel/releases/$arch"

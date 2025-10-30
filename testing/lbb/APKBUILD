@@ -1,0 +1,34 @@
+# Contributor: Sean E. Russell <ser@ser1.net>
+# Maintainer: Sean E. Russell <ser@ser1.net>
+pkgname=lbb
+pkgver=0.10.2
+pkgrel=1
+pkgdesc="lbb is a CLI address book application for CardDAV servers and vcard directries."
+url="https://git.sr.ht/~ser/lbb"
+arch="all"
+license="GPL-3.0-or-later"
+makedepends="go"
+subpackages="$pkgname-doc"
+options="net"
+source="$pkgname-$pkgver.tar.gz::https://git.sr.ht/~ser/lbb/archive/v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
+
+build() {
+	go build -ldflags "-X main.Version=v$pkgver" -v .
+}
+
+check() {
+	[ "$(./lbb version)" = "lbb v$pkgver" ]
+}
+
+package() {
+	install -Dm755 lbb -t "$pkgdir"/usr/bin/
+	install -Dm644 LICENSE -t "$pkgdir"/usr/share/licenses/"$pkgname"/
+	install -Dm644 README.md -t "$pkgdir"/usr/share/doc/"$pkgname"/
+	install -Dm644 CHANGELOG.md -t "$pkgdir"/usr/share/doc/"$pkgname"/
+	install -Dm644 config-sample.json -t "$pkgdir"/usr/share/doc/"$pkgname"/
+}
+
+sha512sums="
+2e0db757406a674bb3509ddef5d030d85f3a91afdace12abb9a5ff356c2fcdd2bd793dbf6d6dab7a62c214015e831d2b517ce9ebcd591aed865a1b82408c7c55  lbb-0.10.2.tar.gz
+"

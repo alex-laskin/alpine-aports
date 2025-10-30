@@ -1,52 +1,68 @@
 # Contributor: Timo Teräs <timo.teras@iki.fi>
-# Maintainer: Timo Teräs <timo.teras@iki.fi>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=bubblewrap
-pkgver=0.2.0
-pkgrel=1
+pkgver=0.11.0
+pkgrel=2
 pkgdesc="Unprivileged sandboxing tool"
-url="https://github.com/projectatomic/bubblewrap"
+url="https://github.com/containers/bubblewrap"
 arch="all"
 license="LGPL-2.0-or-later"
-options="!check suid"
-makedepends="autoconf automake libcap-dev docbook-xsl"
-subpackages="$pkgname-doc $pkgname-bash-completion:bashcomp:noarch"
-source="bubblewrap-$pkgver.tar.gz::https://github.com/projectatomic/bubblewrap/archive/v$pkgver.tar.gz
-	realpath-workaround.patch musl-fixes.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+options="!check" # Testsuite fails
+makedepends="
+	docbook-xsl
+	libcap-dev
+	libcap-static
+	muon
+	"
+checkdepends="bash"
+subpackages="
+	$pkgname-static
+	$pkgname-doc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/containers/bubblewrap/archive/v$pkgver.tar.gz
+	python-for-tests.patch
+	"
 
-prepare() {
-	cd "$builddir"
-	NOCONFIGURE=1 ./autogen.sh
-	default_prepare
-}
+# secfixes:
+#   0.10.0-r0:
+#     - CVE-2024-42472
+#   0.4.1-r0:
+#     - CVE-2020-5291
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--localstatedir=/var \
-		--with-priv-mode=setuid
-	make
+	abuild-muon \
+		-Drequire_userns=true \
+		-Dman=disabled \
+		-Dtests=false \
+		-Dc_link_args="$LDFLAGS -static" \
+		-Dprefer_static=true \
+		output-static
+	ninja -C output-static
+
+	abuild-muon \
+		-Drequire_userns=true \
+		-Dman=enabled \
+		-Dtests="$(want_check && echo true || echo false)" \
+		output
+	ninja -C output
 }
 
 package() {
-	cd "$builddir"
-	make install DESTDIR="$pkgdir"
+	DESTDIR="$pkgdir" muon -C output install
 }
 
-bashcomp() {
-	pkgdesc="Bash completions for $pkgname"
+static() {
+	pkgdesc="$pkgdesc (static binary)"
 	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
 
-	mkdir -p "$subpkgdir"/usr/share/
-	mv "$pkgdir"/usr/share/bash-completion/ "$subpkgdir"/usr/share/
+	install -Dvm755 "$builddir"/output-static/bwrap \
+		"$subpkgdir"/usr/bin/bwrap.static
 }
 
-sha512sums="746f10cd9f9852ca4679d589357402ec10c352e02f77384844a4657fd9b2952189a3299319fbefedd35358d39fd16ded63cc3db95041ed2091548183786b8b63  bubblewrap-0.2.0.tar.gz
-7e8395aa7801263056b0c072194240f0ae1ee1a3b0acd874baf112a7b7b5e53ac5f688ece9099067bfc1e28e52e81f107964a3288a615cc1eedb1af5f82bbd8e  realpath-workaround.patch
-f59cda3b09dd99db9ca6d97099a15bb2523e054063d677502317ae3165ba2e32105a0ae8f877afc3827bd28d093c9d9d413270f4c87d9fe5f26f3eee670d916e  musl-fixes.patch"
+sha512sums="
+3a8aaea0cd588271d42d140914c40ac38c2ee6dedea6f543d51f35894b64b0a3b625e8bd812de02c967f10e7d691528fc918d02d99a74117b095303900cebfb9  bubblewrap-0.11.0.tar.gz
+b8a4b212823f8f24011b45250b090961526fbf7c7448088725310212cfdfe30a8f819858cd4d714e22d6b501b870dcbfe22a5758ee5a86160d765a887605a566  python-for-tests.patch
+"

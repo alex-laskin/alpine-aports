@@ -2,24 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-dovecot
 pkgver=0.6.0
-pkgrel=2
-pkgdesc="A web-based system administration interface for dovecot"
-url="https://git.alpinelinux.org/cgit/acf/acf-dovecot"
+pkgrel=4
+pkgdesc="Web-based system administration interface for dovecot"
+url="https://gitlab.alpinelinux.org/acf/acf-dovecot"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core dovecot"
-makedepends=""
-install=
-subpackages=""
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-dovecot/-/archive/v$pkgver/acf-dovecot-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
-
 	make DESTDIR="$pkgdir" install
-
 }
 
-md5sums="2aa3f4edad67194be82df99ef679fd1f  acf-dovecot-0.6.0.tar.xz"
-sha256sums="61a07ba9bef635c232a01acc02e0ca8c7788daa8ef420795ce7857438b449bc6  acf-dovecot-0.6.0.tar.xz"
-sha512sums="7838987e88505d1c8f929088e4e05e6f5161a01d55fe9892b0e10f4e9b850981423e2fff93053d21b18d3e4384bbdbe7912b7a155af0eae4afc4c61517a7abd8  acf-dovecot-0.6.0.tar.xz"
+sha512sums="
+902ff6e913e767f1debddc820aa9b4f325c20e130286153f2bf642d19348ce258802516bafebbf81a33077f50d981f4fc9ff9ad21eeb495d7967e7e54f01e054  acf-dovecot-v0.6.0.tar.gz
+"

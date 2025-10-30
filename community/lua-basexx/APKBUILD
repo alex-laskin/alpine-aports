@@ -2,32 +2,28 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=lua-basexx
 _pkgname=basexx
-pkgver=0.4.0
-pkgrel=1
+pkgver=0.4.1
+pkgrel=2
 pkgdesc="A Lua library for base2, base16, base32, base64, base85 decoding and encoding of data strings"
 url="https://github.com/aiq/basexx/"
 arch="noarch"
 license="MIT"
 checkdepends="lua-busted"
-subpackages=""
 source="$pkgname-$pkgver.tar.gz::https://github.com/aiq/$_pkgname/archive/v$pkgver.tar.gz"
 builddir="$srcdir/$_pkgname-$pkgver"
 
-# luajit is not available for selected arches
 case "$CARCH" in
-	s390x) _luajit="";;
-	*) checkdepends="$checkdepends luajit" _luajit="jit";;
+ppc64le|riscv64|loongarch64) _luajit="" ;;
+*) checkdepends="$checkdepends luajit"; _luajit="jit" ;;
 esac
 
-_luaversions="5.1 5.2 5.3"
+_luaversions="5.1 5.2 5.3 5.4"
 for _v in $_luaversions; do
 	subpackages="$subpackages lua$_v-${pkgname#lua-}:_subpackage"
 	checkdepends="$checkdepends lua$_v lua$_v-busted"
 done
 
 check() {
-	cd "$builddir"
-
 	local lver; for lver in $_luaversions $_luajit; do
 		msg "Testing on lua$lver"
 		lua$lver /usr/bin/busted
@@ -54,4 +50,6 @@ _subpackage() {
 	echo 'rock_manifest = {}' > "$rockdir"/rock_manifest
 }
 
-sha512sums="96f8e5417357cc11019ae32895f685e74182d8ea64923fb124122257eda0ad64eb6da17f0f40448f688bfa3f36ebcad70a5ae159f088ac91785ec17cb1a674bd  lua-basexx-0.4.0.tar.gz"
+sha512sums="
+b52ac9573196129e5af3f6d4fdc69b26d77ed3c114cf95c3dc46aa58e5f288a3212a91e8ee48257609607a71088c24205ca79c5512f077a6e9cef6ad7f136ba0  lua-basexx-0.4.1.tar.gz
+"

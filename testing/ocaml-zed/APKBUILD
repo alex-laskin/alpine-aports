@@ -1,54 +1,83 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
-# Maintainer: Jakub Jirutka <jakub@jirutka.cz>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=ocaml-zed
 _pkgname=zed
-pkgver=1.6
-pkgrel=1
+pkgver=3.1.0
+pkgrel=3
 pkgdesc="Abstract engine for text edition in OCaml"
-url="https://github.com/diml/zed"
-# x86, armhf, s390x: limited by ocaml aport
-arch="all !x86 !armhf !s390x"
+url="https://github.com/ocaml-community/zed"
+arch="all !riscv64 !loongarch64" # ocaml
 license="BSD-3-Clause"
-depends="ocaml-runtime"
-makedepends="dune ocaml ocaml-compiler-libs ocaml-camomile-dev ocaml-findlib
-	ocaml-react-dev opam"
+depends_dev="
+	$pkgname=$pkgver-r$pkgrel
+	ocaml-camomile-dev
+	ocaml-charinfo_width-dev
+	ocaml-react-dev
+	"
+makedepends="$depends_dev dune ocaml"
 options="!check"  # no tests provided
 subpackages="$pkgname-dev"
-source="$pkgname-$pkgver.tar.bz2::https://github.com/diml/$_pkgname/releases/download/$pkgver/$_pkgname-$pkgver.tbz"
+source="$pkgname-$pkgver.tar.gz::https://github.com/ocaml-community/zed/archive/$pkgver.tar.gz
+	use-built-in-result-lib.patch
+	"
 builddir="$srcdir/$_pkgname-$pkgver"
+_ocamldir=usr/lib/ocaml
+
+# 32-bit archs
+case "$CARCH" in
+	arm*|x86) options="$options textrels" ;;
+esac
 
 build() {
-	cd "$builddir"
-	jbuilder build @install
+	dune build --release --verbose
 }
 
 package() {
-	cd "$builddir"
-
-	mkdir -p "$pkgdir"/usr/lib/ocaml
-	jbuilder install \
-		--destdir="$pkgdir/usr" \
-		--libdir="$pkgdir/usr/lib/ocaml"
-
-	cd "$pkgdir"
-
-	# There's just a readme and changelog.
-	rm -Rf usr/doc
-
-	# Remove annotation files and sources.
-	rm -Rf usr/lib/ocaml/$_pkgname/*.cmt*
-	rm -Rf usr/lib/ocaml/$_pkgname/*.ml
+	dune install \
+		--destdir="$pkgdir" \
+		--docdir=/.omit
+	rm -Rf "$pkgdir"/.omit
 }
 
 dev() {
 	default_dev
-	depends="$pkgname=$pkgver-r$pkgrel"
-	local sitelib="usr/lib/ocaml/$_pkgname"
 
-	cd "$pkgdir"/$sitelib
+	cd "$pkgdir"
 
-	mkdir -p "$subpkgdir"/$sitelib
-	mv *.cmx *.cmxa *.mli "$subpkgdir"/$sitelib/
+	local path; find $_ocamldir \( \
+			-name '*.cmt' -o \
+			-name '*.cmti' -o \
+			-name '*.ml' -o \
+			-name '*.mli' \
+		\) | while read -r path
+	do
+		amove "$path"
+	done
 }
 
-sha512sums="e2fa279697a4d01431a7108c07bcbfcebb50ec175da2da5f460ce5d5241f6695e868b49dcdb2c7c944c3a38be891e1f9a97477384cb3663d5615b9a71de357dd  ocaml-zed-1.6.tar.bz2"
+prepare_py_provides() {
+	local datadir="${subpkgdir:-$pkgdir}"
+	local pkgbasedir=${pkgbasedir:-"$startdir/pkg"}
+	local controldir="$pkgbasedir"/.control.${subpkgname:-$pkgname}
+
+	options_has "!tracedeps" && return 0
+
+	ocaml4-abuild-find provides \
+		"$datadir"/usr/lib/ocaml \
+		"$controldir" \
+		"$pkgver-r$pkgrel"
+}
+
+scan_python3_dependency() {
+	local controldir="$2" datadir="$3"
+
+	ocaml4-abuild-find requires \
+		"$datadir"/usr/lib/ocaml \
+		"$controldir"
+}
+
+sha512sums="
+d4457af15f970adb7b1ed543017e590fa0ecc47171d6dd520a1397f21ce0219caa30a9db7bedb76c0602d4f6d0f0684012cc33feafe18b848d3261a460dea10a  ocaml-zed-3.1.0.tar.gz
+03655451e382d7539589ef80a97e1e16edb6f269bbf95b5997c334f08dad0332807588dc9cb5b1e4aebee64c88fcd8d1d5015bdec044093dff19bbffa84b3b53  use-built-in-result-lib.patch
+"

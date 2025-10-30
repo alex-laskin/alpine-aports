@@ -1,33 +1,28 @@
 # Contributor: Michael Mason <ms13sp@gmail.com>
-# Maintainer:  Michael Mason <ms13sp@gmail.com>
+# Maintainer: Michael Mason <ms13sp@gmail.com>
 pkgname=perl-net-rblclient
-_realname=Net-RBLClient
+_pkgreal=Net-RBLClient
 pkgver=0.5
-pkgrel=3
+pkgrel=8
 pkgdesc="Queries multiple Realtime Blackhole Lists in parallel"
-url="http://search.cpan.org/dist/Net-RBLClient/"
+url="https://metacpan.org/release/Net-RBLClient/"
 arch="noarch"
-license="Artistic GPL-2.0"
+license="Artistic-1.0-Perl OR GPL-1.0-or-later"
 depends="perl"
-makedepends="perl-dev"
-install=
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/A/AB/ABLUM/$_realname-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/A/AB/ABLUM/Net-RBLClient-$pkgver.tar.gz"
 builddir="$srcdir/RBLCLient-$pkgver"
 
 build() {
-	cd "$builddir"
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$srcdir/RBLCLient-$pkgver"
 	make DESTDIR="$pkgdir" install
 	# creates file collision among perl modules
 	find "$pkgdir" -name perllocal.pod -delete

@@ -1,139 +1,249 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
+# Contributor: Pedro Filipe <xpecex@outlook.com>
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
-# Maintainer: William Pitcock <nenolod@dereferenced.org>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
+# Contributor: Antoine Fontaine <antoine.fontaine@epfl.ch>
+# Contributor: Krassy Boykinov <kboykinov@teamcentrixx.com>
+# Maintainer: Pablo Correa Gomez <pabloyoyoista@postmarketos.org>
 pkgname=pulseaudio
-pkgver=9.0
+pkgver=17.0
 pkgrel=5
-pkgdesc="A featureful, general-purpose sound server"
-url="http://www.freedesktop.org/wiki/Software/PulseAudio"
-arch="all !s390x"
-license="LGPL"
-makedepends="m4 automake libtool intltool bash
-	dbus-dev libcap-dev alsa-lib-dev bluez-dev speexdsp-dev avahi-dev libressl-dev eudev-dev
-	libsndfile-dev gtk+3.0-dev json-c-dev fftw-dev gconf-dev sbc-dev jack-dev"
-install=""
-subpackages="$pkgname-dev $pkgname-doc $pkgname-libs $pkgname-bluez
-	$pkgname-alsa $pkgname-utils $pkgname-jack $pkgname-zeroconf $pkgname-system
-	$pkgname-bash-completion:bashcomp $pkgname-zsh-completion:zshcomp"
-source="http://freedesktop.org/software/pulseaudio/releases/pulseaudio-$pkgver.tar.xz
-	0001-padsp-Make-it-compile-on-musl.patch
+pkgdesc="featureful, general-purpose sound server"
+provider_priority=10
+url="https://www.freedesktop.org/wiki/Software/PulseAudio/"
+arch="all"
+license="LGPL-2.1-or-later"
+makedepends="
+	meson
+	tdb-dev
+	alsa-lib-dev
+	libasyncns-dev
+	dbus-dev
+	glib-dev
+	gtk+3.0-dev
+	orc-dev
+	orc-compiler
+	libsndfile-dev
+	soxr-dev
+	libx11-dev
+	libxcb-dev
+	libice-dev
+	libsm-dev
+	libxtst-dev
+	avahi-dev
+	sbc-dev
+	fftw-dev
+	jack-dev
+	openssl-dev>3
+	speexdsp-dev
+	eudev-dev
+	libcap-dev
+	bluez-dev
+	check-dev
+	libtool
+	perl
+	perl-xml-parser
+	m4
+	gstreamer-dev
+	gst-plugins-base-dev
+	"
+depends_openrc="alsa-utils alsa-utils-openrc"
+subpackages="
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-bluez
+	libpulse-mainloop-glib:_libpulse_mainloop_glib
+	$pkgname-alsa
+	$pkgname-utils
+	$pkgname-jack
+	$pkgname-zeroconf
+	$pkgname-openrc
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	$pkgname-lang
+	$pkgname-equalizer
+	$pkgname-wireplumber
+	libpulse:_libpulse
+	"
+install="pulseaudio.post-install"
+source="https://www.freedesktop.org/software/pulseaudio/releases/pulseaudio-$pkgver.tar.xz
+	51-pulseaudio.conf
+	link-libintl.patch
+	remove-once-test.patch
+	volume-tests-fix.patch
+	alsa-ucm-assert-1.patch
+	alsa-ucm-assert-2.patch
 	$pkgname.initd
-	$pkgname.confd"
+	$pkgname.confd
+	"
 
-builddir="$srcdir"/$pkgname-$pkgver
+case "$CARCH" in
+	ppc64le|s390x)
+		_webrtc_aec="disabled" # webrtc-audio-processing-1 not available
+		;;
+	*)
+		makedepends="$makedepends webrtc-audio-processing-1-dev"
+		_webrtc_aec="enabled"
+		;;
+esac
+
+prepare() {
+	default_prepare
+
+	sed "s|sysconfdir, 'dbus-1'|datadir, 'dbus-1'|" \
+		-i src/daemon/meson.build
+}
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var \
-		--enable-bluez5 \
-		--disable-bluez4 \
-		--disable-nls \
-		--disable-orc \
-		|| return 1
-	make || return 1
+	abuild-meson \
+		-Db_lto=true \
+		-Dgcov=false \
+		-Dman=true \
+		-Dtests="$(want_check && echo true || echo false)" \
+		-Dsystem_user=pulse \
+		-Dsystem_group=pulse \
+		-Ddatabase=tdb \
+		-Dalsa=enabled \
+		-Dasyncns=enabled \
+		-Davahi=enabled \
+		-Dbluez5=enabled \
+		-Ddbus=enabled \
+		-Dfftw=enabled \
+		-Dglib=enabled \
+		-Dgsettings=enabled \
+		-Dgtk=enabled \
+		-Dhal-compat=false \
+		-Dipv6=true \
+		-Djack=enabled \
+		-Dlirc=disabled \
+		-Dopenssl=enabled \
+		-Dorc=enabled \
+		-Dsamplerate=disabled \
+		-Dsoxr=enabled \
+		-Dspeex=enabled \
+		-Dsystemd=disabled \
+		-Dudev=enabled \
+		-Dx11=enabled \
+		-Dudevrulesdir=/usr/lib/udev/rules.d \
+		-Dgstreamer=enabled \
+		-Dwebrtc-aec="$_webrtc_aec" \
+		-Ddoxygen=false \
+		-Dstream-restore-clear-old-devices=true \
+		. output
+	meson compile -C output
+}
+
+check() {
+	XDG_RUNTIME_DIR="$(mktemp -d)" \
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir" install || return 1
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	install -Dm755 "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
+	install -Dm644 "$srcdir"/$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
+
+	# Assumes that any volume adjustment is intended by the user, who can control
+	# each app's volume. Misbehaving clients can trigger earsplitting volume
+	# jumps. App volumes can diverge wildly and cause apps without their own
+	# volume control to fall below sink volume; a sink-only volume control will
+	# suddenly be unable to make such an app loud enough.
+	sed '/flat-volumes/iflat-volumes = no' -i "$pkgdir"/etc/pulse/daemon.conf
+
+	# Disable cork-request module, can result in e.g. media players unpausing
+	# when there's a Skype call incoming
+	sed 's|/usr/bin/pactl load-module module-x11-cork-request|#&|' \
+		-i "$pkgdir"/usr/bin/start-pulseaudio-x11
+
+	# Required by qpaeq
+	sed '/Load several protocols/aload-module module-dbus-protocol' \
+		-i "$pkgdir"/etc/pulse/default.pa
 }
 
-system() {
-	arch="noarch"
-	depends="$pkgname"
-	pkgdesc="Pulseaudio system-wide init scripts"
-	install -D -m755 "$srcdir"/$pkgname.initd \
-		"$subpkgdir"/etc/init.d/$pkgname || return 1
-	install -D -m644 "$srcdir"/$pkgname.confd \
-		"$subpkgdir"/etc/conf.d/$pkgname || return 1
-	mv "$pkgdir"/etc/dbus-1 "$subpkgdir"/etc
+openrc() {
+	replaces="$pkgname-system" # Backward compatibility
+	default_openrc
 }
 
-libs() {
+_libpulse() {
 	pkgdesc="Pulseaudio libraries"
-	mkdir -p "$subpkgdir"/usr/lib \
-		"$subpkgdir"/etc/pulse || return 1
-	mv "$pkgdir"/usr/lib/pulseaudio \
-		"$subpkgdir"/usr/lib/ || return 1
-	mv "$pkgdir"/usr/lib/libpulse.so.0* \
-		"$pkgdir"/usr/lib/libpulse-simple.so.0* \
-		"$subpkgdir"/usr/lib/ || return 1
-	mv "$pkgdir"/etc/pulse/client.conf \
-		"$subpkgdir"/etc/pulse/ || return 1
+	replaces="$pkgname-libs"
+
+	amove usr/lib/pulseaudio/libpulse*
+	amove usr/lib/libpulse.so.0*
+	amove usr/lib/libpulse-simple.so.0*
+	amove etc/pulse/client.conf
+}
+
+_libpulse_mainloop_glib() {
+	pkgdesc="Pulseaudio mainloop-glib library"
+
+	amove usr/lib/libpulse-mainloop-glib.so.*
 }
 
 bluez() {
-	pkgdesc="Pulseaudio bluetooth support"
-	mkdir -p "$subpkgdir"/usr/lib/pulse-$pkgver/modules
-	mv "$pkgdir"/usr/lib/pulse-$pkgver/modules/*bluez*.so \
-		"$pkgdir"/usr/lib/pulse-$pkgver/modules/*bluetooth*.so \
-		"$subpkgdir"/usr/lib/pulse-$pkgver/modules/ || return 1
+	pkgdesc="Pulseaudio Bluetooth support"
+	install_if="$pkgname=$pkgver-r$pkgrel bluez"
+	provider_priority=10  # highest (other provider is pipewire-pulse)
+
+	amove usr/lib/pulseaudio/modules/*bluez*.so
+	amove usr/lib/pulseaudio/modules/*bluetooth*.so
 }
 
 alsa() {
-	pkgdesc="Pulseaudio alsa support"
-	mkdir -p "$subpkgdir"/usr/lib/pulse-$pkgver/modules
-	mv "$pkgdir"/usr/lib/pulse-$pkgver/modules/*alsa*.so \
-		"$subpkgdir"/usr/lib/pulse-$pkgver/modules/ || return 1
+	pkgdesc="Pulseaudio ALSA support"
+	install_if="$pkgname=$pkgver-r$pkgrel alsa-lib"
+
+	amove usr/lib/pulseaudio/modules/*alsa*.so
 }
 
 utils() {
 	pkgdesc="Pulseaudio utilities"
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/pa* \
-		"$pkgdir"/usr/bin/esdcompat \
-		"$subpkgdir"/usr/bin/ || return 1
+
+	amove usr/bin/pa*
+	amove usr/bin/start-pulseaudio-x11
 }
 
 jack() {
-	pkgdesc="Pulseaudio jack support"
-	mkdir -p "$subpkgdir"/usr/lib/pulse-$pkgver/modules
-	mv "$pkgdir"/usr/lib/pulse-$pkgver/modules/*jack*.so \
-		"$subpkgdir"/usr/lib/pulse-$pkgver/modules/ || return 1
+	pkgdesc="Pulseaudio JACK support"
+
+	amove usr/lib/pulseaudio/modules/*jack*.so
 }
 
 zeroconf() {
-	pkgdesc="Pulseaudio zeroconf support"
-	mkdir -p "$subpkgdir"/usr/lib/pulse-$pkgver/modules
-	mv "$pkgdir"/usr/lib/pulse-$pkgver/modules/*avahi*.so \
-		"$pkgdir"/usr/lib/pulse-$pkgver/modules/*zeroconf*.so \
-		"$pkgdir"/usr/lib/pulse-$pkgver/modules/*raop*.so \
-		"$subpkgdir"/usr/lib/pulse-$pkgver/modules/ || return 1
+	pkgdesc="Pulseaudio Zeroconf support"
+	depends="avahi"
+
+	amove usr/lib/pulseaudio/modules/*avahi*.so
+	amove usr/lib/pulseaudio/modules/*zeroconf*.so
+	amove usr/lib/pulseaudio/modules/*raop*.so
 }
 
-bashcomp() {
-	pkgdesc="Bash completion for $pkgname"
-	arch="noarch"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
-	install -dm755 "$subpkgdir"/usr/share || return 1
-	mv "$pkgdir"/usr/share/bash-completion "$subpkgdir"/usr/share
+equalizer() {
+	pkgdesc="Equalizer for $pkgname"
+	depends="pulseaudio=$pkgver-r$pkgrel py3-qt5 py3-dbus"
+
+	amove usr/bin/qpaeq
+	amove usr/lib/pulseaudio/modules/module-equalizer-sink.so
 }
 
-zshcomp() {
-	pkgdesc="Zsh completion for $pkgname"
-	arch="noarch"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel zsh"
-	install -dm755 "$subpkgdir"/usr/share || return 1
-	mv "$pkgdir"/usr/share/zsh "$subpkgdir"/usr/share
+wireplumber() {
+	pkgdesc="Wireplumber config to avoid it taking over audio"
+	install_if="$pkgname=$pkgver-r$pkgrel wireplumber"
+
+	install -Dm644 "$srcdir"/51-pulseaudio.conf \
+		-t "$subpkgdir"/usr/share/wireplumber/wireplumber.conf.d
 }
 
-md5sums="da7162541b3a9bc20576dbd0d7d1489a  pulseaudio-9.0.tar.xz
-9c04ae15da7464e3d0003840b9025eed  0001-padsp-Make-it-compile-on-musl.patch
-884cb9a843361844904e8c85542e72fb  pulseaudio.initd
-bf7487ba2c48fc8a56bca41c97a18934  pulseaudio.confd"
-sha256sums="c3d3d66b827f18fbe903fe3df647013f09fc1e2191c035be1ee2d82a9e404686  pulseaudio-9.0.tar.xz
-bfa722e400ba820ee7013ceb050058b4e239b1ea8544be23767ceb70ee0bc332  0001-padsp-Make-it-compile-on-musl.patch
-bbd37d052962ddbf6ae633e4e3896da292d3e916a9123558a9b973096dda842d  pulseaudio.initd
-c03661e8cc902d27ff6b52f291207f2b008957571b942abdd92a873a52aae0dd  pulseaudio.confd"
-sha512sums="2177d4ab2ab7ded43d6eb5ece763504bdd614f9bdc27ab007894f8f7eed3fd0006a5b7550e5fd099d1877423524bc2baa22775372c8cefd9b772c28134d3e55a  pulseaudio-9.0.tar.xz
-25b648681d9397631138635c024b5c6e289e32f11bf222afe4d853f62501555b5d75cc9058023d24ab8f97e442bcb37a647667e01582539d146762912a8ce08e  0001-padsp-Make-it-compile-on-musl.patch
-34fe54ece5df60ce63a7955cd828a2716670fef71f40960698ae5518fdaf9cd599f4d8f8852e2c88d715600a9ad06a38984415e5eb320071012e5eb6e5c1b8b1  pulseaudio.initd
-75b54581591519d63a3362b155c0f9b0501a60763ab394693a456c44d0216138cf3a40bdd0f7442028663bc045e9ffee286f8f8eaf2ee3bb17379b43615fee0e  pulseaudio.confd"
+sha512sums="
+be0aec46204d9c9188a796fbe41b4cf6f0f5e6b16fa08ce359b8f0f51253f0ade364b89448bbf5faa2af7e59deb6c72194734c3233944250dcfd4f31968a5e97  pulseaudio-17.0.tar.xz
+ebb7700018cf64fe6dcb747365cd2fb816deb6e06e7368af779284b51b1f0749e24f8e70b0b72fa6bff4178a02af934f728c3b115c8c1f77aa1a3490879af731  51-pulseaudio.conf
+2c31c5bc592e748248215f8f62f85687cfec230b05f65441e6dafa5fa77d4967e97636209b2011a4501ed1337ecd880b264baa175586fc85183a980846cb8146  link-libintl.patch
+c1223cf42538d91f31dbcb1a167537a1d3b6e8a3bf1b454cdebf95c25ca6f3b444848e9d546f092988851f71fe2c9dd9c4a781a58795e2f57d98563963a4630a  remove-once-test.patch
+835b7b6273bf23a71d2ca21500fe734fc44f4011c1625c1e55ec4addb690249cd0d6188617ff996d0a79e69c995f574f5e3d32dd929805721d1bba9dcefa41a9  volume-tests-fix.patch
+3bd3fd600042e851c54b0d1299803552cdc61dbded2122afeafa649958262b9739dff229100cd306cadb6b5dfe979153312d6758dc1f4bd261f39742a501c533  alsa-ucm-assert-1.patch
+5871cb4a3ed4a9232462a8d8f77a610fc8ff6aef3e7a85fa19e4e8c27383beb8be063c1c587cdafa9bd8e37eb6d6cd7d81c80c133b086386689850f8d2d8c97f  alsa-ucm-assert-2.patch
+a2cc31f830f35bdfb0e32eea663d2f86997acef6343154fcea295ae10058ba06561014ac81c81d658619e59bd679e7a6b00d3a4f35dc2f4a737397551d95ab78  pulseaudio.initd
+75b54581591519d63a3362b155c0f9b0501a60763ab394693a456c44d0216138cf3a40bdd0f7442028663bc045e9ffee286f8f8eaf2ee3bb17379b43615fee0e  pulseaudio.confd
+"

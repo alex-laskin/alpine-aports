@@ -1,8 +1,8 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=ruby-multi_json
 _gemname=${pkgname#ruby-}
-pkgver=1.13.1
-pkgrel=0
+pkgver=1.15.0
+pkgrel=5
 pkgdesc="A gem to provide easy switching between different JSON backends"
 url="https://rubygems.org/gems/multi_json"
 arch="noarch"
@@ -14,20 +14,16 @@ builddir="$srcdir/$_gemname-$pkgver"
 prepare() {
 	default_prepare
 
-	cd "$builddir"
 	sed -i '/spec.signing_key/d' $_gemname.gemspec
 }
 
 build() {
-	cd "$builddir"
 	gem build $_gemname.gemspec
 }
 
 package() {
 	local gemdir="$pkgdir/$(ruby -e 'puts Gem.default_dir')"
 	local geminstdir="$gemdir/gems/$_gemname-$pkgver"
-
-	cd "$builddir"
 
 	gem install --local \
 		--install-dir "$gemdir" \
@@ -36,7 +32,10 @@ package() {
 		--verbose \
 		$_gemname
 
-	rm "$geminstdir"/*.md
+	rm -r "$gemdir"/cache \
+		"$gemdir"/build_info \
+		"$gemdir"/doc \
+		"$geminstdir"/*.md
 }
 
-sha512sums="7c98392bd1c909fcc05249a02a010b561bf6c2d812ae42413d6e8dafa62926d8cb76226ded4c61558a00e5fa531ba33b6f4ef562648c52ba9b552ff7b7e27682  ruby-multi_json-1.13.1.tar.gz"
+sha512sums="55c873e45cdc59e75823aa031eb6d792cb9dc744b13a682fc279a8375b925db7a984256d61aa5454795a59722794a774a0ed5b6bf518db253152f4af67f46dea  ruby-multi_json-1.15.0.tar.gz"

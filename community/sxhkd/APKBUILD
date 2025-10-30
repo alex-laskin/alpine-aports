@@ -2,8 +2,8 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: prspkt <prspkt@protonmail.com>
 pkgname=sxhkd
-pkgver=0.5.9
-pkgrel=1
+pkgver=0.6.3
+pkgrel=0
 pkgdesc="Simple X hotkey daemon"
 url="https://github.com/baskerville/sxhkd"
 arch="all"
@@ -11,16 +11,16 @@ license="BSD-2-Clause"
 makedepends="libxcb-dev xcb-util-keysyms-dev"
 subpackages="$pkgname-doc"
 source="$pkgname-$pkgver.tar.gz::https://github.com/baskerville/sxhkd/archive/$pkgver.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+options="!check" # no test suite
 
 build() {
-	cd "$builddir"
 	make PREFIX=/usr
 }
 
 package() {
-	cd "$builddir"
 	make PREFIX=/usr DESTDIR="$pkgdir" install
 }
 
-sha512sums="32ee7261b4fa10d5a62a7fa61e689977d12afd654e81123711bda1f006e4b6baa7524352086037594e6ef1989dd8fcb6eddc1114085ee91546a69f6d1146924e  sxhkd-0.5.9.tar.gz"
+sha512sums="
+219cc8757ecff75075e133fece639bc15cbaa18b893c752ab0682bb0c6dc889929924a61292df2d49ecfe5046a6227792f6b1453477c2066ca25ee284daf2142  sxhkd-0.6.3.tar.gz
+"

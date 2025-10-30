@@ -1,0 +1,83 @@
+# Contributor: George Hopkins <george-hopkins@null.net>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
+pkgname=imhex
+pkgver=1.37.4
+pkgrel=0
+pkgdesc="Hex editor for reverse engineers and programmers"
+url="https://github.com/WerWolv/ImHex"
+# armhf, armv7, x86: 32-bit not supported
+arch="all !armhf !armv7 !x86"
+license="GPL-2.0-or-later"
+options="!check" # No testsuite
+makedepends="
+	capstone-dev
+	cmake
+	curl-dev
+	file-dev
+	fmt-dev
+	freetype-dev
+	glfw-dev
+	glm-dev
+	gtk+3.0-dev
+	libarchive-dev
+	llvm-dev
+	llvm-gtest
+	llvm-static
+	mbedtls-dev
+	nlohmann-json
+	openssl-dev
+	python3-dev
+	samurai
+	yara-dev
+	"
+subpackages="$pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/WerWolv/ImHex/releases/download/v$pkgver/Full.Sources.tar.gz
+	$pkgname-patterns-$pkgver.tar.gz::https://github.com/WerWolv/ImHex-Patterns/archive/refs/tags/ImHex-v$pkgver.tar.gz
+	fix-lfs64.patch
+	no-werror.patch
+	"
+builddir="$srcdir/ImHex"
+
+# don't attempt to trace soname for plugin
+somask="ui.hexpluglib"
+
+prepare() {
+	default_prepare
+
+	mv -v "$srcdir"/ImHex-Patterns-ImHex-v$pkgver/ \
+		ImHex-Patterns
+}
+
+build() {
+	cmake3.5 -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DUSE_SYSTEM_CAPSTONE=ON \
+		-DUSE_SYSTEM_NLOHMANN_JSON=ON \
+		-DUSE_SYSTEM_FMT=ON \
+		-DUSE_SYSTEM_LLVM=ON \
+		-DUSE_SYSTEM_YARA=ON \
+		-DIMHEX_DISABLE_STACKTRACE=ON \
+		-DIMHEX_IGNORE_BAD_CLONE=ON \
+		-DIMHEX_OFFLINE_BUILD=ON \
+		-DIMHEX_STRICT_WARNINGS=OFF \
+		-DIMHEX_STRIP_RELEASE=OFF \
+		-DIMHEX_USE_GTK_FILE_PICKER=ON
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	cd "$pkgdir"
+	rm -vr usr/share/imhex/sdk
+	rm -v usr/bin/imhex-updater
+}
+
+sha512sums="
+07ecc4776f3b82583f1137d1615ab8e73985a550203a127b084c0dfa1e6d7cdae4a558067968c726970c07bcd6fe85fb42302a18ed8b352e789becc5fa113768  imhex-1.37.4.tar.gz
+3d2f0dee58ad1e9261be71247dad41ed4437d65dc01fd37ff8b3a517ebf23e5a1123f51ae84f9c3b911d7c0b0c6044ffb580fc86f869f4c1ec1667a989125911  imhex-patterns-1.37.4.tar.gz
+197153d54cbec932d1acba62a9cae9605a38cf6adc22b52bd7b53ed13a905c26729e1b6d297079c7c7da57e2c6a11a77198b4beef35a58ecc839ca517d1484bb  fix-lfs64.patch
+531dbc5ffffa2933d06d7ff118c032108d18e76030a00c08f83bfe67c23507079facb6d6c6ae4eaa05629a948993ac42c3fd69c2aeaa6d05c5bb89c4d72930dd  no-werror.patch
+"

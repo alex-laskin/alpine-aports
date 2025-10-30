@@ -3,41 +3,33 @@
 pkgname=perl-http-server-simple-psgi
 _pkgreal=HTTP-Server-Simple-PSGI
 pkgver=0.16
-pkgrel=1
+pkgrel=4
 pkgdesc="PSGI handler for HTTP::Server::Simple"
-url="http://search.cpan.org/dist/HTTP-Server-Simple-PSGI/"
+url="https://metacpan.org/release/HTTP-Server-Simple-PSGI/"
 arch="noarch"
-license="GPL PerlArtistic"
-cpandepends="perl-http-server-simple"
-cpanmakedepends=""
-depends="$cpandepends"
-makedepends="perl-dev $cpanmakedepends"
+license="GPL-1.0-or-later OR Artistic-1.0-Perl"
+depends="perl perl-http-server-simple"
 subpackages="$pkgname-doc"
-source="http://search.cpan.org/CPAN/authors/id/M/MI/MIYAGAWA/$_pkgreal-$pkgver.tar.gz"
+source="https://cpan.metacpan.org/authors/id/M/MI/MIYAGAWA/$_pkgreal-$pkgver.tar.gz"
 
 builddir="$srcdir/$_pkgreal-$pkgver"
 
 prepare() {
 	default_prepare
-
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	PERL_MM_USE_DEFAULT=1 perl Makefile.PL INSTALLDIRS=vendor
 }
 
 build() {
-	cd "$builddir"
-	export CFLAGS=`perl -MConfig -E 'say $Config{ccflags}'`
+	export CFLAGS=$(perl -MConfig -E 'say $Config{ccflags}')
 	make
 }
 
 check() {
-	cd "$builddir"
 	make test
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" \( -name perllocal.pod -o -name .packlist \) -delete
 }

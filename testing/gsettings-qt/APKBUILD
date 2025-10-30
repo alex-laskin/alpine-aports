@@ -1,0 +1,36 @@
+# Maintainer: Luca Weiss <luca@lucaweiss.eu>
+pkgname=gsettings-qt
+pkgver=1.0.0
+pkgrel=0
+pkgdesc="Library to access GSettings from Qt"
+url="https://gitlab.com/ubports/development/core/gsettings-qt"
+arch="all"
+license="LGPL-3.0-only"
+depends_dev="qt5-qtdeclarative-dev"
+makedepends="$depends_dev cmake cmake-extras glib-dev qt5-qtbase-dev samurai"
+checkdepends="xvfb-run"
+subpackages="$pkgname-dev"
+source="https://gitlab.com/ubports/development/core/gsettings-qt/-/archive/v$pkgver/gsettings-qt-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=ON \
+		-DCMAKE_BUILD_TYPE=None \
+		-DBUILD_TESTING=ON
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+9b93c03a7ef8537d1160972b64e0a45b1d764fd26b1103d5452684c75038cf40949d7d35d4376ce97530703c722547e9809d232f9dc7cf5554c490ccbb7304ef  gsettings-qt-v1.0.0.tar.gz
+"

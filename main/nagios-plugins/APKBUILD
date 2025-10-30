@@ -1,37 +1,37 @@
+# Contributor: Michael Pirogov <vbnet.ru@gmail.com>
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jeff Bilyk <jbilyk@gmail.com>
 pkgname=nagios-plugins
-pkgver=2.2.1
-pkgrel=5
+pkgver=2.4.12
+pkgrel=0
 pkgdesc="Plugins for Nagios to check services on hosts"
-url="https://nagios-plugins.org"
+url="https://nagios-plugins.org/"
 arch="all"
-license="GPL-2.0"
-depends=""
-depends_by_ssh="openssh-client"
-depends_dig="bind-tools"
-depends_disk_smb="samba-client"
-depends_dns="bind-tools"
-depends_fping="fping"
-depends_log="grep"
-depends_rcp="rpcbind"
-depends_sensors="grep lm_sensors"
-depends_snmp="net-snmp-tools"
+license="GPL-3.0-only"
+_depends_by_ssh="openssh-client"
+_depends_dig="bind-tools"
+_depends_disk_smb="samba-client"
+_depends_dns="bind-tools"
+_depends_fping="fping"
+_depends_log="grep"
+_depends_rcp="rpcbind"
+_depends_sensors="grep lm-sensors"
+_depends_snmp="net-snmp-tools"
 makedepends="openssh-client bind-tools samba-client fping grep rpcbind
-	lm_sensors net-snmp-tools
-	file freeradius-client-dev libdbi-dev libpq linux-headers mariadb-dev
-	mariadb-connector-c-dev
-	net-snmp-dev openldap-dev opensmtpd libressl-dev postgresql-dev"
+	lm-sensors net-snmp-tools
+	file freeradius-client-dev<1.1.8 libdbi-dev libpq linux-headers mariadb-dev
+	mariadb-connector-c-dev perl
+	net-snmp-dev openldap-dev openssl-dev>3 libpq-dev"
 install="$pkgname.post-upgrade"
 pkgusers="nagios"
 pkggroups="nagios"
-options="suid"
-source="https://www.nagios-plugins.org/download/$pkgname-$pkgver.tar.gz
-	fix-mysql-headers.patch
+options="suid !check"
+source="https://github.com/nagios-plugins/nagios-plugins/releases/download/release-$pkgver/nagios-plugins-$pkgver.tar.gz
+	fix-compilation-warnings-about-sys-poll.patch
 	check_openrc
-	nagios-openrc.sudoers"
-builddir="$srcdir/$pkgname-$pkgver"
+	nagios-openrc.doasd
+	"
 
 _plugins_dir="/usr/lib/nagios/plugins"
 
@@ -40,7 +40,7 @@ _plugins="breeze by_ssh cluster dbi dhcp dig disk_smb disk dns dummy file_age
 	fping hpjd http icmp ide_smart ifoperstatus ifstatus ircd ldap load log
 	mailq mrtgtraf mrtg mysql nagios ntp nt nwstat overcr pgsql ping
 	procs radius real rpc sensors smtp snmp ssh swap time ups uptime users
-	wave"
+	wave ssl_validity"
 for _sub in $_plugins; do
 	subpackages="$subpackages $pkgname-$_sub:_plugin"
 done
@@ -50,15 +50,12 @@ subpackages="$subpackages
 	$pkgname-all:_all"  # all must be the last
 _plugins="$_plugins openrc tcp"
 
-
 prepare() {
-	default_prepare
+ 	default_prepare
 	update_config_sub
 }
 
 build() {
-	cd "$builddir"
-
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -69,8 +66,10 @@ build() {
 		--libexecdir="/$_plugins_dir" \
 		--localstatedir=/var/nagios \
 		--with-ipv6 \
-		--with-ps-command="/bin/ps -o stat,pid,ppid,vsz,rss,comm,args" \
-		--with-ps-format="%s %d %d %d %d %s %n" \
+		--with-mailq-command=/usr/bin/mailq \
+		--with-sudo-command=/usr/bin/sudo \
+		--with-ps-command="/bin/busybox ps -o stat,pid,ppid,vsz,rss,comm,args" \
+		--with-ps-format="%s %d %d %s %s %s %n" \
 		--with-ps-varlist="procstat,&procpid,&procppid,&procvsz,&procrss,procprog,&pos" \
 		--with-ps-cols=7 \
 		--with-ping-command="/bin/ping -c %d %s" \
@@ -79,7 +78,6 @@ build() {
 }
 
 package() {
-	cd "$builddir"
 
 	make DESTDIR="$pkgdir" install
 
@@ -106,19 +104,20 @@ tcp() {
 
 _openrc() {
 	pkgdesc="Nagios plugin check_openrc"
-	depends="$pkgname openrc sudo"
+	depends="$pkgname openrc doas"
 
 	install -m 755 -D "$srcdir"/check_openrc \
 		"$subpkgdir"/$_plugins_dir/check_openrc
-	install -m 600 -D "$srcdir"/nagios-openrc.sudoers \
-		"$subpkgdir"/etc/sudoers.d/nagios-openrc
+
+	install -m 600 -D "$srcdir"/nagios-openrc.doasd \
+		"$subpkgdir"/etc/doas.d/nagios-openrc.conf
 }
 
 _plugin() {
 	local name="${subpkgname#$pkgname-}"
 	local destdir="$subpkgdir/$_plugins_dir"
 	pkgdesc="Nagios plugin check_$name"
-	depends="$pkgname $(eval "echo \$depends_$name")"
+	depends="$pkgname $(eval "echo \$_depends_$name")"
 
 	mkdir -p "$destdir"
 	mv "$pkgdir/$_plugins_dir"/check_$name* "$destdir"/
@@ -152,7 +151,9 @@ _all() {
 	return $retval
 }
 
-sha512sums="6ffe313a56a305b382f62abc0f0958d7078f9050e1340f30721d6e6f71944b57b1650e90e6835c35dd7c9f3f4b4cee9f235b8382b0811db30b3729daaafc9bc3  nagios-plugins-2.2.1.tar.gz
-5db87cf63fb6d1f72122bd7c72f012aab2724328d3d71da546970792a6cdeedbe008f3feef03f7432f100836ace3701c1902b820c93a79e5fa13abe8b337da0d  fix-mysql-headers.patch
-12d87542631494df1c961e547c19107a025829509e174e8208111736141c12e20dbf490c55d487af39d47cefca5507cd98c973b7b20ae3f961dcbfd167195d8e  check_openrc
-171c9ad14d1027541b78df76063e6d34483dd536219fb83e0346e191739529d59c8d6be468af7f1c4c93b20baf9a32879510f15ec3d06aa1eefaf5d785ea8546  nagios-openrc.sudoers"
+sha512sums="
+fbff697d0cea1cbeb83737f240a42c00e18bf443b8af303b5d7f7f735eb6faa5305d8740fb27472876dc1398735204e0d7a0e5863c2064ec2a37541253f91502  nagios-plugins-2.4.12.tar.gz
+7a62e4808eb8b07ca43bc17a625f4199708da6c52b79eca7a756817cb734648fc3054cd89862638ae925022017db32479d2cfcfddeba79ab4557d7b9ec97c323  fix-compilation-warnings-about-sys-poll.patch
+27050160a71e897343da6d6fd25c322a227702caec98065f82e06cba8929c2f6c538a4563a420fb0a07419622107caba1ad44c2cad195a0c0c76a6a925ec1c4b  check_openrc
+4a4c267c8403d3a1c8630adda9ddbdf7ce421b65e6dbfc0eb3f2bf03f94df563371e78193e8b3127ba9f3edcf8f1a7f96d9312167e6f924028d16d144e8af5d2  nagios-openrc.doasd
+"

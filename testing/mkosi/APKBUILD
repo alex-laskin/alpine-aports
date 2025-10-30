@@ -1,0 +1,52 @@
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=mkosi
+pkgver=25.3_git20250929
+_commit="dd51d2e019254071a16e85ed0853e0806df3d230"
+pkgrel=0
+pkgdesc="Build Bespoke OS Images"
+url="https://mkosi.systemd.io/"
+arch="noarch"
+license="LGPL-2.1-or-later"
+depends="
+	distribution-gpg-keys
+	coreutils
+	python3
+	"
+makedepends="
+	go-md2man
+	py3-gpep517
+	py3-setuptools
+	"
+checkdepends="py3-pytest"
+subpackages="$pkgname-pyc $pkgname-doc"
+source="$pkgname-$pkgver.tar.gz::https://codeload.github.com/systemd/mkosi/tar.gz/$_commit"
+builddir="$srcdir/$pkgname-$_commit"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+
+	for manpage in mkosi-addon.1.md  mkosi-initrd.1.md  mkosi-sandbox.1.md  mkosi.1.md  mkosi.news.7.md; do
+		go-md2man -in mkosi/resources/man/"$manpage" -out mkosi/resources/man/"${manpage%.md}"
+	done
+
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	gpep517 install-wheel --destdir .testenv .dist/*.whl
+	.testenv/bin/python3 -m pytest
+}
+
+package() {
+	gpep517 install-wheel --destdir "$pkgdir" \
+		.dist/*.whl
+
+	install -Dm644 mkosi/resources/man/*.1 -t "$pkgdir/usr/share/man/man1/"
+	install -Dm644 mkosi/resources/man/*.7 -t "$pkgdir/usr/share/man/man7/"
+}
+
+sha512sums="
+f247185204e7aee0240497070d42259f967ce18abdfe194fb77f7354b7ee058b16217e2c4e96d4292e0fcfd4c238d6505a20947735daa4ad330c93b08d89e823  mkosi-25.3_git20250929.tar.gz
+"

@@ -1,38 +1,30 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 
-_luaversions="5.1 5.2 5.3"
+_luaversions="5.1 5.2 5.3 5.4"
 
 pkgname=lua-posix
 _name=luaposix
-pkgver=33.4.0
+pkgver=36.3
 pkgrel=0
-pkgdesc="POSIX library for Lua $_luaver"
+pkgdesc="POSIX library for Lua"
 url="https://github.com/luaposix/luaposix"
 arch="all"
 license="MIT"
-depends=""
-makedepends="perl automake autoconf linux-headers lua-bitlib"
-subpackages="$pkgname-doc"
+makedepends="linux-headers lua-bit32"
 
 for _i in $_luaversions; do
 	makedepends="$makedepends lua$_i-dev lua$_i"
-	subpackages="$subpackages lua$_i-posix:_posix_${_i/./_}"
+	subpackages="$subpackages lua$_i-posix:_split_posix"
 done
-source="luaposix-$pkgver.tar.gz::https://github.com/luaposix/luaposix/archive/release-v$pkgver.tar.gz
-	"
+source="luaposix-$pkgver-2.tar.gz::https://github.com/luaposix/luaposix/archive/v$pkgver.tar.gz"
 
-_sdir="$srcdir"/$_name-release-v$pkgver
+builddir="$srcdir"/$_name-$pkgver
+options="!check"
 
 prepare() {
-	cd "$_sdir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-	aclocal && autoconf && automake --add-missing || return 1
+	default_prepare
 	for _i in $_luaversions; do
-		cp -r "$_sdir" "$srcdir"/build-$_i
+		cp -r "$builddir" "$srcdir"/build-$_i
 	done
 }
 
@@ -40,20 +32,14 @@ build() {
 	for _i in $_luaversions; do
 		msg "build for Lua $_i"
 		cd "$srcdir"/build-$_i
-		LUA=lua$_i LUA_INCLUDE=$(pkg-config lua$_i --cflags) \
-			./configure --prefix=/usr \
-			--libdir=/usr/lib/lua/$_i \
-			--datadir=/usr/share/lua/$_i \
-			|| return 1
-		make || return 1
+		lua$_i build-aux/luke
 	done
 }
 
 package() {
 	for _i in $_luaversions; do
 		cd "$srcdir"/build-$_i
-		make DESTDIR="$pkgdir" luadir="/usr/share/lua/$_i" install \
-			|| return 1
+		lua$_i build-aux/luke install PREFIX="$pkgdir"/usr
 	done
 }
 
@@ -63,29 +49,25 @@ _split() {
 	if [ "$_ver" != "5.2" ]; then
 		# use versioned dep to work around
 		# http://bugs.alpinelinux.org/issues/4063
-		depends="lua$_ver-bitlib<26"
+		depends="lua$_ver-bit32<26"
 	fi
 	for d in usr/lib/lua usr/share/lua; do
 		if [ -d "$pkgdir"/$d/$_ver ]; then
 			mkdir -p "$subpkgdir"/$d/$_ver
-			mv "$pkgdir"/$d/$_ver/$_f* "$subpkgdir"/$d/$_ver/ \
-				|| return 1
+			mv "$pkgdir"/$d/$_ver/$_f* "$subpkgdir"/$d/$_ver/
 			rmdir "$pkgdir"/$d/$_ver 2>/dev/null || true
 		fi
 	done
 }
 
 _split_posix() {
-	local _ver=$1
+	local _ver=${subpkgname%%-*}
+	_ver=${_ver#lua}
 	pkgdesc="POSIX library for Lua $_ver"
 	install_if="lua$_ver lua-posix=$pkgver-r$pkgrel"
 	_split $_ver posix
 }
 
-for _i in $_luaversions; do
-	eval "_posix_${_i/./_}() { _split_posix $_i; }"
-done
-
-md5sums="b36ff049095f28752caeb0b46144516c  luaposix-33.4.0.tar.gz"
-sha256sums="e66262f5b7fe1c32c65f17a5ef5ffb31c4d1877019b4870a5d373e2ab6526a21  luaposix-33.4.0.tar.gz"
-sha512sums="3cb78ccb343a55e2bf5b182410e2050356379e8f7a86d42a79853db6198628cae85f9984854f99f41505cb7e4fbb5288e4a46633a6db459649837729af76044c  luaposix-33.4.0.tar.gz"
+sha512sums="
+a2ad040089e2d334fe3e73ee1fb4cc741287e180962f54c0fbf9f74a0b4fd648eabef85f1d3260d904e1ba7072cdc3388d08c868da81c79f5a446004db92b7ef  luaposix-36.3-2.tar.gz
+"

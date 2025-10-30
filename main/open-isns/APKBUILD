@@ -1,52 +1,33 @@
 # Maintainer: Leonardo Arena <rnalrd@alpinelinux.org>
 pkgname=open-isns
-pkgver=0.97
-pkgrel=3
+pkgver=0.102
+pkgrel=2
 pkgdesc="iSNS server and client for Linux"
 url="https://github.com/open-iscsi/open-isns"
 arch="all"
-license="LGPL-2.0"
-makedepends="autoconf automake libressl-dev musl-dev"
+license="LGPL-2.1-or-later"
+makedepends="meson openssl-dev>3 musl-dev"
 options="!check"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-lib"
 source="$pkgname-$pkgver.tar.gz::https://github.com/open-iscsi/open-isns/archive/v$pkgver.tar.gz
-	musl-fixes.patch
 	"
-builddir="$srcdir"/$pkgname-$pkgver
-
-prepare() {
-	cd "$builddir"
-	default_prepare
-	update_config_sub
-	autoconf && autoheader
-}
 
 build() {
-	cd "$builddir"
-	./configure \
-		--host=$CHOST \
-		--build=$CBUILD \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--enable-shared
-	make all
+	abuild-meson \
+		-Dsecurity=enabled \
+		. output
+	meson compile -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	make DESTDIR="$pkgdir" install_hdrs
-	make DESTDIR="$pkgdir" install_lib
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 	rm -rf "$pkgdir"/usr/lib/systemd
 }
 
 lib() {
-	cd "$builddir"
-	mkdir -p "$subpkgdir"/usr
-	mv "$pkgdir"/usr/lib "$subpkgdir"/usr
+	amove usr/lib
 }
 
-sha512sums="78c934162d5a1d093bccd49449d4ef369b896d34309d76b4963d643a699640617c4fe064388c481c35b9be26e012f19713f3aad378af9ad88fa94c3d300e919d  open-isns-0.97.tar.gz
-14eb43b8659c4c917fb35f2e33bffb90c7288555c3feb1ba4afd502c3e509bb44d0ad91b6c4ef09c68cd30eb812df11440a1c28720ee9be8cf4af6c0d8d6dc8d  musl-fixes.patch"
+sha512sums="
+f5ae8af89b85565181c2f6def9834d9dab0a15d5d9b28721cce116c5580173ed9adba219e1ede48988cb57f047578db4ece458c4a7db598412c7583e56393d2b  open-isns-0.102.tar.gz
+"

@@ -1,0 +1,49 @@
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=py3-propcache
+pkgver=0.4.0
+pkgrel=0
+pkgdesc="Fast property caching"
+url="https://github.com/aio-libs/propcache"
+license="Apache-2.0"
+arch="all"
+depends="
+	py3-expandvars
+	python3
+	"
+makedepends="
+	cython
+	py3-gpep517
+	py3-setuptools
+	py3-wheel
+	python3-dev
+	"
+checkdepends="
+	py3-pytest
+	py3-pytest-cov
+	py3-pytest-covdefaults
+	py3-pytest-xdist
+	"
+subpackages="$pkgname-pyc"
+source="https://github.com/aio-libs/propcache/releases/download/v$pkgver/propcache-$pkgver.tar.gz"
+builddir="$srcdir/propcache-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir "$builddir"/.dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	./.testenv/bin/python3 -m installer .dist/*.whl
+	./.testenv/bin/python3 -m pytest
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+883ba1851c8248e49ea1c4b697c06e12754d980c6ff9765350b124ed914385ce70bd061616db35a7fcb235957ac1cecad132ec51fac20e59e90c4cd65306085b  propcache-0.4.0.tar.gz
+"

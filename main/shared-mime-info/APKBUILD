@@ -1,37 +1,32 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=shared-mime-info
-pkgver=1.9
-pkgrel=0
+pkgver=2.4
+pkgrel=6
 pkgdesc="Freedesktop.org Shared MIME Info"
-url="http://freedesktop.org/Software/shared-mime-info"
+url="https://www.freedesktop.org/Software/shared-mime-info"
 arch="all"
-license="GPL"
-#options="!check"  # No test suite.
-makedepends="libxml2-dev libxml2-utils glib-dev intltool"
-depends=
+license="GPL-2.0-or-later"
+makedepends="meson itstool libxml2-utils xmlto libxml2-dev glib-dev"
 install="$pkgname.post-deinstall"
 triggers="$pkgname.trigger=/usr/share/mime"
 subpackages="$pkgname-doc $pkgname-lang"
-source="http://freedesktop.org/~hadess/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/$pkgver/shared-mime-info-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	ac_cv_func_fdatasync=no ./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--enable-default-make-check \
-		--disable-update-mimedb
-	make -j1
+	abuild-meson \
+		-Dupdate-mimedb=false \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
-sha512sums="b4ab7bfec4cbc827fe0d459040967afb714c073ad27ec9ad46e51ebc49c56b2a85501a3c8c5c199b4cb5359fc46580d6f2dfdb49da1670216d5d2b56758de491  shared-mime-info-1.9.tar.xz"
+
+sha512sums="
+17b443c2c09a432d09e4c83db956f8c0c3a768cfa9ffb8c87cd2d7c9002b95d010094e2bc64dd35946205a0f8b2d87c4f8f0a1faec86443e2edd502aa8f7cc8f  shared-mime-info-2.4.tar.gz
+"

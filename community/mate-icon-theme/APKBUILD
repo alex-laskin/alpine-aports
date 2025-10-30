@@ -1,20 +1,22 @@
 # Contributor: Alan Lacerda <alacerda@alpinelinux.org>
 # Maintainer: Alan Lacerda <alacerda@alpinelinux.org>
 pkgname=mate-icon-theme
-pkgver=1.20.1
+pkgver=1.28.0
 pkgrel=0
 pkgdesc="MATE desktop icons"
 url="https://github.com/mate-desktop/mate-icon-theme"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-or-later"
 depends="mate-common"
 makedepends="icon-naming-utils intltool"
-subpackages="$pkgname-lang"
-source="http://pub.mate-desktop.org/releases/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://pub.mate-desktop.org/releases/${pkgver%.*}/mate-icon-theme-$pkgver.tar.xz"
+
+prepare() {
+	default_prepare
+	update_config_sub
+}
 
 build() {
-	cd "$builddir"
 	DATADIRNAME=share ./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -24,13 +26,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="c09d391dfe6c9be93862ff7983c52fabdb1c3f4dce0b9b3530bcbf81b8d17222e79b3a5af6dea603e9ccd79e047762690733303a62d2174847e73ea44e9954ed  mate-icon-theme-1.20.1.tar.xz"
+sha512sums="
+392da9625008bec72b6017c13c409aa2dceda19f6093f0e5fbbdb9a1fb3944711092690ecf4158016578f5231f0aae036b1ef04ac843036ec588b9125a483902  mate-icon-theme-1.28.0.tar.xz
+"

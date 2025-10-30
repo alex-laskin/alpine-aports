@@ -1,20 +1,18 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=xfce4-appfinder
-pkgver=4.12.0
-pkgrel=1
+pkgver=4.20.0
+pkgrel=0
 pkgdesc="Xfce application finder"
 url="https://xfce.org/"
 arch="all"
-license="GPL-2.0+"
+license="GPL-2.0-or-later"
 depends="hicolor-icon-theme"
-makedepends="thunar-dev gtk+-dev libxfce4ui-dev garcon-dev"
+makedepends="thunar-dev gtk+3.0-dev libxfce4ui-dev garcon-dev intltool"
 subpackages="$pkgname-lang"
-install=
 replaces="xfce-utils"
-source="http://archive.xfce.org/src/xfce/$pkgname/${pkgver%.*}/$pkgname-$pkgver.tar.bz2"
+source="https://archive.xfce.org/src/xfce/xfce4-appfinder/${pkgver%.*}/xfce4-appfinder-$pkgver.tar.bz2"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,12 +25,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
-sha512sums="025d38f9f2d57d1bcc37d38f4956742593cbee820ccf7d375138ca3eb0a9614090e3b969aba9d80b546eac43d2a9fd6c530ff829f0e4f59621ca068159e9adaf  xfce4-appfinder-4.12.0.tar.bz2"
+
+sha512sums="
+eae593d075cfe091680fc0093236e95172fddab88a251765e1c6574688a5456fb03f3547eede1d2c6766f8b05b18f0bcbeae607e61d97ac92a927dbe2283790f  xfce4-appfinder-4.20.0.tar.bz2
+"

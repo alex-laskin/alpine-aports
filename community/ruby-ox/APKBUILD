@@ -2,22 +2,22 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=ruby-ox
 _gemname=${pkgname#ruby-}
-pkgver=2.9.3
+pkgver=2.14.22
 pkgrel=0
 pkgdesc="A fast XML parser and object serializer for Ruby"
 url="https://github.com/ohler55/ox"
-arch="all"
+# armhf,armv7: fails to build (invalid storage class for function ...)
+arch="all !armhf !armv7"
 license="MIT"
-depends="ruby-bigdecimal"
-checkdepends="ruby ruby-test-unit"
+depends="ruby ruby-bigdecimal"
 makedepends="ruby-dev"
+checkdepends="ruby-test-unit"
 source="$pkgname-$pkgver.tar.gz::https://github.com/ohler55/$_gemname/archive/v$pkgver.tar.gz
-	gemspec.patch"
+	gemspec.patch
+	"
 builddir="$srcdir/$_gemname-$pkgver"
 
 build() {
-	cd "$builddir"
-
 	gem build $_gemname.gemspec
 	gem install --local \
 		--install-dir dist \
@@ -29,14 +29,12 @@ build() {
 	cd dist/extensions/*/*/$_gemname-*/
 
 	# ox expects ox.so to be in ox/ subdirectory, but does not install it here.
-	mkdir ox && mv *.so ox/
+	mkdir ox && mv ./*.so ox/
 	# Needed for tests.
 	cp -l ox/*.so "$builddir"/ext/$_gemname/
 }
 
 check() {
-	cd "$builddir"
-
 	./test/tests.rb
 
 	./test/sax/sax_test.rb > sax_test.log || {
@@ -57,5 +55,7 @@ package() {
 	rm -r ext/ lib/*.so || true
 }
 
-sha512sums="fb342376c5d01029ee6ec18deb10561e7e4e123707bda7f1ab4c8782beee7493a7dd3f7745c179ec04d868c9787899715edd2f74b26ad4f769b14d1e6b54da1f  ruby-ox-2.9.3.tar.gz
-c65e16d1611c64dc640c11f00f2e6ef8c70e3efa68fe479f0d7b5d54a96241fedfb7d0775c9371c7deef0b9dce1de63dbb75cb2e6c5756c7dd066164549da0ed  gemspec.patch"
+sha512sums="
+ec5d46ea935ad1f1323ae553327e9c9f05a6a41268ef4b081f36ef3b245e76f80d1e9223565b97247d4f52897555d369d2dd68953efdca5dd7cfc1b9209a0c53  ruby-ox-2.14.22.tar.gz
+0dfdc63ae24d2293f3bc2cab05264b054c16096dc26602f4ac896d7a0bcf4478f1d2e19dd833577fb441f8a68a06e17a817c64fdfb93d660da0f70eb4ebe3334  gemspec.patch
+"

@@ -1,22 +1,21 @@
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=mc
-pkgver=4.8.21
-pkgrel=0
+pkgver=4.8.33
+pkgrel=2
 pkgdesc="Filemanager/shell that emulates Norton Commander"
-url="https://www.midnight-commander.org"
+url="https://midnight-commander.org"
 arch="all"
 license="GPL-3.0-or-later"
-depends=""
 subpackages="$pkgname-doc $pkgname-lang"
-makedepends="e2fsprogs-dev glib-dev libssh2-dev ncurses-dev pcre-dev"
-source="https://www.midnight-commander.org/downloads/$pkgname-$pkgver.tar.xz
-	alpine_syntax.patch"
-
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="e2fsprogs-dev glib-dev libssh2-dev slang-dev perl gpm-dev"
+checkdepends="check-dev"
+source="https://ftp.osuosl.org/pub/midnightcommander/mc-$pkgver.tar.xz
+	alpine_syntax.patch
+	ticket_4642_parse_ls_vga_fix.patch"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -29,22 +28,18 @@ build() {
 		--enable-largefile \
 		--enable-vfs-sftp \
 		--with-internal-edit \
-		--with-mmap \
-		--with-screen=ncurses \
+		--with-screen=slang \
 		--with-subshell \
-		--without-gpm-mouse \
-		--without-included-gettext \
+		--with-gpm-mouse \
 		--without-x
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 	rm -fr "$pkgdir"/usr/share/man/??
 }
@@ -54,7 +49,7 @@ doc() {
 	mkdir -p "$subpkgdir"/usr/share/doc
 	mv "$pkgdir"/usr/share/mc/examples \
 		"$subpkgdir"/usr/share/doc/mc
-	find "$pkgdir"/usr/lib/mc -name README* \
+	find "$pkgdir"/usr/lib/mc -name "README*" \
 		-exec mv {} "$subpkgdir"/usr/share/doc/mc/ \;
 }
 
@@ -68,5 +63,8 @@ lang() {
 		"$subpkgdir"/usr/share/mc/hints/
 }
 
-sha512sums="db1a252744b47ebf5339ad204d8b69cb914f25ade7fe5aae2650c4abb57478715d3b7b3a24f4460adfb9fbdc928e8728b369b4f1709215e5e9af3d430fce6acf  mc-4.8.21.tar.xz
-47aa001e8c20a24631617d665fd0d81b269ebad96696c4bd70c7040bbca713868e02fe53dfaee9a775a57f35a0e7c9e44ce299037379e249ad27354a78d905c3  alpine_syntax.patch"
+sha512sums="
+3eb857af2fa689e9458aeef6d3b236fb92684e05c0e3e78e7e5a5fa5dba6431cae39bec51bc84598b0bb60579cb0a0679dcdc6e9f7d88ca85dc37ace251c8632  mc-4.8.33.tar.xz
+47aa001e8c20a24631617d665fd0d81b269ebad96696c4bd70c7040bbca713868e02fe53dfaee9a775a57f35a0e7c9e44ce299037379e249ad27354a78d905c3  alpine_syntax.patch
+d4099edf2815546eae35fd971d8b20039e47185622c85701397a62126220e773dd6ec01d24caf40743b180bfa86133d513dcd48591b25eba881519ff71bf5a49  ticket_4642_parse_ls_vga_fix.patch
+"

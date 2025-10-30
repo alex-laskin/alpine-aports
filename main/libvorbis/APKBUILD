@@ -1,32 +1,34 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libvorbis
-pkgver=1.3.6
-pkgrel=0
+pkgver=1.3.7
+pkgrel=2
 pkgdesc="Vorbis codec library"
 url="https://xiph.org/vorbis"
 arch="all"
 license="BSD-3-Clause"
-subpackages="$pkgname-dev $pkgname-doc"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc"
 makedepends="libogg-dev"
-source="http://downloads.xiph.org/releases/vorbis/$pkgname-$pkgver.tar.xz
-	CVE-2017-14160.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://downloads.xiph.org/releases/vorbis/libvorbis-$pkgver.tar.xz"
 
 # secfixes:
+#   1.3.6-r2:
+#     - CVE-2018-10393
+#   1.3.6-r1:
+#     - CVE-2018-10392
 #   1.3.6-r0:
-#   - CVE-2018-5146
+#     - CVE-2018-5146
 #   1.3.5-r4:
-#   - CVE-2017-14632
-#   - CVE-2017-14633
+#     - CVE-2017-14632
+#     - CVE-2017-14633
 #   1.3.5-r3:
-#   - CVE-2017-14160
+#     - CVE-2017-14160
 
 prepare() {
-	default_prepare
+ 	default_prepare
+	update_config_sub
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -38,14 +40,11 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make -j1 check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="a5d990bb88db2501b16f8eaee9f2ecb599cefd7dab2134d16538d8905263a972157c7671867848c2a8a358bf5e5dbc7721205ece001032482f168be7bda4f132  libvorbis-1.3.6.tar.xz
-4c2f7be947f2159ae47175cba89950c7b7d357b37a20d54382e4fbecd8c268b148e6cb86cb148945c7b68bbe8b14f466e910b35b80903ab51f1b02cfccf5806e  CVE-2017-14160.patch"
+sha512sums="bbf5f11f623d959b3ba98d6b52806521b0b918b59b867f0658c153ea1013293364eead4987e9e71f8798021379310860a2e548fcf89d10caf23d45e41aba45cd  libvorbis-1.3.7.tar.xz"

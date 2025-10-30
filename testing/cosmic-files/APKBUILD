@@ -1,0 +1,52 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-files
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="File browser for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-files"
+# "The prebuilt `sys.rs` may not be compatible with your target"..
+arch="all !armhf !armv7 !x86 !s390x"
+license="GPL-3.0-only"
+depends="
+	cosmic-icons
+	xdg-utils
+"
+makedepends="
+	cargo
+	clang-libclang
+	glib-dev
+	just
+	libxkbcommon-dev
+	wayland-dev
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-files/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	export VERGEN_GIT_COMMIT_DATE="$(date -d @"$SOURCE_DATE_EPOCH" '+%Y-%m-%d')"
+	export VERGEN_GIT_SHA="unknown"
+
+	just build-release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+cc51a89ca7d3fe27ec6ba51d65bbca74dd0073f5c3e3e7a191332fa825ce8fbbed83b9a90ce32a694c225f4064b3ee925c29863f25b1c1e7eb6087a48afa6ed0  cosmic-files-1.0.0_beta4.tar.gz
+"

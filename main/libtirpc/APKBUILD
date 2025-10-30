@@ -1,42 +1,84 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libtirpc
-pkgver=1.0.3
-pkgrel=0
+pkgver=1.3.5
+pkgrel=1
 pkgdesc="Transport Independent RPC library (SunRPC replacement)"
-url="https://sourceforge.net/projects/libtirpc"
+url="https://sourceforge.net/projects/libtirpc/"
 arch="all"
 license="BSD-3-Clause"
 options="!check"
-depends=
-depends_dev="krb5-dev bsd-compat-headers"
-makedepends="$depends_dev autoconf automake libtool linux-headers"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-dbg"
-source="https://sourceforge.net/projects/$pkgname/files/$pkgname/$pkgver/$pkgname-$pkgver.tar.bz2
-	musl.patch
+depends="$pkgname-conf"
+depends_dev="
+	bsd-compat-headers
+	krb5-dev
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="
+	$depends_dev
+	autoconf
+	automake
+	libtool
+	linux-headers
+	"
+subpackages="
+	$pkgname-dbg
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-conf::noarch
+	$pkgname-nokrb
+	"
+source="https://sourceforge.net/projects/libtirpc/files/libtirpc/$pkgver/libtirpc-$pkgver.tar.bz2
+	soname-suffix.patch
+	gcc15.patch
+	"
+
+# secfixes:
+#   1.3.2-r2:
+#     - CVE-2021-46828
 
 prepare() {
-	cd "$builddir"
 	default_prepare
-	aclocal
-	autoreconf
+	autoreconf -fi
+
+	cp -r "$builddir" "$builddir-nokrb"
 }
 
 build() {
-	cd "$builddir"
+	_build SONAME_SUFFIX=''
+
+	cd "$builddir-nokrb"
+	_build --disable-gssapi SONAME_SUFFIX='-nokrb'
+}
+
+_build() {
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
-		--sysconf=/etc
+		--sysconf=/etc \
+		"$@"
 	make
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	make -C "$builddir-nokrb" install DESTDIR="$pkgdir"
+	make install DESTDIR="$pkgdir"
 }
 
-sha512sums="1f1cf7dd6f30ddddc919e4caf6db926f1d532f78d5a93e8aaa2acde6b046be0650c4c46549da0ffd5fa7fb9e550af1a871ed6e02ededf504c6667d2e82eba2cc  libtirpc-1.0.3.tar.bz2
-8e52246ae478ae9e4689426627e17d9c58d701f4fd21a40ffe3cf17c4ceaa4ab2e8e91d2fa3ba0d0c7adc52ae4b986fcda113ec86e370ede83903bb641de520c  musl.patch"
+conf() {
+	pkgdesc="Configuration files for TI-RPC"
+
+	amove etc
+}
+
+nokrb() {
+	pkgdesc="$pkgdesc - without GSS-API/Kerberos"
+
+	amove usr/lib/libtirpc-nokrb.*
+}
+
+sha512sums="
+c80a953671c5692294efe7425e41c7f12bd4c430f473f9ea71883168cb4a69111f0018122bd0e7982e18f4576e45d4977ce0790743382faae006c446813d2a4f  libtirpc-1.3.5.tar.bz2
+912a2ad979cb7f41c4d2b558d2d213aaa02e904685ddddc43fbab4ee537543df5288d08b704102654e780d96175774496680384a4bfec37e7f1d7770922a63af  soname-suffix.patch
+6d4d95cb5e0c1a9944edd1260e61b43c98c43ea2e0c8ca3656347f387f3ab842e8029982afced98b3f123e3a957ee237b95eaf2f5fe1079f18da176700026470  gcc15.patch
+"

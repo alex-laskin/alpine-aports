@@ -1,23 +1,28 @@
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
 # Maintainer: Valery Kartel <valery.kartel@gmail.com>
 pkgname=logwatch
-pkgver=7.4.3
-pkgrel=0
-pkgdesc="A customizable, pluggable log-monitoring system"
-url="http://www.logwatch.org"
+pkgver=7.10
+pkgrel=1
+pkgdesc="Customizable, pluggable log-monitoring system"
+url="https://sourceforge.net/projects/logwatch/"
 arch="noarch"
-license="custom"
+license="MIT"
 options="!check"
-depends="perl"
-depends_dev=
-makedepends=
-install=
+# perl-doc: diagnostic data used by sendmail script
+# perl-date-manip: enables use of full --range of dates
+# perl-html-parser: HTML::Entities used in logwatch.pl
+# perl-net-cidr: needed when iptables_list_by_cidr_mask env var is set
+depends="
+	perl
+	perl-doc
+	perl-date-manip
+	perl-html-parser
+	perl-net-cidr
+	"
 subpackages="$pkgname-doc"
-source="http://downloads.sourceforge.net/project/$pkgname/$pkgname-$pkgver/$pkgname-$pkgver.tar.gz"
+source="https://downloads.sourceforge.net/project/logwatch/logwatch-$pkgver/logwatch-$pkgver.tar.gz"
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-
 	mkdir -p "$pkgdir"/usr/bin \
 		"$pkgdir"/var/cache/$pkgname \
 		"$pkgdir"/etc/periodic/daily \
@@ -49,4 +54,6 @@ package() {
 	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
 }
 
-sha512sums="716d87238f487010f2bdf230fc66c16f3c3fe769e6bef04b0e7881c6b0563e1a4b4741235b8a40a16ab21d3803562e87e6bcf5cfbd0ace42414f1d1feae7a13a  logwatch-7.4.3.tar.gz"
+sha512sums="
+838bcc7a3b12eb31450a20195fe2ca4ab238500051bb2f50bd1775272fefa412e0a2473c0294a5495ef594fa530b00dac0dc6d18b93e124f36614686502e55cb  logwatch-7.10.tar.gz
+"

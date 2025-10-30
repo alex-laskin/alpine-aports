@@ -1,0 +1,56 @@
+# Contributor: Will Sinatra <wpsinatra@gmail.com>
+# Maintainer: Will Sinatra <wpsinatra@gmail.com>
+maintainer="Will Sinatra <wpsinatra@gmail.com>"
+pkgname=ruby-connection_pool
+_gemname=${pkgname#ruby-}
+pkgver=2.5.4
+pkgrel=0
+pkgdesc="generic connection pool for ruby"
+url="https://rubygems.org/gems/connection_pool"
+arch="noarch"
+license="MIT"
+depends="ruby"
+checkdepends="ruby-rake ruby-bundler ruby-test-unit"
+source="$pkgname-$pkgver.tar.gz::https://github.com/mperham/connection_pool/archive/refs/tags/v$pkgver.tar.gz"
+builddir="$srcdir/$_gemname-$pkgver"
+subpackages="$pkgname-doc"
+options="!check" # circular
+# Tests require ruby-standard which requires ruby-language_server-protocol,
+# which requires ruby-activesupport, which requires ruby-connection_pool
+
+prepare() {
+	default_prepare
+
+	sed -i '/spec.signing_key/d' $_gemname.gemspec
+}
+
+build() {
+	gem build $_gemname.gemspec
+}
+
+check() {
+	rake test
+}
+
+package() {
+	local gemdir="$pkgdir/$(ruby -e 'puts Gem.default_dir')"
+
+	gem install --local \
+		--install-dir "$gemdir" \
+		--ignore-dependencies \
+		--no-document \
+		--verbose \
+		$_gemname
+
+	rm -r "$gemdir"/cache \
+		"$gemdir"/build_info \
+		"$gemdir"/doc
+
+	cd "$gemdir/gems/$_gemname-$pkgver"
+	rm README.md Changes.md
+	install -Dm644 "$builddir"/LICENSE "$pkgdir"/usr/share/licenses/"$pkgname"/LICENSE
+}
+
+sha512sums="
+9b3e60e3b2240742183bb873c8333319981063619aa3e5a847b20e08929f53e7e72fc1331eadd4c09be042470d51ef6de8d5dc1d325e1e7fa967c91260a8503a  ruby-connection_pool-2.5.4.tar.gz
+"

@@ -2,31 +2,55 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=btrfs-progs
-pkgver=4.16.1
+pkgver=6.17
 pkgrel=0
 pkgdesc="BTRFS filesystem utilities"
 url="https://btrfs.wiki.kernel.org"
 arch="all"
-license="GPL-2.0-or-later LGPL-3.0-or-later"
-depends=""
+license="GPL-2.0-or-later"
 depends_dev="linux-headers"
-makedepends="$depends_dev acl-dev asciidoc attr-dev autoconf automake e2fsprogs-dev
-	libtool lzo-dev py3-setuptools python3-dev util-linux-dev xmlto zlib-dev"
-subpackages="$pkgname-doc $pkgname-dev $pkgname-bash-completion:bashcomp:noarch
-	py-$pkgname:py $pkgname-libs $pkgname-extra"
-source="https://www.kernel.org/pub/linux/kernel/people/kdave/$pkgname/$pkgname-v$pkgver.tar.xz
-	includes.patch
-	musl-compat.patch
+makedepends="$depends_dev
+	acl-dev
+	asciidoc
+	attr-dev
+	e2fsprogs-dev
+	eudev-dev
+	lzo-dev
+	py3-setuptools
+	py3-sphinx
+	python3-dev
+	util-linux-dev
+	xmlto
+	zlib-dev
+	zstd-dev
+	"
+checkdepends="
+	acl
+	coreutils
+	libaio-dev
+	liburing-dev
+	losetup
+	xz
+	"
+subpackages="
+	$pkgname-doc
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-bash-completion
+	py3-$pkgname:py3
+	$pkgname-libs
+	$pkgname-extra
+	$pkgname-openrc
+	"
+source="https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v$pkgver.tar.xz
+	btrfs-scan.initd
+	remove-sphinx_rtd_theme.patch
 	"
 builddir="$srcdir/$pkgname-v$pkgver"
-
-prepare() {
-	default_prepare
-	./autogen.sh
-}
+# most pass, one fails to build (fsstress renameat2)
+options="!check"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -34,46 +58,50 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
-		--disable-backtrace \
-		--disable-zstd
+		--disable-backtrace
 	make
 }
 
+check() {
+	make test
+}
+
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir" install install_python
+	make DESTDIR="$pkgdir" install install_python
+
+	mkdir -p "$pkgdir"/usr/share/doc/$pkgname
+	install -m644 README.md CHANGES \
+		"$pkgdir"/usr/share/doc/$pkgname
 
 	mkdir "$pkgdir"/sbin
 	local i; for i in btrfs btrfsck fsck.btrfs mkfs.btrfs; do
 		mv "$pkgdir"/usr/bin/$i "$pkgdir"/sbin/
 	done
 	mv "$pkgdir"/usr/bin "$pkgdir"/usr/sbin
+
+	install -Dm644 btrfs-completion \
+		"$pkgdir"/usr/share/bash-completion/completions/btrfs
+
+	install -Dm755 "$srcdir"/btrfs-scan.initd "$pkgdir"/etc/init.d/btrfs-scan
 }
 
-bashcomp() {
-	pkgdesc="Bash completion script for $pkgname"
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
+py3() {
+	pkgdesc="Python 3 bindings for $pkgname"
+	provides="py-btrfs-progs=$pkgver-r$pkgrel"  # for backward compatibility
+	replaces="py-btrfs-progs"  # for backward compatibility
 
-	install -D -m644 "$builddir"/btrfs-completion \
-		"$subpkgdir"/usr/share/bash-completion/completions/btrfs
-}
-
-py() {
-	pkgdesc="Python bindings for $pkgname"
-
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/python* "$subpkgdir"/usr/lib/
+	amove usr/lib/python*
 }
 
 extra() {
 	depends="$pkgname"
 	pkgdesc="BTRFS filesystem extra utilities"
 
-	mkdir -p "$subpkgdir"
-	mv "$pkgdir"/usr "$subpkgdir"/
-	rmdir "$subpkgdir"/usr/lib
+	amove usr/sbin
 }
 
-sha512sums="9f0e8c593a10c1c09749ccc00f470ba44d4357fabca8d89ce5891ab0d9cd70f1356f1c6677288019387a6b3b3746431537da205627791a35955bb8bed33d807e  btrfs-progs-v4.16.1.tar.xz
-6a41cdb5dae1983ff0682e152a00007b9a5d03e835195ec4f6ff1005ffceea9178cee672ef1d03c029941d3764b021f6c49b3b82cc4fd383920bdf4faed88d2a  includes.patch
-056704aa07433e5ae3e5158c668aec7535318613f84cebd4c70237aa253e5585d529cb535203ec6578e3ad9fc9f863e1cf498bb30deeec2d6d557d9318d3e947  musl-compat.patch"
+sha512sums="
+f8b39f66c4bf7cdaa8eee471f473eb88415435d309da45d45267ecd8d9e401367de881259c038fbc03a57bb661991d11ae74e8409b382dcd5ef98c66811a798a  btrfs-progs-v6.17.tar.xz
+8f8757e094e5cb3b2748e2b41ba3c50d4535e24c5ced3b31eea6457f61f9fe90894a51d512d306ec8ea20ace6bb8dfe00422d3cbea9734568b492a044d4b2018  btrfs-scan.initd
+c8354118cc4f17d19213a99580c2d8c0cf3173a91c5e42a62c8a7d3b2b66395419136b9761d70503ced0fc959cf8071ae2e2dc1667f000bf0ac86eddc9253bb3  remove-sphinx_rtd_theme.patch
+"

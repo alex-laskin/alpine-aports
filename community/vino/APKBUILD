@@ -2,36 +2,47 @@
 # Maintainer: Alan Lacerda <alacerda@alpinelinux.org>
 pkgname=vino
 pkgver=3.22.0
-pkgrel=0
+pkgrel=5
 pkgdesc="The GNOME desktop sharing server"
-url="https://wiki.gnome.org/Projects/Vino"
+url="https://gitlab.gnome.org/Archive/vino"
 arch="all"
-license="GPL-2.0"
-makedepends="$depends_dev libsoup-dev glib-dev gtk+3.0-dev libnotify-dev
-	libsm-dev bsd-compat-headers"
+license="GPL-2.0-or-later"
+makedepends="
+	bsd-compat-headers
+	glib-dev
+	gtk+3.0-dev
+	intltool
+	libnotify-dev
+	libsm-dev
+	"
 subpackages="$pkgname-lang"
-source="https://download.gnome.org/sources/vino/${pkgver%.*}/$pkgname-$pkgver.tar.xz
-	$pkgname.initd"
+source="https://download.gnome.org/sources/vino/${pkgver%.*}/vino-$pkgver.tar.xz
+	$pkgname.initd
+	"
 
-builddir="$srcdir/$pkgname-$pkgver"
+prepare() {
+	default_prepare
+
+	update_config_sub
+	update_config_guess
+}
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
-                --host=$CHOST \
+		--host=$CHOST \
 		--localstatedir=/var \
 		--without-gnutls \
 		--without-gcrypt \
-		--prefix=/usr
+		--prefix=/usr \
+		--with-systemduserunitdir=no
 	make
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" DATADIRNAME=share install
+	make DESTDIR="$pkgdir" DATADIRNAME=share install
  	install -m755 -D "$srcdir"/$pkgname.initd \
-                "$pkgdir"/etc/init.d/$pkgname
+		"$pkgdir"/etc/init.d/$pkgname
 }
 
 sha512sums="29b88e151b0b8c69bce1565ae3ec2e788f48c7645429984329fb2d3daaf03cc5ac100abbf70247bf0516c6d03a3b9aeb78d018c8f1bf35fd241919117fd1105f  vino-3.22.0.tar.xz

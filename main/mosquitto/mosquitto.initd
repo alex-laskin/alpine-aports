@@ -1,14 +1,14 @@
 #!/sbin/openrc-run
 
+name="Mosquitto message broker"
+description="MQTT v3.1.1 Message Broker"
+
+: ${cfgfile:="/etc/mosquitto/${RC_SVCNAME#mosquitto.}.conf"}
+
 command="/usr/sbin/mosquitto"
-command_args="-d $mosquitto_args"
-#start_stop_daemon_args="--background --stdout /dev/null --stderr /dev/null"
+# mosquitto_args is here for backward compatibility only
+command_args="-c $cfgfile ${command_args:-$mosquitto_args}"
+command_background="yes"
+pidfile="/run/$RC_SVCNAME.pid"
 
-config=/etc/mosquitto/${SVCNAME#mosquitto.}.conf
-
-start_pre() {
-	if [ -e $config ]; then
-		pidfile=$(awk '$1 == "pid_file" {print $2}' $config)
-		command_args="-c $config $command_args"
-	fi
-}
+required_files="$cfgfile"

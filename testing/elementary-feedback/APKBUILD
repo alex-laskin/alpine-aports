@@ -1,0 +1,38 @@
+# Contributor: Angelo Verlain <hey@vixalien.com>
+maintainer="Angelo Verlain <hey@vixalien.com>"
+pkgname=elementary-feedback
+pkgver=8.0.1
+pkgrel=0
+pkgdesc="GitHub Issue Reporter for elementary OS"
+url="https://github.com/elementary/feedback"
+arch="all"
+license="GPL-3.0-or-later"
+makedepends="
+	appstream-dev
+	granite7-dev
+	gtk4.0-dev
+	libadwaita-dev
+	meson
+	vala
+	"
+subpackages="$pkgname-lang"
+source="$pkgname-$pkgver.tar.gz::https://github.com/elementary/feedback/archive/refs/tags/$pkgver.tar.gz"
+
+builddir="$srcdir/feedback-$pkgver"
+
+build() {
+	abuild-meson . output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+4163297c91ed73a5687e2bfab0cb88eee5954c1e1ddf685d6dfb7a43d3ea7de213fee07b921182f95720c3c6f77d0c8330897e22b3549bd50e2837b86f64845b  elementary-feedback-8.0.1.tar.gz
+"

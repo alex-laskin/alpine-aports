@@ -1,0 +1,45 @@
+# Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
+# Contributor: Justin Berthault <justin.berthault@zaclys.net>
+# Maintainer: Antoine Martin (ayakael) <dev@ayakael.net>
+pkgname=py3-django-crispy-forms
+pkgver=2.4
+pkgrel=0
+pkgdesc="Dry Django forms"
+url="https://github.com/django-crispy-forms/django-crispy-forms"
+arch="noarch"
+license="MIT"
+depends="py3-django"
+makedepends="
+	py3-gpep517
+	py3-setuptools
+	py3-wheel
+	"
+checkdepends="py3-pytest py3-crispy-bootstrap3 py3-crispy-bootstrap4"
+options="!check" # circular dependencies with py3-crispy-bootstrap{3,4}
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/django-crispy-forms/django-crispy-forms/archive/refs/tags/$pkgver.tar.gz"
+builddir="$srcdir"/django-crispy-forms-$pkgver
+
+replaces="py-django-crispy-forms" # Backwards compatibility
+provides="py-django-crispy-forms=$pkgver-r$pkgrel" # Backwards compatibility
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest -v
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+a87ef27b6cd2f6a3c76116a474837720249099a5674080d89c0e8a77ce2ce69d2c5ecd1b4b418b7116cdaa212c564a7bc1ca3377e0189d7620655c1e43858517  py3-django-crispy-forms-2.4.tar.gz
+"

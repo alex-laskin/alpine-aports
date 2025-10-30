@@ -1,0 +1,45 @@
+# Contributor: omni <omni+alpine@hack.org>
+# Maintainer: omni <omni+alpine@hack.org>
+maintainer="omni <omni+alpine@hack.org>"
+pkgname=rtl_433
+pkgver=25.02
+pkgrel=0
+pkgdesc="Program to decode transmissions on the ISM bands"
+url="https://github.com/merbanan/rtl_433"
+arch="all"
+license="GPL-2.0-or-later"
+makedepends="
+	cmake
+	librtlsdr-dev
+	libusb-dev
+	openssl-dev>3
+	samurai
+	"
+subpackages="$pkgname-doc $pkgname-dev"
+source="$pkgname-$pkgver.tar.gz::https://github.com/merbanan/rtl_433/archive/refs/tags/$pkgver.tar.gz"
+
+# secfixes:
+#   21.12-r3:
+#     - CVE-2022-25050
+#     - CVE-2022-25051
+#     - CVE-2022-27419
+
+build() {
+	cmake3.5 -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_SYSCONFDIR=/etc
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+0b002d2bffb2282221692d8d2d5da54058434a3b7e1dc8c25bfa64cfe2b5ccfc66d81690777e475564eb93549cc19acf2d01ecc374691a308f6cc2511bf5106a  rtl_433-25.02.tar.gz
+"

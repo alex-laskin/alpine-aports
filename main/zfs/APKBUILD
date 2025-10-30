@@ -1,25 +1,64 @@
-# Contributor: Carlo Landmeter <clandmeter@gmail.com>
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=zfs
-pkgver=0.7.8
+pkgver=2.3.4
 pkgrel=0
-pkgdesc="ZFS for Linux"
-url="http://zfsonlinux.org"
-arch="all !armhf"
-license="CDDL"
-depends_dev="glib-dev e2fsprogs-dev util-linux-dev libtirpc-dev attr-dev"
-makedepends="$depends_dev automake autoconf libtool linux-headers"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-libs $pkgname-dracut::noarch
-	$pkgname-udev $pkgname-scripts $pkgname-utils-py:utils_py:noarch"
-source="https://github.com/zfsonlinux/zfs/releases/download/zfs-$pkgver/zfs-$pkgver.tar.gz"
+pkgdesc="Advanced filesystem and volume manager"
+url="https://openzfs.org"
+arch="all"
+license="CDDL-1.0"
+provides="spl=$pkgver-r$pkgrel" # Mitigate upgrade conflicts
+depends_dev="
+	attr-dev
+	e2fsprogs-dev
+	glib-dev
+	libtirpc-dev
+	openssl-dev>3
+	"
+makedepends="
+	$depends_dev
+	autoconf
+	automake
+	libtool
+	linux-headers
+	py3-cffi
+	py3-distlib
+	py3-setuptools
+	python3-dev
+	util-linux-dev
+	"
+options="!check" # need to be run on live system w/ ZFS loaded.
+subpackages="
+	$pkgname-bash-completion
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-dracut::noarch
+	$pkgname-libs
+	$pkgname-openrc
+	$pkgname-scripts
+	$pkgname-udev::all
+	$pkgname-utils-py:utils_py:noarch
+	py3-pyzfs-pyc
+	py3-pyzfs:pyzfs:noarch
+	"
+source="https://github.com/openzfs/zfs/releases/download/zfs-$pkgver/zfs-$pkgver.tar.gz
+	statx.patch
+	"
+
+# secfixes:
+#   2.2.1-r1:
+#     - CVE-2023-49298
 
 prepare() {
 	default_prepare
-	autoreconf -vif
+
+	# for statx.patch
+	autoreconf -vfi
 }
 
 build() {
-	cd "$builddir"
+	export CFLAGS="$CFLAGS -fno-tree-vectorize"
+	export CXXFLAGS="$CXXFLAGS -fno-tree-vectorize"
 	export LIBS="$LIBS -lintl"
 	./configure --prefix=/usr \
 		--with-tirpc \
@@ -28,43 +67,67 @@ build() {
 		--infodir=/usr/share/info \
 		--localstatedir=/var \
 		--with-config=user \
-		--with-udevdir=/lib/udev \
-		--disable-systemd
+		--with-udevdir=/usr/lib/udev \
+		--disable-systemd \
+		--disable-static \
+		--with-python=3 \
+		--enable-pyzfs
 	make
 }
 
 package() {
-        cd "$builddir"
-        make DESTDIR="$pkgdir" install
+	make DESTDIR="$pkgdir" install
+
+	# no initramfs-tools
 	rm -rf "$pkgdir"/usr/share/initramfs-tools
-	mv "$pkgdir"/usr/share/pkgconfig "$pkgdir"/usr/lib/
+
+	# we use doas(1)
+	rm -rf "$pkgdir"/etc/sudoers.d
+
+	# zfs-mount-generator is a systemd.generator(7)
+	rm "$pkgdir"/usr/share/man/man8/zfs-mount-generator*
+
+	# Fix permissions of zfs OpenRC service configuration (#13840)
+	chmod 644 "$pkgdir"/etc/conf.d/zfs
 }
 
 dracut() {
 	pkgdesc="$pkgdesc (dracut)"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/dracut "$subpkgdir"/usr/lib
+	install_if="$pkgname=$pkgver-r$pkgrel dracut-modules"
+
+	amove usr/lib/dracut
 }
 
 udev() {
 	pkgdesc="$pkgdesc (udev)"
-	mkdir -p "$subpkgdir"/lib
-	mv "$pkgdir"/lib/udev "$subpkgdir"/lib
+
+	amove usr/lib/udev
 }
 
 scripts() {
 	pkgdesc="$pkgdesc (scripts)"
-	mkdir -p "$subpkgdir"/usr/share
-	mv "$pkgdir"/usr/share/zfs "$subpkgdir"/usr/share
+
+	amove usr/share/zfs
 }
 
 utils_py() {
 	pkgdesc="$pkgdesc (python utils)"
-	depends="python2"
-	mkdir -p "$subpkgdir"/usr/bin
-	for i in "$pkgdir"/usr/bin/*.py; do
-		mv $i "$subpkgdir"/usr/bin
-	done
+	depends="python3"
+
+	amove usr/bin/arc_summary
+	amove usr/bin/arcstat
+	amove usr/bin/dbufstat
+	amove usr/bin/zilstat
 }
 
-sha512sums="cdeabe10acd2feeeff8a6362987c757b716bfea6ebad42ce022a081106661f774150c113bdaa9e1ac441efdd6da4cf11e6119323ad60ae15ab445a872d952e35  zfs-0.7.8.tar.gz"
+pyzfs() {
+	pkgdesc="$pkgdesc (Python lib to interact with ZFS)"
+	depends="python3 $pkgname"
+
+	amove usr/lib/python3*
+}
+
+sha512sums="
+56b90960de6aa94b76f8efc3c84993454a8d544bd47e1270e02caa8d96569e866102e17ef1f16056722bf5f6624fad0bbe7f9ef0e94bc0c3fc16e61b681db815  zfs-2.3.4.tar.gz
+72fffdd329f48e0b4527ea4ba6887caf201a78beaec8f70b6485a2e344c95ef245490c665d992549474c5f4c69e7ec30632ef5af43757ba688482ead0e91f090  statx.patch
+"

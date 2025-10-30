@@ -1,46 +1,57 @@
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=geocode-glib
-pkgver=3.24.0
-pkgrel=0
+pkgver=3.26.4
+pkgrel=4
 pkgdesc="Geocoding helper library"
-url="https://www.gnome.org/"
+url="https://gitlab.gnome.org/GNOME/geocode-glib"
 arch="all"
 license="LGPL-2.0-or-later"
-depends=""
-depends_dev=""
-makedepends="$depends_dev glib-dev gobject-introspection-dev intltool
-	json-glib-dev libsoup-dev"
-install=""
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://download.gnome.org/sources/geocode-glib/${pkgver%.*}/geocode-glib-$pkgver.tar.xz"
-
-builddir="$srcdir"/geocode-glib-$pkgver
-prepare() {
-	local i
-	cd "$builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-}
+makedepends="
+	docbook-xsl-nons
+	glib-dev
+	gobject-introspection-dev
+	gtk-doc
+	json-glib-dev
+	libsoup-dev
+	libsoup3-dev
+	meson
+	"
+options="!check" # no tests
+subpackages="libgeocode-glib:libsoup2 $pkgname-tests $pkgname-dev $pkgname-doc"
+source="https://download.gnome.org/sources/geocode-glib/${pkgver%.*}/geocode-glib-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--localstatedir=/var \
-		|| return 1
-	make || return 1
+	abuild-meson \
+		-Db_lto=true \
+		-Dsoup2=false \
+		. build-soup3
+	meson compile -C build-soup3
+
+	abuild-meson \
+		-Db_lto=true \
+		-Dsoup2=true \
+		. build-soup2
+	meson compile -C build-soup2
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install || return 1
+	DESTDIR="$pkgdir" meson install --no-rebuild -C build-soup2
+	DESTDIR="$pkgdir" meson install --no-rebuild -C build-soup3
 }
 
-sha512sums="0e3910e99d164fdf5afd6befbcb7139a56779834fb1f2a318951c03e5196a31c4dafd7f88c37c7014377f15cd4d4b81e7080a440881e2c50aadaadf621abe3b6  geocode-glib-3.24.0.tar.xz"
+libsoup2() {
+	amove usr/lib/girepository-1.0/GeocodeGlib-1.0.typelib
+	amove usr/lib/libgeocode-glib.so.*
+	amove usr/libexec/geocode-glib
+}
+
+tests() {
+	pkgdesc="$pkgdesc (installed tests)"
+
+	amove usr/share/installed-tests
+}
+
+sha512sums="
+998c2f02a8d3d34a8b6a4b031da2e7c28df27014bcf58f3374fbc0c829fff6257c2622fd9bf331e05b85fbc761c64554fb77ce2d986e0f8b59b17aa486f9f609  geocode-glib-3.26.4.tar.xz
+"

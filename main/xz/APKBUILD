@@ -1,17 +1,33 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=xz
-pkgver=5.2.4
+pkgver=5.8.1
 pkgrel=0
 pkgdesc="Library and CLI tools for XZ and LZMA compressed files"
-url="https://tukaani.org/xz"
+url="https://tukaani.org/xz/"
 arch="all"
-license="GPL-2.0-or-later Public-Domain"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-libs"
-source="https://tukaani.org/xz/$pkgname-$pkgver.tar.xz"
+license="GPL-2.0-or-later AND 0BSD AND Public-Domain AND LGPL-2.1-or-later"
+makedepends="autoconf automake libtool gettext-tiny"
+depends_dev="$pkgname=$pkgver-r$pkgrel"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc $pkgname-libs"
+source="https://github.com/tukaani-project/xz/archive/refs/tags/v$pkgver/xz-$pkgver.tar.gz"
+
+# secfixes:
+#   5.8.1-r0:
+#     - CVE-2025-31115
+#   5.2.5-r1:
+#     - CVE-2022-1271
+#   5.6.1-r2:
+#     - CVE-2024-3094
+
+prepare() {
+	default_prepare
+	autoreconf -fi
+}
 
 build() {
-	cd "$builddir"
+	# compression utility
+	CFLAGS="$CFLAGS -O3" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -32,13 +48,16 @@ build() {
 }
 
 check() {
-	cd "$builddir"
-	LD_LIBRARY_PATH="$(pwd)/src/liblzma/.libs" make check
+	LD_LIBRARY_PATH="$(pwd)/src/liblzma/.libs" make check || {
+		cat tests/test-suite.log
+		return 1
+	}
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="00db7dd31a61541b1ce6946e0f21106f418dd1ac3f27cdb8682979cbc3bd777cd6dd1f04f9ba257a0a7e24041e15ca40d0dd5c130380dce62280af67a0beb97f  xz-5.2.4.tar.xz"
+sha512sums="
+2f51fb316adb2962e0f2ef6ccc8b544cdc45087b9ad26dcd33f2025784be56578ab937c618e5826b2220b49b79b8581dcb8c6d43cd50ded7ad9de9fe61610f46  xz-5.8.1.tar.gz
+"

@@ -2,20 +2,21 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
 pkgname=chicken
-pkgver=4.13.0
+pkgver=5.4.0
 pkgrel=0
 pkgdesc="R5RS and R7RS compatible scheme compiler and interpreter"
-url="http://call-cc.org/"
+url="https://call-cc.org/"
 arch="all"
-license="custom"
+license="BSD-3-Clause"
 depends="gcc libc-dev $pkgname-dev $pkgname-libs"
-depends_dev=""
-makedepends="$depends_dev"
-install=""
+makedepends="chicken-bootstrap"
 subpackages="$pkgname-doc $pkgname-libs $pkgname-dev $pkgname-feathers::noarch"
-source="http://code.call-cc.org/releases/$pkgver/$pkgname-$pkgver.tar.gz"
+source="https://code.call-cc.org/releases/$pkgver/chicken-$pkgver.tar.gz
+	redundant-rpath.patch"
 
 # secfixes:
+#   5.3.0-r3:
+#     - CVE-2022-45145
 #   4.12.0-r3:
 #     - CVE-2017-6949
 #   4.12.0-r2:
@@ -24,32 +25,40 @@ source="http://code.call-cc.org/releases/$pkgver/$pkgname-$pkgver.tar.gz"
 #     - CVE-2016-6830
 #     - CVE-2016-6831
 
-builddir="$srcdir"/$pkgname-$pkgver
+# We want to build CHICKEN from source, not from pre-compiled C sources
+# in order to be able to apply patches to the original Scheme sources.
+#
+# See comment in community/chicken-bootstrap for details.
+export CHICKEN="/usr/bin/chicken-bootstrap"
+
+prepare() {
+	default_prepare
+
+	# Remove all auto-generated C files included in the tarball.
+	make spotless
+}
+
 build() {
-	# chicken does not support parallel builds.
-	make -j1 PLATFORM=linux PREFIX=/usr \
-		-C "$builddir" || return 1
+	make PREFIX=/usr
 }
 
 check() {
-	make -j1 PLATFORM=linux \
-		-C "$builddir" check || return 1
+	make -j1 check
 }
 
 package() {
 	# chicken does not support parallel installs.
-	make -j1 PLATFORM=linux PREFIX=/usr DESTDIR="$pkgdir" \
-		-C "$builddir" install || return 1
+	make -j1 PREFIX=/usr DESTDIR="$pkgdir" install
 
 	# Move documentation to /usr/share/doc.
 	mkdir -p "$pkgdir"/usr/share/doc/
 	mv "$pkgdir"/usr/share/$pkgname/doc \
-		"$pkgdir"/usr/share/doc/$pkgname || return 1
+		"$pkgdir"/usr/share/doc/$pkgname
 
 	# Move license to /usr/share/licenses
 	mkdir -p "$pkgdir"/usr/share/licenses/$pkgname
 	mv "$pkgdir"/usr/share/doc/$pkgname/LICENSE \
-		"$pkgdir"/usr/share/licenses/$pkgname/ || return 1
+		"$pkgdir"/usr/share/licenses/$pkgname/
 }
 
 feathers() {
@@ -59,9 +68,12 @@ feathers() {
 	mkdir -p "$subpkgdir"/usr/bin/ \
 		"$subpkgdir"/usr/share/chicken/
 	mv "$pkgdir"/usr/bin/feathers \
-		"$subpkgdir"/usr/bin/ || return 1
+		"$subpkgdir"/usr/bin/
 	mv "$pkgdir"/usr/share/chicken/feathers.tcl \
-		"$subpkgdir"/usr/share/chicken/ || return 1
+		"$subpkgdir"/usr/share/chicken/
 }
 
-sha512sums="02c2035b4f81da6f4af2d246361ce8debdc9d9c663c3f43b7afb9abbf1ff591a2bb8fa144511b4d747a373dea4dcd9c10cac48466bf97032db76f3830c08709d  chicken-4.13.0.tar.gz"
+sha512sums="
+21f5dc4abcfce7be2d8eb6728061728a4a695ac88860e94e114c2bf2839a8a47bbdc368330913edc83d5b81b6b2499c608e47e6659fa7651c82d133abb7e4e3c  chicken-5.4.0.tar.gz
+003b0930c6837f4be0e61cd2ebe76d4bd8f594b81f9325efaaa7020d97a6682ef09e58768b0805fdd696a2cc144615b94b3d0652217ef61f276b50aef41892e6  redundant-rpath.patch
+"

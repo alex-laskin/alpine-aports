@@ -1,50 +1,30 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: team/gnome <pabloyoyoista@postmarketos.org>
 pkgname=gsettings-desktop-schemas
-pkgver=3.24.1
+pkgver=49.1
 pkgrel=0
 pkgdesc="A collection of GSettings schemas"
-url="http://bugzilla.gnome.org/enter_bug.cgi?product=gsettings-desktop-schemas"
+url="https://gitlab.gnome.org/GNOME/gsettings-desktop-schemas"
 arch="noarch"
 license="LGPL-2.0-or-later"
-makedepends="glib-dev intltool gobject-introspection-dev"
-subpackages="$pkgname-dev"
-source="https://download.gnome.org/sources/$pkgname/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir"/$pkgname-$pkgver
-
-prepare() {
-	default_prepare
-	cd "$builddir"
-	sed -i -r 's:"(/system):"/org/gnome\1:g' schemas/*.in
-}
+depends_dev="$pkgname=$pkgver-r$pkgrel"
+makedepends="glib-dev gobject-introspection-dev meson"
+subpackages="$pkgname-dev $pkgname-lang"
+source="https://download.gnome.org/sources/gsettings-desktop-schemas/${pkgver%.*}/gsettings-desktop-schemas-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--disable-nls
-	make
+	abuild-meson . output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make install DESTDIR="$pkgdir"
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-dev() {	
-	default_dev
-	cd "$builddir"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/share/pkgconfig "$subpkgdir"/usr/lib
-}
-
-
-sha512sums="c3970d61cc1c29bf97a39c439b3e0ba5c5d5c0f811e17b8884f106f095b159dd0c43cb90e02561edcc26e15b2b887e960d38de1c0e7498413db0c63102f15833  gsettings-desktop-schemas-3.24.1.tar.xz"
+sha512sums="
+60924480d92bbb56d0f61e3b923398e9eb355c5c998989861dd25b8540f042bc70d174646c286946b868367fb8e74d5bd6b90885f7a48a2ec75b87ec447e964b  gsettings-desktop-schemas-49.1.tar.xz
+"

@@ -1,0 +1,73 @@
+# Maintainer: Andy Postnikov <apostnikov@gmail.com>
+pkgname=uv
+pkgver=0.9.5
+pkgrel=0
+pkgdesc="Extremely fast Python package installer and resolver, written in Rust"
+url="https://github.com/astral-sh/uv"
+arch="all"
+license="Apache-2.0 OR MIT"
+makedepends="
+	bzip2-dev
+	cargo
+	cmake
+	py3-gpep517
+	py3-setuptools
+	py3-wheel
+	py3-maturin
+	"
+subpackages="
+	$pkgname-bash-completion
+	$pkgname-zsh-completion
+	$pkgname-fish-completion
+	py3-$pkgname-pyc
+	py3-$pkgname:py3:noarch
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/astral-sh/uv/archive/refs/tags/$pkgver.tar.gz
+	bump-rustix-crate.patch
+	"
+options="net"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--config-json '{"build-args": "--locked", "build-option": "--release"}' \
+		--output-fd 3 3>&1 >&2
+
+	mkdir -p completions
+	local _uv="target/release/uv --generate-shell-completion"
+	$_uv bash > completions/$pkgname
+	$_uv fish > completions/$pkgname.fish
+	$_uv zsh > completions/_$pkgname
+}
+
+check() {
+	cargo test --frozen --release --bin uv
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" .dist/*.whl
+
+	install -Dm 644 "completions/$pkgname" -t "$pkgdir/usr/share/bash-completion/completions/"
+	install -Dm 644 "completions/$pkgname.fish" -t "$pkgdir/usr/share/fish/vendor_completions.d/"
+	install -Dm 644 "completions/_$pkgname" -t "$pkgdir/usr/share/zsh/site-functions/"
+
+	install -Dm0644 LICENSE-APACHE "$pkgdir/usr/share/licenses/$pkgname/LICENSE-APACHE"
+	install -Dm0644 LICENSE-MIT "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
+}
+
+py3() {
+	pkgdesc="$pkgdesc (python module)"
+	depends="$pkgname=$pkgver-r$pkgrel"
+
+	amove usr/lib/python3*
+}
+
+sha512sums="
+99272fd780f867c6d8cb84635845c46d23afce765fd5fa56a92e30580318cf86aa7a413ddbc8a4bcef5e3f7c4032c6af10bda2f422bc5f082181ae77cd84a3e6  uv-0.9.5.tar.gz
+9d08630fae0c0fa762c9e089e330ce268b76fd44b3d5a277d3162a785c903b819dd2238f97a3a8c5475a5943d08279f5fd47621308137d5260a25282849d162d  bump-rustix-crate.patch
+"

@@ -1,0 +1,39 @@
+# Contributor: Iztok Fister, Jr. <iztok@iztok-jr-fister.eu>
+# Maintainer: Iztok Fister, Jr. <iztok@iztok-jr-fister.eu>
+pkgname=py3-succulent
+pkgver=0.4.2
+pkgrel=0
+pkgdesc="Collect POST requests"
+url="https://github.com/firefly-cpp/succulent"
+arch="noarch"
+license="MIT"
+depends="python3 py3-flask py3-lxml py3-pandas py3-xmltodict py3-yaml"
+makedepends="py3-gpep517 py3-poetry-core"
+checkdepends="py3-pytest-xdist"
+subpackages="$pkgname-doc $pkgname-pyc"
+source="https://github.com/firefly-cpp/succulent/archive/$pkgver/succulent-$pkgver.tar.gz"
+builddir="$srcdir/succulent-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest -k 'not TestProcessing'
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/succulent-$pkgver-py3-none-any.whl
+
+	install -Dm644 CITATION.cff -t "$pkgdir"/usr/share/doc/$pkgname
+	install -Dm644 README.md -t "$pkgdir"/usr/share/doc/$pkgname
+}
+
+sha512sums="
+150557cfcd834f7607866f245743e7ebdf718d66fbdcc8d04f5f23a60cc5b28bc1b1c6a98067a7354320bf60332c2064f3e7316a5f6bb6b97cda9017bf62e8fe  succulent-0.4.2.tar.gz
+"

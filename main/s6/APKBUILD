@@ -1,48 +1,49 @@
 # Maintainer: Laurent Bercot <ska-devel@skarnet.org>
-# Contributor: John Regan <john@jrjrtech.com>
 pkgname=s6
-pkgver=2.7.1.1
-pkgrel=1
+pkgver=2.13.2.0
+pkgrel=0
 pkgdesc="skarnet.org's small & secure supervision software suite."
-url="https://skarnet.org/software/$pkgname/"
+url=https://skarnet.org/software/s6/
 arch="all"
 license="ISC"
-makedepends="skalibs-dev execline-dev"
+_skalibs_version=2.14.4
+_execline_version=2.9.7
+makedepends="skalibs-dev>=$_skalibs_version execline-dev>=$_execline_version"
+depends="s6-ipcserver execline"
 options="!check"
-subpackages="$pkgname-dev $pkgname-doc"
-source="https://skarnet.org/software/$pkgname/$pkgname-$pkgver.tar.gz s6-svscanboot s6.initd"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-ipcserver $pkgname-static $pkgname-libs $pkgname-dev $pkgname-doc $pkgname-openrc"
+source="https://skarnet.org/software/s6/s6-$pkgver.tar.gz s6-svscanboot s6.initd"
 install="s6.pre-install s6.pre-upgrade"
 triggers="s6.trigger=/run/service"
 
+_ipcserver_binaries="usr/bin/s6-ipcserver usr/bin/s6-ipcserver-socketbinder usr/bin/s6-ipcserverd usr/bin/s6-applyuidgid"
 
 build() {
-	cd "$builddir"
 	./configure \
+		--prefix=/usr \
 		--enable-shared \
-		--enable-static \
 		--disable-allstatic \
-		--libdir=/usr/lib \
-		--libexecdir="/lib/$pkgname" \
-		--with-dynlib=/lib
+		--libexecdir="/usr/lib/$pkgname" \
+		--with-pkgconfig \
+		--enable-pkgconfig
 	make
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
-        cp -f "$srcdir/s6-svscanboot" "$pkgdir/lib/s6/s6-svscanboot"
-        mkdir -p "$pkgdir/etc/init.d"
-        cp -f "$srcdir/s6.initd" "$pkgdir/etc/init.d/s6"
-        chmod 0755 "$pkgdir/lib/s6/s6-svscanboot" "$pkgdir/etc/init.d/s6"
+	install -D "$srcdir/s6-svscanboot" "$pkgdir/usr/lib/s6/s6-svscanboot"
+	install -D "$srcdir/s6.initd" "$pkgdir/etc/init.d/s6"
+	mkdir -p "$pkgdir/usr/share/doc"
+	cp -a "$builddir/doc" "$pkgdir/usr/share/doc/$pkgname"
 }
 
-doc() {
-	default_doc
-	mkdir -p "$subpkgdir/usr/share/doc"
-	cp -a "$builddir/doc" "$subpkgdir/usr/share/doc/$pkgname"
+ipcserver() {
+	depends=""
+	amove $_ipcserver_binaries
 }
 
-sha512sums="59b0a611eaa0bbdeae3133a182e933e14806151d3b8d44c7f4258a63693cf2fa487fce91a4ea37527ed0f52f211a5391b3fcf6202773b0a80d6ce7f3de60ff79  s6-2.7.1.1.tar.gz
-871ca1f86b354b7c63ce1d3bef8794627e176f993144ed67a17d0a069f5ac2164d94aba980711f61ad349dcd4fe2bf928195f2121a75e611c9897d73f1af12a0  s6-svscanboot
-e7f4fcdc04fc7f72df4419018d048e14f80d50d01ebc284b6d208d6bada3201ca91be0a110930618a26fb0e6bcc1603de01467f6f1dc635c8dcae60f1a0b1b9b  s6.initd"
+sha512sums="
+0ee3b319fb0731681e8823bd6c0b415c556b87819b1ca72be2ff622b4f35f87ffe7a71ccaa2c783933d76eedcde7ded1fe767ee44a63e1717b2299a2b5aa81e1  s6-2.13.2.0.tar.gz
+206cdc275b81e60d8c8b7553ed1ce52ef0a868c853ccbb278e99459a8597fe650d1869973ca0a4526695664f0e853abfdae1a606276ab84db28d33d886f60751  s6-svscanboot
+1238fb453cc7b13227d57b6925c076e44196593d7d519f55cbbc9b0cbe4723301d4b1f152db7b2e78a37fd3a03689e85b8569240a733b8da00332b4631660035  s6.initd
+"

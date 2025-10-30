@@ -1,26 +1,28 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=mpg123
-pkgver=1.25.10
+pkgver=1.33.3
 pkgrel=0
 pkgdesc="Console-based MPEG Audio Player for Layers 1, 2 and 3"
-url="http://www.mpg123.org"
-arch="all"
-license="GPL-2.0 LGPL-2.0"
-subpackages="$pkgname-dev $pkgname-doc"
-depends=""
-makedepends="libtool alsa-lib-dev linux-headers"
-source="http://www.mpg123.org/download/$pkgname-$pkgver.tar.bz2"
 options="libtool"
-builddir="$srcdir"/$pkgname-$pkgver
+url="https://www.mpg123.org/"
+arch="all"
+license="LGPL-2.1-only"
+subpackages="$pkgname-libs $pkgname-dev $pkgname-doc"
+makedepends="libtool alsa-lib-dev linux-headers"
+source="https://www.mpg123.org/download/mpg123-$pkgver.tar.bz2"
+
+# secfixes:
+#   1.32.8-r0:
+#     - CVE-2024-10573
 
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--disable-dependency-tracking \
-		--with-ipv6 \
 		--with-pic \
 		--with-optimization=0 \
 		--with-cpu=i386_fpu \
@@ -29,13 +31,15 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	# Installation is not parallel friendly and will fail
+	# sometimes
+	make -j1 DESTDIR="$pkgdir" install
 }
 
-sha512sums="a33666ae4aca7e7c1a93a6414d8c525ec19044c54f712d578180147d88e63033f7af2370b9ad22960cc3a0b454f15967b7a831cccc97e034c8855f70cdf1ab09  mpg123-1.25.10.tar.bz2"
+sha512sums="
+509841e296dabf6039b5301e8160fcea37f13963d7bedf12082d2ce0d3bd14229fd906cb899eea2be9942fb994d9e1e4f00c757ca96f4ca7d5a14469cf13b91d  mpg123-1.33.3.tar.bz2
+"

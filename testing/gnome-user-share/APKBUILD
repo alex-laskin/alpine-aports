@@ -1,0 +1,44 @@
+maintainer="Achill Gilgenast <achill@achill.org>"
+pkgname=gnome-user-share
+pkgver=48.1
+pkgrel=1
+pkgdesc="Easy to use user-level file sharing for GNOME"
+url="https://gitlab.gnome.org/GNOME/gnome-user-share"
+arch="all"
+license="GPL-2.0-or-later"
+depends="
+	apache2
+	apache2-webdav
+	mod_dnssd
+	"
+makedepends="
+	cargo
+	glib-dev
+	meson
+	"
+subpackages="$pkgname-lang"
+source="https://download.gnome.org/sources/gnome-user-share/${pkgver%.*}/gnome-user-share-$pkgver.tar.xz"
+options="!check" # no tests
+
+build() {
+	abuild-meson \
+		. output \
+		-Dhttpd=/usr/sbin/httpd \
+		-Dmodules_path=/usr/lib/apache2
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	# We don't ship systemd
+	rm -r "$pkgdir"/usr/lib/systemd
+}
+
+sha512sums="
+abffa9da63316ffc3c869855251ea25d03a67d4174fecd5039022da6deeb95328d095956a562c1dfc0fd6b22eed5d4e6cfe7ab11578970214fb1eb00594e057a  gnome-user-share-48.1.tar.xz
+"

@@ -1,42 +1,38 @@
 # Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
 # Maintainer: Sören Tempel <soeren+alpine@soeren-tempel.net>
 pkgname=mblaze
-pkgver=0.3.2
-pkgrel=4
+pkgver=1.3
+pkgrel=0
 pkgdesc="Unix utilities to deal with Maildir"
-url="https://github.com/chneukirchen/mblaze"
+url="https://git.vuxu.org/mblaze/"
 arch="all"
 license="CC0-1.0"
-depends=""
-depends_dev=""
-makedepends=""
+depends="file"
 checkdepends="perl-utils"
-install=""
-subpackages="$pkgname-doc $pkgname-crypto::noarch"
-options="!check" # currently fail on the builder
-source="$pkgname-$pkgver.tar.gz::https://github.com/chneukirchen/$pkgname/archive/v$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-doc $pkgname-crypto::noarch $pkgname-zsh-completion"
+source="$pkgname-$pkgver.tar.gz::https://git.vuxu.org/mblaze/snapshot/mblaze-$pkgver.tar.gz
+	"
 
 build() {
-	make CFLAGS="$CFLAGS" -C "$builddir"
+	make CFLAGS="$CFLAGS"
 }
 
 check() {
-	make -C "$builddir" check
+	make check
 }
 
 package() {
-	cd "$builddir"
 	make PREFIX="/usr" DESTDIR="$pkgdir" install
 
 	mkdir -p "$pkgdir"/usr/share/doc/$pkgname/examples/
-	install -m644 *.example "$pkgdir"/usr/share/doc/$pkgname/examples/
+	install -m644 ./*.example "$pkgdir"/usr/share/doc/$pkgname/examples/
 	install -m644 NEWS.md VIOLATIONS.md README \
 		"$pkgdir"/usr/share/doc/$pkgname/
+	install -Dm644 ./contrib/_mblaze "$pkgdir"/usr/share/zsh/site-functions/_mblaze
 }
 
 crypto() {
-	depends="libressl gnupg"
+	depends="openssl gpg"
 	pkgdesc="Scripts for using S/MIME and PGP"
 
 	cd "$builddir/contrib"
@@ -45,4 +41,6 @@ crypto() {
 		"$subpkgdir"/usr/bin
 }
 
-sha512sums="809d3a82e89a90bf1dce5abca97155b524290bbaa3c8100efb461f3694c4ff28ed0d1e46d3d74c2fbb96a17cd44ccee315a022d6697a470f82d8d4ee66ab7147  mblaze-0.3.2.tar.gz"
+sha512sums="
+65acc92654fe2f32328b57969930711128138067c9c23def025eb55b82a237d635b5923e9106ada394954b63eb6cd1e4e55f875aafc6201f21f83e8142905470  mblaze-1.3.tar.gz
+"

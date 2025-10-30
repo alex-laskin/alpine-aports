@@ -3,18 +3,17 @@
 pkgname=lua-loadkit
 _pkgname=loadkit
 pkgver=1.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Allows to load arbitrary files within the Lua package path"
 url="https://github.com/leafo/loadkit"
 arch="noarch"
 license="MIT"
-subpackages=""
 source="$pkgname-$pkgver.tar.gz::https://github.com/leafo/$_pkgname/archive/v$pkgver.tar.gz"
 builddir="$srcdir/$_pkgname-$pkgver"
 # Tests require moonscript, but moonscript requires loadkit to run all tests.
 options="!check"
 
-_luaversions="5.1 5.2 5.3"
+_luaversions="5.1 5.2 5.3 5.4"
 for _v in $_luaversions; do
 	subpackages="$subpackages lua$_v-${pkgname#lua-}:_subpackage"
 	checkdepends="$checkdepends lua$_v"

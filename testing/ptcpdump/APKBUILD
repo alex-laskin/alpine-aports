@@ -1,0 +1,31 @@
+# Contributor: Francesco Colista <fcolista@alpinelinux.org>
+# Maintainer: Francesco Colista <fcolista@alpinelinux.org>
+pkgname=ptcpdump
+pkgver=0.35.0
+pkgrel=2
+pkgdesc="Process-aware, eBPF-based tcpdump"
+url="https://github.com/mozillazg/ptcpdump"
+arch="x86_64"
+license="MIT"
+options="!check net"
+makedepends="libpcap-dev go clang"
+source="$pkgname-$pkgver.tar.gz::https://github.com/mozillazg/ptcpdump/archive/refs/tags/v$pkgver.tar.gz"
+
+build() {
+	export LDFLAGS="-linkmode external -extldflags -static"
+	export LDFLAGS="$LDFLAGS -X github.com/mozillazg/ptcpdump/internal.Version=$pkgver"
+	TARGET=amd64 go generate ./...
+	CGO_ENABLED=1 go build -ldflags "$LDFLAGS"
+}
+
+check() {
+	return 0
+}
+
+package() {
+	install -Dm755 ptcpdump -t "$pkgdir"/usr/sbin/
+}
+
+sha512sums="
+c1bff3d18af96719d24086dc77dcaf4edf0e25013255837f3519db6b2030fe4b37f118909226c389126faa785643abe6c86ee1dbe713bee2532c6db08f3a5e0e  ptcpdump-0.35.0.tar.gz
+"

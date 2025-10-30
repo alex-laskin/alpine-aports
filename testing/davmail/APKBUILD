@@ -1,0 +1,39 @@
+# Maintainer: Struan Robertson <contact@struan.tech>
+pkgname=davmail
+pkgver=6.5.0
+pkgrel=0
+pkgdesc="DavMail POP/IMAP/SMTP/Caldav/Carddav/LDAP Exchange and Office 365 Gateway"
+url="https://davmail.sourceforge.net"
+# riscv64: blocked by openjdk8
+arch="noarch !riscv64"
+license="GPL-2.0-only"
+makedepends="
+	apache-ant
+	openjdk8
+"
+depends="
+	openjdk8
+"
+source="
+	$pkgname-$pkgver.tar.gz::https://github.com/mguessan/davmail/archive/$pkgver/davmail-$pkgver.tar.gz
+	remove-windows-service.patch
+"
+options="net !check"
+
+build() {
+	ant
+}
+
+package() {
+	  cd dist
+	  mkdir -p "$pkgdir"/usr/share/"$pkgname"/lib
+	  install -Dm644 "$pkgname".jar "$pkgdir"/usr/share/"$pkgname"
+	  find lib -type f ! -name '*win32-x86_64.jar' ! -name 'winrun4j*' -exec install -D {} "$pkgdir"/usr/share/"$pkgname"/{} \;
+	  mkdir -p "$pkgdir"/usr/bin/
+	  install -Dm755 "$pkgname" "$pkgdir"/usr/bin/
+}
+
+sha512sums="
+f28ff8eb3ce25014a7bfceb4384ee2a44a27e52bd886787ab38142db57d9b560c25ad741b804f8a693fd03989972522951b673fe1a84bfe586e006e1f69083e3  davmail-6.5.0.tar.gz
+9eca5ec6ab47805956ba8f01af262951da5eab902c023d8040eb0973b4ec71a5db561bb397af8763f61e82404d26d0febd5c8aada5f5bbcdc92b0a77ae733bd3  remove-windows-service.patch
+"

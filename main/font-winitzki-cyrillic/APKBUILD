@@ -1,42 +1,34 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-winitzki-cyrillic
-pkgver=1.0.3
-pkgrel=0
+pkgver=1.0.4
+pkgrel=1
 pkgdesc="X.org winitzki cyrillic fonts"
-url="http://xorg.freedesktop.org/"
-arch="all"
-license="custom"
-depends="encodings font-alias mkfontscale mkfontdir fontconfig"
+url="https://xorg.freedesktop.org/"
+arch="noarch"
+license="Public Domain"
+options="!check"
+depends="encodings font-alias mkfontscale fontconfig"
 makedepends="font-util-dev bdftopcf"
-install=
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$srcdir"/$pkgname-$pkgver
-	update_config_sub || return 1
-}
+source="https://www.x.org/releases/individual/font/font-winitzki-cyrillic-$pkgver.tar.xz"
 
 build() {
-	cd "$srcdir"/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-mapfiles=/usr/share/fonts/util \
-		--with-fontdir=/usr/share/fonts/cyrillic \
-		|| return 1
-	make || return 1
+		--with-fontdir=/usr/share/fonts/cyrillic
+	make
 }
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-	make -j1 DESTDIR="$pkgdir" \
+	make DESTDIR="$pkgdir" \
 		MKFONTDIR=: \
 		MKFONTSCALE=: \
 		FCCACHE=: \
-		install || return 1
+		install
 }
 
-md5sums="829a3159389b7f96f629e5388bfee67b  font-winitzki-cyrillic-1.0.3.tar.bz2"
-sha256sums="abd13b63d02fcaec488686c23683e5cf640b43bd32f8ca22eeae6f84df0a36a0  font-winitzki-cyrillic-1.0.3.tar.bz2"
-sha512sums="f98fa99c1b0e60160b362310a7fe5fd5798aaa686751a6784a697c546ed754e885537eeed39a1f973dbceabc962cb65b39af1d336649381a49feb6df9f23e2b7  font-winitzki-cyrillic-1.0.3.tar.bz2"
+sha512sums="
+11e366f96abe65aed9fb6fd087b2bd90af9f60548de0cebfeb348262860957a63a997616e00092d312b8ae9c262a7bb52da69c704a27d34018a45b98a87eb158  font-winitzki-cyrillic-1.0.4.tar.xz
+"

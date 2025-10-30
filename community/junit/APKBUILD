@@ -1,30 +1,27 @@
 # Contributor: Stuart Cardall <developer@it-offshore.co.uk>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=junit
-pkgver=4.12
-pkgrel=0
+pkgver=4.13.2
+pkgrel=1
 pkgdesc="A programmer-oriented testing framework for Java"
-url="http://junit.org/"
+url="https://junit.org/"
 arch="noarch"
 license="EPL-1.0"
-depends=""
-source="http://search.maven.org/remotecontent?filepath=$pkgname/$pkgname/$pkgver/$pkgname-$pkgver.jar"
+options="!check"
+source="https://search.maven.org/remotecontent?filepath=$pkgname/$pkgname/$pkgver/$pkgname-$pkgver.jar"
 
-_builddir="$srcdir"
-
-build() {
-	cd "$_builddir"
-	return 0
-}
+# secfixes:
+#   4.13.1-r0:
+#     - CVE-2020-15250
 
 package() {
-	cd "$_builddir"
-	install -dm755 ${pkgdir}/usr/share/java || return 1
-	install -m644 "$pkgname-$pkgver.jar" ${pkgdir}/usr/share/java || return 1
-	cd ${pkgdir}/usr/share/java || return 1
-	ln -s "$pkgname-$pkgver.jar" "$pkgname.jar"
+	local _javadir=/usr/share/java
+	install -dm755 "$pkgdir"$_javadir
+	install -m644 "$srcdir"/$pkgname-$pkgver.jar "$pkgdir"$_javadir
+	cd "$pkgdir"$_javadir
+	ln -s $pkgname-$pkgver.jar $pkgname.jar
 }
 
-md5sums="5b38c40c97fbd0adee29f91e60405584  junit-4.12.jar"
-sha256sums="59721f0805e223d84b90677887d9ff567dc534d7c502ca903c0c2b17f05c116a  junit-4.12.jar"
-sha512sums="5974670c3d178a12da5929ba5dd9b4f5ff461bdc1b92618c2c36d53e88650df7adbf3c1684017bb082b477cb8f40f15dcf7526f06f06183f93118ba9ebeaccce  junit-4.12.jar"
+sha512sums="
+a31b9950f929a7e5a600d89787ef40e42a8a8e2392e210d0c0f45b3572937670a18a524f1815508cd1152cd1eaa7275cb7430ba45c053be365c83c231bccd3f0  junit-4.13.2.jar
+"

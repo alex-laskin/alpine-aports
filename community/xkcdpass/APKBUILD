@@ -1,41 +1,40 @@
 # Contributor: Fabian Affolter <fabian@affolter-engineering.ch>
-# Maintainer: Fabian Affolter <fabian@affolter-engineering.ch>
+# Maintainer: Celeste <cielesti@protonmail.com>
+maintainer="Celeste <cielesti@protonmail.com>"
 pkgname=xkcdpass
-pkgver=1.16.5
+pkgver=1.20.0
 pkgrel=0
 pkgdesc="Generate secure multiword passwords/passphrases"
 url="https://github.com/redacted/XKCD-password-generator"
 arch="noarch"
 license="BSD-3-Clause"
 depends="py3-xkcdpass"
-makedepends="python3-dev py3-setuptools"
-subpackages="py3-$pkgname:py3"
-source="https://files.pythonhosted.org/packages/source/${pkgname:0:1}/$pkgname/$pkgname-$pkgver.tar.gz
-        python-to-python3.patch"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="py3-gpep517 py3-setuptools py3-wheel"
+subpackages="py3-$pkgname-pyc py3-$pkgname:py3"
+source="https://files.pythonhosted.org/packages/source/x/xkcdpass/xkcdpass-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
-	python3 setup.py build
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
 }
 
 check() {
-        cd "$builddir"
-        python3 setup.py test
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 tests/test_xkcdpass.py
 }
 
 package() {
-	cd "$builddir"
-	python3 setup.py install --prefix=/usr --root="$pkgdir"
+	python3 -m installer -d "$pkgdir" .dist/*.whl
 }
 
 py3() {
 	pkgdesc="Python library for $pkgname"
-	depends="python3"
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/python* "$subpkgdir"/usr/lib/
+	amove usr/lib/python*
 }
 
-sha512sums="dc0ffdb0b651f5f0fb1eb3276d3e3d849d0d63f9a9b18fe4f5eaa87eab3e90d1292d411e3909c881621b3e330b5a3ac5f9905b27ad048ab33d84c3fdc8428087  xkcdpass-1.16.5.tar.gz
-23a7c50a96e7d854bdbfdb87852229b147d1f892d05f9d64d899199c0eb7276638c908f8dee17880cf4f611a17565ce1c117c5dfaca9117379ce1e7655f30808  python-to-python3.patch"
+sha512sums="
+4e21e9c2924ae65e21d79c6389ff574715acaa7a13c5d065b38e97ed1d2b6581a51a5e7b7acbbaa09e4ba241c4df15d05d95b9bcc990d3bb6f3b0b4b581d7b85  xkcdpass-1.20.0.tar.gz
+"

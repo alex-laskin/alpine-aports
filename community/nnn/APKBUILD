@@ -1,66 +1,61 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=nnn
-pkgver=1.8
+pkgver=5.1
 pkgrel=0
-pkgdesc="The missing terminal file browser for X"
+pkgdesc="The unorthodox terminal file manager"
 url="https://github.com/jarun/nnn"
-arch="all !armhf"  # armhf: fails to build
+arch="all"
 license="BSD-2-Clause"
-makedepends="ncurses-dev readline-dev"
-options="!check"  # no tests provided and `nnn -v` requires tty
+makedepends="musl-fts-dev ncurses-dev readline-dev"
+install="$pkgname-plugins.post-install"
+options="!check"  # no tests provided and $(nnn -v) requires tty
 subpackages="$pkgname-doc
-	$pkgname-bash-completion:bashcomp:noarch
-	$pkgname-fish-completion:fishcomp:noarch
-	$pkgname-zsh-completion:zshcomp:noarch
+	$pkgname-plugins::noarch
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
 	"
-source="$pkgname-$pkgver.tar.gz::https://github.com/jarun/$pkgname/archive/v$pkgver.tar.gz
-	nlay"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://github.com/jarun/nnn/archive/v$pkgver/nnn-$pkgver.tar.gz
+	nnn-getplugs
+	musl-fts-support.patch
+	"
 
 build() {
-	cd "$builddir"
 	make
 }
 
 package() {
-	cd "$builddir"
-
 	make install DESTDIR="$pkgdir" PREFIX=/usr
 
-	# Overwrite the provided nlay script with our POSIX compliant version.
-	install -m 755 "$srcdir"/nlay "$pkgdir"/usr/bin/nlay
+	install -D -m 644 misc/auto-completion/bash/nnn-completion.bash \
+		"$pkgdir"/usr/share/bash-completion/completions/$pkgname
+
+	install -D -m 644 misc/auto-completion/fish/nnn.fish \
+		"$pkgdir"/usr/share/fish/vendor_completions.d/$pkgname.fish
+
+	install -D -m 644 misc/auto-completion/zsh/_nnn \
+		"$pkgdir"/usr/share/zsh/site-functions/_$pkgname
 }
 
-bashcomp() {
-	pkgdesc="Bash completions for $pkgname"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
+plugins() {
+	pkgdesc="nnn official plugins"
+	local destdir="$subpkgdir/usr/share/$pkgname/plugins"
 
 	cd "$builddir"
-	install -D -m 644 scripts/auto-completion/bash/nnn-completion.bash \
-		"$subpkgdir"/usr/share/bash-completion/completions/$pkgname
+	mkdir -p "$destdir"
+	cp -r plugins "${destdir%/*}"/
+
+	cd "$destdir"
+	rm README* getplugs
+
+	install -D -m 0755 "$srcdir"/nnn-getplugs "$destdir"/getplugs
+	mkdir -p "$subpkgdir"/usr/bin
+	ln -s ../share/$pkgname/plugins/getplugs "$subpkgdir"/usr/bin/nnn-getplugs
 }
 
-fishcomp() {
-	pkgdesc="Fish completions for $pkgname"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel fish"
-
-	cd "$builddir"
-	install -D -m 644 scripts/auto-completion/fish/nnn.fish \
-		"$subpkgdir"/usr/share/fish/completions/$pkgname.fish
-}
-
-zshcomp() {
-	pkgdesc="ZSH completions for $pkgname"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel zsh"
-
-	cd "$builddir"
-	install -D -m 644 scripts/auto-completion/zsh/_nnn \
-		"$subpkgdir"/usr/share/zsh/site-functions/_$pkgname
-}
-
-sha512sums="dfa3fc20cc9d77dc6a998913d79c1f98467f9e0f475d43317fe5b3b7c85f04a8aa1508305307873115ff810f5e212272e8348af9d8bd5283f48ad76ed34cad55  nnn-1.8.tar.gz
-9f70f5fec2799caf1624e1334e687072dde94ee550a4cd7ee5a1a6b9b880f3fe40b6cbd631ce2d024cb811b5115249e7cd81c880c88f2289f627cd866fc06036  nlay"
+sha512sums="
+6b20f14a937c232b072c90e81d49dc2d4c422918d7a5fdca6502dbc0c75ec73850f31fa9eccbc31b4773e700b255b4800baa5fe2f920b3c4c430151b53d4c33f  nnn-5.1.tar.gz
+5870bd38c897c0738778952d3c65131ae37b44d8a5032add81645bcf46cae4c66700f319b514f8ab369e15900e4de1058736664ca3603a850ef0212a8ce8e7ee  nnn-getplugs
+024b569085e49c33c8fd4143ef97d1b96402e08acb7477f06a2de33f663843151c364f6d7c20329396cadbf75100255f70b28da5f2f44326880d34a3c4644a20  musl-fts-support.patch
+"

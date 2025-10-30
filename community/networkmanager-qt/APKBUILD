@@ -1,0 +1,56 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-frameworks
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=networkmanager-qt
+pkgver=6.19.0
+pkgrel=0
+pkgdesc="Qt wrapper for NetworkManager API"
+# armhf blocked by extra-cmake-modules
+arch="all !armhf"
+url="https://community.kde.org/Frameworks"
+license="LGPL-2.1-only OR LGPL-3.0-only"
+depends="networkmanager"
+depends_dev="
+	networkmanager-dev
+	qt6-qtdeclarative-dev
+	"
+makedepends="$depends_dev
+	doxygen
+	extra-cmake-modules
+	kde-qdoc-common
+	qt6-qtdeclarative-private-dev
+	qt6-qttools-dev
+	samurai
+	"
+subpackages="$pkgname-dev $pkgname-doc"
+_repo_url="https://invent.kde.org/frameworks/networkmanager-qt.git"
+source="https://download.kde.org/stable/frameworks/${pkgver%.*}/networkmanager-qt-$pkgver.tar.xz"
+
+build() {
+	export KDE_DOCS=/usr/share/kde/documentation
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+
+	cmake --build build --target prepare_docs
+	cmake --build build --target generate_docs
+	cmake --build build --target generate_qch
+}
+
+check() {
+	# The excluded tests currently fail
+	ctest --test-dir build -E '(manager|settings|activeconnection)test'
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	DESTDIR="$pkgdir" cmake --build build --target install_html_docs
+	DESTDIR="$pkgdir" cmake --build build --target install_qch_docs
+}
+
+sha512sums="
+8eb27e8b7e5a8b3a3d039a8de7ac71ed80cd00f466a2d0a22696c1af41df64482c6e2aa4a674cd52d8d687134891aac0e645e3f15a75e34014c3df0287c3aa36  networkmanager-qt-6.19.0.tar.xz
+"

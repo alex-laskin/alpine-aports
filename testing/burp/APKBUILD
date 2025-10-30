@@ -1,42 +1,37 @@
-# Maintainer: Bernhard J. M. Gruen <bernhard.gruen@googlemail.com>
+# Contributor: Bernhard J. M. Gruen <bernhard.gruen@googlemail.com>
+# Maintainer:
 pkgname=burp
-pkgver=2.1.32
-pkgrel=1
+pkgver=3.1.4
+pkgrel=0
 pkgdesc="A network backup and restore program"
-url="http://burp.grke.org"
+url="https://burp.grke.org"
 arch="all"
 license="AGPL-3.0-only"
 makedepends="
-	uthash-dev
-	libressl-dev
-	zlib-dev
+	bsd-compat-headers
 	librsync-dev
-	libtool
-	automake
-	autoconf
+	linux-headers
+	uthash-dev
+	openssl-dev>3
+	zlib-dev
 	"
-depends=""
-checkdepends="
-	check-dev
-	"
+checkdepends="check-dev"
 subpackages="
 	$pkgname-doc
 	$pkgname-server
 	"
-source="https://github.com/grke/$pkgname/archive/$pkgver.zip
+source="https://github.com/grke/burp/releases/download/$pkgver/burp-$pkgver.tar.bz2
 	burp.init
 	"
-builddir="$srcdir/$pkgname-$pkgver"
 # Check is deactivated as it needs --enable-forks in check/check-dev
 options="!check"
 
 prepare() {
 	default_prepare
-	autoreconf -vif
+	update_config_guess
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
 		--sbindir=/usr/bin \
@@ -49,13 +44,10 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-
 	make DESTDIR="$pkgdir" install-all
 
 	cd "$pkgdir"
@@ -69,7 +61,7 @@ server() {
 	pkgdesc="$pkgdesc (server configuration and helper scripts)"
 	# bash is needed on the server to run burp_ca, timer and notify scripts
 	# I am working on a version that does not need bash anymore
-	depends="bash libressl"
+	depends="bash openssl"
 
 	cd "$builddir"
 
@@ -79,6 +71,7 @@ server() {
 
 	mkdir -p "$subpkgdir"/usr/share/burp/scripts
 	mv "$pkgdir"/usr/share/burp/scripts "$subpkgdir"/usr/share/burp
+	# shellcheck disable=2115
 	rm -rf "$pkgdir"/usr/share
 
 	mkdir -p "$subpkgdir"/etc/burp
@@ -94,5 +87,7 @@ server() {
 	done
 }
 
-sha512sums="99d1af3673f2c2f9f2315fcb920aeb22b050390ef1b5b773dd5c6316c43a05dab43563a42eef6ee68608cf048c90d3cb2f3d3bde74acf64defeb6d311a4ea256  2.1.32.zip
-ef98c1fb938063fee35cc5ae5ff9179a759b89b3c2629320ff4dffb4c42395cac1ad6b4615c6c1f34cc4be3ce54397b00f583ba5f3cd2fe8498902d4d9445e8f  burp.init"
+sha512sums="
+034478a3010eaf4fdbc45a77d37fa6dc18d8c7294af3ce2706ba1372e983e6acd7c7d98b345295b4791762a2ab9a636261e6946dfcaccac00663655f21e5cd52  burp-3.1.4.tar.bz2
+ef98c1fb938063fee35cc5ae5ff9179a759b89b3c2629320ff4dffb4c42395cac1ad6b4615c6c1f34cc4be3ce54397b00f583ba5f3cd2fe8498902d4d9445e8f  burp.init
+"

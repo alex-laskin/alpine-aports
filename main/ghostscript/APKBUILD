@@ -1,23 +1,126 @@
 # Contributor: Cameron Banta <cbanta@gmail.com>
 # Maintainer: Cameron Banta <cbanta@gmail.com>
 pkgname=ghostscript
-pkgver=9.22
-pkgrel=0
-pkgdesc="An interpreter for the PostScript language and for PDF"
+pkgver=10.05.1
+pkgrel=1
+pkgdesc="Interpreter for the PostScript language and for PDF"
 url="https://ghostscript.com/"
 arch="all"
-license="GPL-3.0"
-makedepends="autoconf automake libjpeg-turbo-dev libpng-dev jasper-dev expat-dev
-	zlib-dev tiff-dev freetype-dev lcms2-dev gtk+3.0-dev
-	cups-dev libtool jbig2dec-dev openjpeg-dev"
+license="AGPL-3.0-or-later"
+options="!check"
+makedepends="
+	autoconf
+	automake
+	cups-dev
+	expat-dev
+	freetype-dev
+	gtk+3.0-dev
+	jbig2dec-dev
+	lcms2-dev
+	libjpeg-turbo-dev
+	libpng-dev
+	libtool
+	openjpeg-dev
+	tiff-dev
+	zlib-dev
+	libxt-dev
+	"
 subpackages="$pkgname-dbg $pkgname-doc $pkgname-dev $pkgname-gtk"
-source="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${pkgver/./}/ghostscript-$pkgver.tar.gz
+source="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${pkgver//./}/ghostscript-$pkgver.tar.gz
 	ghostscript-system-zlib.patch
 	fix-sprintf.patch
+	gcc15-fix-compatibility-with-c23-compilers.patch
+	gcc15-remove-some-old-filters.patch
 	"
-builddir="$srcdir/$pkgname-$pkgver"
 
 # secfixes:
+#   10.05.1-r0:
+#     - CVE-2025-46646
+#   10.05.0-r0:
+#     - CVE-2025-27830
+#     - CVE-2025-27831
+#     - CVE-2025-27832
+#     - CVE-2025-27833
+#     - CVE-2025-27834
+#     - CVE-2025-27835
+#     - CVE-2025-27836
+#     - CVE-2025-27837
+#   10.04.0-r0:
+#     - CVE-2024-46951
+#     - CVE-2024-46952
+#     - CVE-2024-46953
+#     - CVE-2024-46954
+#     - CVE-2024-46955
+#     - CVE-2024-46956
+#   10.03.1-r0:
+#     - CVE-2023-52722
+#     - CVE-2024-29510
+#     - CVE-2024-33869
+#     - CVE-2024-33870
+#     - CVE-2024-33871
+#   10.02.0-r0:
+#     - CVE-2023-43115
+#   9.54-r1:
+#     - CVE-2021-3781
+#   9.51-r0:
+#     - CVE-2020-16287
+#     - CVE-2020-16288
+#     - CVE-2020-16289
+#     - CVE-2020-16290
+#     - CVE-2020-16291
+#     - CVE-2020-16292
+#     - CVE-2020-16293
+#     - CVE-2020-16294
+#     - CVE-2020-16295
+#     - CVE-2020-16296
+#     - CVE-2020-16297
+#     - CVE-2020-16298
+#     - CVE-2020-16299
+#     - CVE-2020-16300
+#     - CVE-2020-16301
+#     - CVE-2020-16302
+#     - CVE-2020-16303
+#     - CVE-2020-16304
+#     - CVE-2020-16305
+#     - CVE-2020-16306
+#     - CVE-2020-16307
+#     - CVE-2020-16308
+#     - CVE-2020-16309
+#     - CVE-2020-16310
+#     - CVE-2020-17538
+#   9.50-r0:
+#     - CVE-2019-14869
+#   9.27-r4:
+#     - CVE-2019-14817
+#   9.27-r3:
+#     - CVE-2019-14811
+#     - CVE-2019-14812
+#     - CVE-2019-14813
+#   9.27-r2:
+#     - CVE-2019-10216
+#   9.26-r2:
+#     - CVE-2019-3835
+#     - CVE-2019-3838
+#   9.26-r1:
+#     - CVE-2019-6116
+#   9.26-r0:
+#     - CVE-2018-19409
+#     - CVE-2018-19475
+#     - CVE-2018-19476
+#     - CVE-2018-19477
+#   9.25-r1:
+#     - CVE-2018-17961
+#     - CVE-2018-18073
+#     - CVE-2018-18284
+#   9.25-r0:
+#     - CVE-2018-16802
+#   9.24-r0:
+#     - CVE-2018-15908
+#     - CVE-2018-15909
+#     - CVE-2018-15910
+#     - CVE-2018-15911
+#   9.23-r0:
+#     - CVE-2018-10194
 #   9.21-r2:
 #     - CVE-2017-8291
 #   9.21-r3:
@@ -25,25 +128,40 @@ builddir="$srcdir/$pkgname-$pkgver"
 #     - CVE-2017-5951
 
 prepare() {
-	cd "$builddir"
-
-	default_prepare || return 1  # apply patches
+	default_prepare # apply patches
 
 	# force it to use system-libs
-	rm -r jpeg libpng zlib tiff lcms2 cups/libs jbig2dec \
-		freetype || return 1
+	rm -r \
+		cups/libs \
+		freetype \
+		jbig2dec \
+		jpeg \
+		lcms2mt \
+		libpng \
+		openjpeg \
+		tiff \
+		zlib
+
+	# fails to build tesseract due missing SIMD instructions on arm32:
+	case "$CARCH" in
+		armhf|armv7)
+			rm -r leptonica tesseract
+			;;
+	esac
 
 	# fix parallel builds
 	sed -i -e 's/ECHO_XE/ECHOGS_XE/g' \
 		-e 's/^\($(GLOBJ)md5.$(OBJ) :.*\)/\1 $(ECHOGS_XE)/' \
-		base/lib.mak || return 1
-	aclocal && autoconf --force || return 1
+		base/lib.mak
+	aclocal && autoconf --force
 
 	cd $builddir/ijs
 	libtoolize --force && aclocal && autoconf && automake --add-missing
 }
 
-build(){
+build() {
+	export CFLAGS="$CFLAGS -flto=auto"
+
 	# build ijs
 	cd "$builddir"/ijs
 	./configure \
@@ -51,9 +169,8 @@ build(){
 		--host=$CHOST \
 		--prefix=/usr \
 		--enable-shared \
-		--disable-static \
-		|| return 1
-	make || return 1
+		--disable-static
+	make
 
 	cd "$builddir"
 
@@ -66,53 +183,40 @@ build(){
 		--mandir=/usr/share/man \
 		--infodir=/usr/share/info \
 		--docdir=/usr/share/doc/"$pkgname" \
-		--enable-dynamic \
-		--disable-static \
 		--with-system-libtiff \
 		--with-ijs \
 		--with-jbig2dec \
-		--without-omni \
+		--without-libpaper \
+		--without-versioned-path \
 		--enable-gtk \
 		--with-drivers=ALL \
 		--with-fontpath=/usr/share/fonts/Type1:/usr/share/fonts \
-		--disable-compile-inits \
-		|| return 1
-	make so all || return 1
+		--disable-compile-inits
+
+	make so all
 }
 
 package() {
-	cd "$builddir"
-	make -j1 DESTDIR="$pkgdir" install soinstall || return 1
+	make -j1 DESTDIR="$pkgdir" install soinstall
 
 	cd "$builddir"/ijs
-	make -j1 DESTDIR="$pkgdir" install || return 1
+	make -j1 DESTDIR="$pkgdir" install
 	cd ..
 
 	# create empty dir for future fonts
-	mkdir -p "${pkgdir}"/usr/share/fonts/Type1
-
-	# license and copying
-	install -m644 -D "$srcdir/$pkgname-$pkgver/LICENSE" \
-		"$pkgdir/usr/share/licenses/$pkgname/LICENSE"
-	install -m644 -D "$srcdir/$pkgname-$pkgver/doc/COPYING" \
-		"$pkgdir/usr/share/licenses/$pkgname/COPYING"
-
-	# make the doc and examples more alpine like
-	#	(the --docdir above doesn't seem to work so good)
-	mkdir -p "$pkgdir/usr/share/doc/$pkgname"
-	mv "$pkgdir/usr/share/$pkgname/$pkgver/doc" \
-		"$pkgdir/usr/share/doc/$pkgname" || return 1
-	mv "$pkgdir/usr/share/$pkgname/$pkgver/examples" \
-		"$pkgdir/usr/share/doc/$pkgname" || return 1
+	mkdir -p "$pkgdir"/usr/share/fonts/Type1
 }
 
 gtk() {
 	pkgdesc="A GTK-enabled PostScript interpreter and renderer"
 
-	install -d "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/gsx "$subpkgdir"/usr/bin/
+	amove usr/bin/gsx
 }
 
-sha512sums="599ba003e168d302e327ea7c2b83a4247059a1b7222452cbea4966dac448a79e8d7f07a1f287fa0c14cfa5269bb623382ed02fb3ea3a0e526dae08aaa1cd8b89  ghostscript-9.22.tar.gz
+sha512sums="
+ac1ab58f474467006d7735858e42a3db9a07aa092f907b14f1147447d08c8b4f5b499bca31c09c1558304787fe59d666c9f1aa531d219f27e17d5f9c9523f58c  ghostscript-10.05.1.tar.gz
 70721e3a335afa5e21d4e6cf919119010bd4544a03ab8f53f5325c173902221ad9b88c118b4bfeee80b3e1956bcdbaf4c53f64ae7fb81f5ba57dbc956750c482  ghostscript-system-zlib.patch
-beefcf395f7f828e1b81c088022c08a506e218f27535b9de01e0f0edf7979b435316c318fa676771630f6ad16ff1ab059cd68aa128ed97e5a9f2f3fa840200c4  fix-sprintf.patch"
+beefcf395f7f828e1b81c088022c08a506e218f27535b9de01e0f0edf7979b435316c318fa676771630f6ad16ff1ab059cd68aa128ed97e5a9f2f3fa840200c4  fix-sprintf.patch
+9cf1db0d0378110ca760f7a637270efb7e61dac2df4458a2f2c80145a947119c8bd082372eb0aba3e4dad4ef57034f1d894127ed214f78e42192101a2c09e596  gcc15-fix-compatibility-with-c23-compilers.patch
+019aed815c5c6fcb6050f24b6bb1499e6fbf6ba62ed26ccb44326d4b98dcb2e83a129ca3668ba5e239c24cdccfaef2000b8c7f5aa3bc536cae73e863d43b3284  gcc15-remove-some-old-filters.patch
+"

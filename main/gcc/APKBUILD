@@ -1,58 +1,68 @@
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+# Contributor: Sören Tempel <soeren+alpine@soeren-tempel.net>
+# Maintainer: Ariadne Conill <ariadne@dereferenced.org>
 pkgname=gcc
-pkgver=6.4.0
+pkgver=15.2.0
+# i.e. 13.2.1, must match gcc/BASE-VER
+_pkgbase="${pkgver%%_git*}"
+# date component from snapshots
+_pkgsnap="${pkgver##*_git}"
 [ "$BOOTSTRAP" = "nolibc" ] && pkgname="gcc-pass2"
 [ "$CBUILD" != "$CHOST" ] && _cross="-$CARCH" || _cross=""
 [ "$CHOST" != "$CTARGET" ] && _target="-$CTARGET_ARCH" || _target=""
 
 pkgname="$pkgname$_target"
-pkgrel=8
+pkgrel=1
 pkgdesc="The GNU Compiler Collection"
-url="http://gcc.gnu.org"
+url="https://gcc.gnu.org"
 arch="all"
-license="GPL LGPL"
+license="GPL-2.0-or-later AND LGPL-2.1-or-later"
 _gccrel=$pkgver-r$pkgrel
-depends="binutils$_target isl"
-makedepends_build="gcc$_cross g++$_cross paxmark bison flex texinfo gawk zip gmp-dev mpfr-dev mpc1-dev zlib-dev"
-makedepends_host="linux-headers gmp-dev mpfr-dev mpc1-dev isl-dev zlib-dev !gettext-dev"
+depends="binutils$_target"
+makedepends_build="gcc$_cross g++$_cross bison flex texinfo gawk zip gmp-dev mpfr-dev mpc1-dev zlib-dev"
+makedepends_host="linux-headers gmp-dev mpfr-dev mpc1-dev isl-dev zlib-dev !gettext-dev libucontext-dev"
 subpackages=" "
-[ "$CHOST" = "$CTARGET" ] && subpackages="gcc-doc$_target"
+[ "$CHOST" = "$CTARGET" ] && subpackages="gcc-gdb gcc-doc"
 replaces="libstdc++ binutils"
+options="!check"
 
-: ${LANG_CXX:=true}
-: ${LANG_OBJC:=true}
-: ${LANG_JAVA:=true}
-: ${LANG_GO:=true}
-: ${LANG_FORTRAN:=true}
-: ${LANG_ADA:=true}
+: "${LANG_CXX:=true}"
+: "${LANG_D:=true}"
+: "${LANG_OBJC:=true}"
+: "${LANG_GO:=true}"
+: "${LANG_FORTRAN:=true}"
+: "${LANG_ADA:=true}"
+: "${LANG_JIT:=true}"
 
-LIBGOMP=true
-LIBGCC=true
-LIBATOMIC=true
-LIBITM=true
+_libgomp=true
+_libgcc=true
+_libatomic=true
+_libitm=true
 
 if [ "$CHOST" != "$CTARGET" ]; then
 	if [ "$BOOTSTRAP" = nolibc ]; then
 		LANG_CXX=false
+		LANG_D=false
 		LANG_ADA=false
-		LIBGCC=false
+		_libgcc=false
 		_builddir="$srcdir/build-cross-pass2"
 	else
 		_builddir="$srcdir/build-cross-final"
 	fi
 	LANG_OBJC=false
-	LANG_JAVA=false
 	LANG_GO=false
 	LANG_FORTRAN=false
-	LIBGOMP=false
-	LIBATOMIC=false
-	LIBITM=false
+	LANG_JIT=false
+	_libgomp=false
+	_libatomic=false
+	_libitm=false
 
+	# format-sec: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100431
+	CPPFLAGS="${CPPFLAGS/-Werror=format-security/}"
 	# reset target flags (should be set in crosscreate abuild)
 	# fixup flags. seems gcc treats CPPFLAGS as global without
 	# _FOR_xxx variants. wrap it in CFLAGS and CXXFLAGS.
-	export CFLAGS="$CPPFLAGS $CFLAGS"
-	export CXXFLAGS="$CPPFLAGS $CXXFLAGS"
+	export CFLAGS="$CPPFLAGS -g0 ${CFLAGS/-Werror=format-security/}"
+	export CXXFLAGS="$CPPFLAGS -g0 ${CXXFLAGS/-Werror=format-security/}"
 	unset CPPFLAGS
 	export CFLAGS_FOR_TARGET=" "
 	export CXXFLAGS_FOR_TARGET=" "
@@ -60,10 +70,12 @@ if [ "$CHOST" != "$CTARGET" ]; then
 
 	STRIP_FOR_TARGET="$CTARGET-strip"
 elif [ "$CBUILD" != "$CHOST" ]; then
+	# format-sec: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100431
+	CPPFLAGS="${CPPFLAGS/-Werror=format-security/}"
 	# fixup flags. seems gcc treats CPPFLAGS as global without
 	# _FOR_xxx variants. wrap it in CFLAGS and CXXFLAGS.
-	export CFLAGS="$CPPFLAGS $CFLAGS"
-	export CXXFLAGS="$CPPFLAGS $CXXFLAGS"
+	export CFLAGS="$CPPFLAGS -g0 ${CFLAGS/-Werror=format-security/}"
+	export CXXFLAGS="$CPPFLAGS -g0 ${CXXFLAGS/-Werror=format-security/}"
 	unset CPPFLAGS
 
 	# reset flags and cc for build
@@ -78,55 +90,96 @@ elif [ "$CBUILD" != "$CHOST" ]; then
 
 	# Languages that do not need bootstrapping
 	LANG_OBJC=false
-	LANG_JAVA=false
 	LANG_GO=false
 	LANG_FORTRAN=false
+	LANG_JIT=false
 
 	STRIP_FOR_TARGET=${CROSS_COMPILE}strip
 	_builddir="$srcdir/build-cross-native"
 else
 	STRIP_FOR_TARGET=${CROSS_COMPILE}strip
 	_builddir="$srcdir/build"
+
+	# format-sec: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100431
+	CPPFLAGS="${CPPFLAGS/-Werror=format-security/}"
+	# pass -g0 by default to bypass -g, since we don't do debug
+	# if -dbg added, the -g is appended and overrides this
+	export CFLAGS="$CPPFLAGS -g0 ${CFLAGS/-Werror=format-security/} -O2"
+	export CXXFLAGS="$CPPFLAGS -g0 ${CXXFLAGS/-Werror=format-security/} -O2"
+	unset CPPFLAGS
+	# https://gcc.gnu.org/install/build.html
+	export CFLAGS_FOR_TARGET="$CFLAGS"
+	export CXXFLAGS_FOR_TARGET="$CXXFLAGS"
+	export LDFLAGS_FOR_TARGET="$LDFLAGS"
+	export BOOT_CFLAGS="$CFLAGS"
+	export BOOT_LDFLAGS="$LDFLAGS"
 fi
 
-# Go needs {set,make,swap}context, unimplemented in musl
-[ "$CTARGET_LIBC" = musl ] && LANG_GO=false
+case "$CTARGET_ARCH" in
+# GDC hasn't been ported to PowerPC (LIBDRUNTIME_ONLY=yes)
+# See libphobos/configure.tgt in GCC sources for supported targets
+# riscv fails with: error: static assert  "unimplemented"
+ppc*|riscv64)	LANG_D=false ;;
+# GDC does currently not work on 32-bit musl architectures.
+# This is a known upstream issue.
+# See: https://github.com/dlang/druntime/pull/3383
+armhf|armv7|x86)	LANG_D=false ;;
+esac
 
 # libitm has TEXTRELs in ARM build, so disable for now
 case "$CTARGET_ARCH" in
-arm*)		LIBITM=false ;;
-mips*)		LIBITM=false ;;
+arm*)		_libitm=false ;;
+mips*)		_libitm=false ;;
+riscv64)	_libitm=false ;;
+loongarch64)	_libitm=false ;;
+esac
+
+# Internal libffi fails to build on MIPS at the moment, need to
+# investigate further.  We disable LANG_GO on mips64 as it requires
+# the internal libffi.
+case "$CTARGET_ARCH" in
+mips*)		LANG_GO=false ;;
+loongarch64)	LANG_GO=false ;;
 esac
 
 # Fortran uses libquadmath if toolchain has __float128
 # currently on x86, x86_64 and ia64
-LIBQUADMATH=$LANG_FORTRAN
+_libquadmath=$LANG_FORTRAN
 case "$CTARGET_ARCH" in
-x86 | x86_64)	LIBQUADMATH=$LANG_FORTRAN ;;
-*)		LIBQUADMATH=false ;;
+x86 | x86_64 | ppc64le) ;;
+*)		_libquadmath=false ;;
 esac
 
 # libatomic is a dependency for openvswitch
-$LIBATOMIC && subpackages="$subpackages libatomic::$CTARGET_ARCH"
-$LIBGCC && subpackages="$subpackages libgcc::$CTARGET_ARCH"
-$LIBQUADMATH && subpackages="$subpackages libquadmath::$CTARGET_ARCH"
-if $LIBGOMP; then
+$_libatomic && subpackages="$subpackages libatomic::$CTARGET_ARCH"
+$_libgcc && subpackages="$subpackages libgcc::$CTARGET_ARCH"
+$_libquadmath && subpackages="$subpackages libquadmath::$CTARGET_ARCH"
+if $_libgomp; then
 	depends="$depends libgomp=$_gccrel"
 	subpackages="$subpackages libgomp::$CTARGET_ARCH"
 fi
 
 _languages=c
 if $LANG_CXX; then
-	subpackages="$subpackages libstdc++:libcxx:$CTARGET_ARCH g++$_target:gpp"
+	subpackages="$subpackages libstdc++:libcxx:$CTARGET_ARCH libstdc++-dev$_target:libcxx_dev g++$_target:gpp"
 	_languages="$_languages,c++"
+fi
+if $LANG_D; then
+	subpackages="$subpackages gcc-gdc$_target:gdc"
+	_languages="$_languages,d"
+	makedepends_build="$makedepends_build libucontext-dev"
+	if [ "$CBUILD" = "$CTARGET" ]; then
+		makedepends_build="$makedepends_build gcc-gdc-bootstrap"
+		subpackages="$subpackages libgphobos::$CTARGET_ARCH"
+	else
+		# shared libgphobos is for D programs to link against, so
+		# skip building that while cross-compiling the GDC compiler
+		makedepends_build="$makedepends_build gcc-gdc gcc-gdc$_cross"
+	fi
 fi
 if $LANG_OBJC; then
 	subpackages="$subpackages libobjc::$CTARGET_ARCH gcc-objc$_target:objc"
 	_languages="$_languages,objc"
-fi
-if $LANG_JAVA; then
-	subpackages="$subpackages libgcj::$CTARGET_ARCH gcc-java$_target:java"
-	_languages="$_languages,java"
 fi
 if $LANG_GO; then
 	subpackages="$subpackages libgo::$CTARGET_ARCH gcc-go$_target:go"
@@ -137,119 +190,103 @@ if $LANG_FORTRAN; then
 	_languages="$_languages,fortran"
 fi
 if $LANG_ADA; then
-	subpackages="$subpackages libgnat::$CTARGET_ARCH gcc-gnat$_target:gnat"
+	subpackages="$subpackages gcc-gnat$_target:gnat libgnat::$CTARGET_ARCH"
 	_languages="$_languages,ada"
-	makedepends_build="$makedepends_build gcc-gnat gcc-gnat$_cross"
+	if [ "$CBUILD" = "$CTARGET" ]; then
+		makedepends_build="$makedepends_build gcc-gnat-bootstrap"
+		subpackages="$subpackages libgnat-static:libgnatstatic:$CTARGET_ARCH"
+	else
+		makedepends_build="$makedepends_build gcc-gnat gcc-gnat$_cross"
+	fi
 fi
-makedepends="$makedepends_build $makedepends_host"
+if $LANG_JIT; then
+	subpackages="$subpackages libgccjit:jit libgccjit-dev:jitdev"
+fi
 
-source="http://gcc.gnu.org/pub/gcc/releases/gcc-${_pkgbase:-$pkgver}/gcc-${_pkgbase:-$pkgver}.tar.xz
-	http://sourceware.org/pub/java/ecj-4.9.jar
+# when using upstream releases, use this URI template
+# https://gcc.gnu.org/pub/gcc/releases/gcc-$_pkgbase/gcc-$_pkgbase.tar.xz
+#
+# right now, we are using a git snapshot. snapshots are taken from gcc.gnu.org/pub/gcc/snapshots.
+# However, since they are periodically deleted from the GCC mirrors the utilized snapshots are
+# mirrored on dev.alpinelinux.org. Please ensure that the snapshot Git commit (as stated in the
+# README) matches the base commit on the version-specific branch in the Git repository below.
+#
+# PLEASE submit all patches to gcc to https://gitlab.alpinelinux.org/kaniini/alpine-gcc-patches,
+# so that they can be properly tracked and easily rebased if needed.
+#source="https://dev.alpinelinux.org/archive/gcc/${_pkgbase%%.*}-$_pkgsnap/gcc-${_pkgbase%%.*}-$_pkgsnap.tar.xz"
+#source="https://gcc.gnu.org/pub/gcc/snapshots/${_pkgbase%%.*}-$_pkgsnap/gcc-${_pkgbase%%.*}-$_pkgsnap.tar.xz"
+source="https://gcc.gnu.org/pub/gcc/releases/gcc-$_pkgbase/gcc-$_pkgbase.tar.xz
+	0001-posix_memalign.patch
+	0002-gcc-poison-system-directories.patch
+	0003-specs-turn-on-Wl-z-now-by-default.patch
+	0004-Turn-on-D_FORTIFY_SOURCE-2-by-default-for-C-C-ObjC-O.patch
+	0005-On-linux-targets-pass-as-needed-by-default-to-the-li.patch
+	0006-Enable-Wformat-and-Wformat-security-by-default.patch
+	0007-Enable-Wtrampolines-by-default.patch
+	0008-gcc-disable-SSP-on-ffreestanding-nostdlib-and-nodefa.patch
+	0009-gcc-params-set-default-ssp-buffer-size-to-4.patch
+	0010-Ensure-that-msgfmt-doesn-t-encounter-problems-during.patch
+	0011-Don-t-declare-asprintf-if-defined-as-a-macro.patch
+	0012-libiberty-copy-PIC-objects-during-build-process.patch
+	0013-libgcc_s.patch
+	0014-nopie.patch
+	0015-ada-fix-shared-linking.patch
+	0016-build-fix-CXXFLAGS_FOR_BUILD-passing.patch
+	0017-add-fortify-headers-paths.patch
+	0018-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
+	0019-DP-Use-push-state-pop-state-for-gold-as-well-when-li.patch
+	0020-aarch64-disable-multilib-support.patch
+	0021-s390x-disable-multilib-support.patch
+	0022-ppc64-le-disable-multilib-support.patch
+	0023-x86_64-disable-multilib-support.patch
+	0024-riscv-disable-multilib-support.patch
+	0025-always-build-libgcc_eh.a.patch
+	0026-ada-libgnarl-remove-use-of-glibc-specific-pthread_rw.patch
+	0027-ada-libgnarl-use-posix_openpt-instead-of-glibc-speci.patch
+	0028-ada-libgnarl-adaint-fix-sched.h-inclusion-for-musl.patch
+	0029-configure-Add-enable-autolink-libatomic-use-in-LINK_.patch
+	0030-configure-fix-detection-of-atomic-builtins-in-libato.patch
+	0031-libstdc-do-not-throw-exceptions-for-non-C-locales-on.patch
+	0032-gdc-unconditionally-link-libgphobos-against-libucont.patch
+	0033-druntime-link-against-libucontext-on-all-platforms.patch
+	0034-libgnat-time_t-is-always-64-bit-on-musl-libc.patch
+	0035-libphobos-do-not-use-LFS64-symbols.patch
+	0036-libgo-fix-lfs64-use.patch
+	0037-loongarch-disable-multilib-support.patch
+	0038-static-PIE-ensure-static-reaches-the-linker.patch
+	0039-except-Don-t-use-the-cached-value-of-the-gcc_except_.patch
+	0040-ada-libgnat-use-stub-symbolic-module-name-functions.patch
+	0041-ada-libgnat-recognize-linux-musleabi-and-linux-muslg.patch
 
-	001_all_default-ssp-strong.patch
-	002_all_default-relro.patch
-	003_all_default-fortify-source.patch
-	005_all_default-as-needed.patch
-	011_all_default-warn-format-security.patch
-	012_all_default-warn-trampolines.patch
-	020_all_msgfmt-libstdc++-link.patch
-	050_all_libiberty-asprintf.patch
-	051_all_libiberty-pic.patch
-	053_all_libitm-no-fortify-source.patch
-	067_all_gcc-poison-system-directories.patch
-	090_all_pr55930-dependency-tracking.patch
-
-	201-cilkrts.patch
-	203-libgcc_s.patch
-	204-linux_libc_has_function.patch
-	205-nopie.patch
-	207-static-pie.patch
-
-	libgcc-always-build-gcceh.a.patch
-	gcc-4.9-musl-fortify.patch
-	gcc-6.1-musl-libssp.patch
-	boehm-gc-musl.patch
-	gcc-pure64.patch
-	fix-gcj-stdgnu14-link.patch
-	fix-gcj-musl.patch
-	fix-gcj-iconv-musl.patch
-
-	gcc-4.8-build-args.patch
-	fix-cxxflags-passing.patch
-	ada-fixes.patch
-	ada-shared.patch
-	ada-musl.patch
-	ada-aarch64-multiarch.patch
-
-	300-main-gcc-add-musl-s390x-dynamic-linker.patch
-	310-build-gcj-s390x.patch
-	320-libffi-gnulinux.patch
-
-	fix-rs6000-pie.patch
-	fix-linux-header-use-in-libgcc.patch
-	gcc-pure64-mips.patch
-	ada-mips64.patch
-
-	0001-i386-Move-struct-ix86_frame-to-machine_function.patch
-	0002-i386-Use-reference-of-struct-ix86_frame-to-avoid-cop.patch
-	0003-i386-Use-const-reference-of-struct-ix86_frame-to-avo.patch
-	0004-x86-Add-mindirect-branch.patch
-	0005-x86-Add-mfunction-return.patch
-	0006-x86-Add-mindirect-branch-register.patch
-	0007-x86-Add-V-register-operand-modifier.patch
-	0008-x86-Disallow-mindirect-branch-mfunction-return-with-.patch
-	0009-Use-INVALID_REGNUM-in-indirect-thunk-processing.patch
-	0010-i386-Pass-INVALID_REGNUM-as-invalid-register-number.patch
-	0011-i386-Update-mfunction-return-for-return-with-pop.patch
-	0012-i386-Add-TARGET_INDIRECT_BRANCH_REGISTER.patch
-	0013-i386-Don-t-generate-alias-for-function-return-thunk.patch
+	0001-tree-object-size.cc-Fix-assert-constant-offset-in-ch.patch
 	"
 
+# secfixes:
+#   13.2.1_git20231014-r0:
+#     - CVE-2023-4039
+
 # we build out-of-tree
-_gccdir="$srcdir"/gcc-${_pkgbase:-$pkgver}
-_gcclibdir=/usr/lib/gcc/${CTARGET}/$pkgver
-_gcclibexec=/usr/libexec/gcc/${CTARGET}/$pkgver
+#builddir="$srcdir"/gcc-${_pkgbase%%.*}-$_pkgsnap
+builddir="$srcdir"/gcc-$_pkgbase
+_gcclibdir="usr/lib/gcc/$CTARGET/$_pkgbase"
+_gcclibexec="usr/libexec/gcc/$CTARGET/$_pkgbase"
 
 prepare() {
-	cd "$_gccdir"
-
-	_err=
-	for i in $source; do
-		case "$i" in
-		*.patch)
-			msg "Applying $i"
-			patch -p1 -F3 -i "$srcdir"/$i || _err="$_err $i"
-			;;
-		esac
-	done
-
-	if [ -n "$_err" ]; then
-		error "The following patches failed:"
-		for i in $_err; do
-			echo "  $i"
-		done
-		return 1
-	fi
-
-	# see http://gcc.gnu.org/ml/java/2008-04/msg00027.html
-	mv "$srcdir"/ecj-*.jar ecj.jar
-
-	echo ${pkgver} > gcc/BASE-VER
+	default_prepare
+	echo $_pkgbase > gcc/BASE-VER
 }
 
 build() {
 	local _arch_configure=
-	local _libc_configure=
 	local _cross_configure=
 	local _bootstrap_configure=
-	local _symvers=
-
-	cd "$_gccdir"
+	local _jit_configure=
+	local _sanitizer_configure=
 
 	case "$CTARGET" in
 	aarch64-*-*-*)		_arch_configure="--with-arch=armv8-a --with-abi=lp64";;
 	armv5-*-*-*eabi)	_arch_configure="--with-arch=armv5te --with-tune=arm926ej-s --with-float=soft --with-abi=aapcs-linux";;
-	armv6-*-*-*eabihf)	_arch_configure="--with-arch=armv6zk --with-tune=arm1176jzf-s --with-fpu=vfp --with-float=hard --with-abi=aapcs-linux";;
+	armv6-*-*-*eabihf)	_arch_configure="--with-arch=armv6kz --with-tune=arm1176jzf-s --with-fpu=vfpv2 --with-float=hard --with-abi=aapcs-linux";;
 	armv7-*-*-*eabihf)	_arch_configure="--with-arch=armv7-a --with-tune=generic-armv7-a --with-fpu=vfpv3-d16 --with-float=hard --with-abi=aapcs-linux --with-mode=thumb";;
 	mips-*-*-*)		_arch_configure="--with-arch=mips32 --with-mips-plt --with-float=soft --with-abi=32";;
 	mips64-*-*-*)		_arch_configure="--with-arch=mips3 --with-tune=mips64 --with-mips-plt --with-float=soft --with-abi=64";;
@@ -258,8 +295,15 @@ build() {
 	powerpc-*-*-*)		_arch_configure="--enable-secureplt --enable-decimal-float=no";;
 	powerpc64*-*-*-*)	_arch_configure="--with-abi=elfv2 --enable-secureplt --enable-decimal-float=no --enable-targets=powerpcle-linux";;
 	i486-*-*-*)		_arch_configure="--with-arch=i486 --with-tune=generic --enable-cld";;
-	i586-*-*-*)		_arch_configure="--with-arch=i586 --with-tune=generic --enable-cld";;
+	i586-*-*-*)		_arch_configure="--with-arch=pentium-m --with-fpmath=sse --with-tune=generic --enable-cld";;
 	s390x-*-*-*)		_arch_configure="--with-arch=z196 --with-tune=zEC12 --with-zarch --with-long-double-128 --enable-decimal-float";;
+	riscv64-*-*-*)		_arch_configure="--with-arch=rv64gc --with-abi=lp64d --enable-autolink-libatomic";;
+	loongarch64-*-*-*)	_arch_configure="--with-arch=la64v1.0 --with-abi=lp64d";;
+	esac
+
+	case "$CTARGET_ARCH" in
+	x86_64)	_sanitizer_configure="--enable-libsanitizer" ;;
+	*)	_sanitizer_configure="--disable-libsanitizer" ;;
 	esac
 
 	case "$CTARGET_ARCH" in
@@ -267,29 +311,30 @@ build() {
 	*)	_hash_style_configure="--with-linker-hash-style=gnu" ;;
 	esac
 
-	case "$CTARGET_LIBC" in
-	musl)
-		# musl does not support mudflap, or libsanitizer
-		# libmpx uses secure_getenv and struct _libc_fpstate not present in musl
-		# alpine musl provides libssp_nonshared.a, so we don't need libssp either
-		_libc_configure="--disable-libssp --disable-libmpx --disable-libmudflap --disable-libsanitizer"
-		_symvers="--disable-symvers"
-		export libat_cv_have_ifunc=no
-		;;
-	esac
+	export libat_cv_have_ifunc=no
 
 	[ "$CBUILD" != "$CHOST"   ] && _cross_configure="--disable-bootstrap"
 	[ "$CHOST"  != "$CTARGET" ] && _cross_configure="--disable-bootstrap --with-sysroot=$CBUILDROOT"
 
 	case "$BOOTSTRAP" in
 	nolibc)	_bootstrap_configure="--with-newlib --disable-shared --enable-threads=no" ;;
-	*)	_bootstrap_configure="--enable-shared --enable-threads --enable-tls" ;;
+	*)
+		# cross-bootstrap GDC with a static libphobos: due to GCC's
+		# ./configure not having a --disable-shared=libphobos option,
+		# we have to use --enable-shared with everything else instead.
+		if $LANG_D && [ "$CBUILD" != "$CTARGET" ]; then
+			_bootstrap_configure="--enable-shared=libgcc,libstdc++,libffi,zlib,boehm-gc,ada,libada,libgo,libobjc,libatomic,libgomp,libitm,libgfortran,libquadmath"
+		else
+			_bootstrap_configure="--enable-shared"
+		fi
+		_bootstrap_configure="$_bootstrap_configure --enable-threads --enable-tls"
+		;;
 	esac
 
-	$LIBGOMP	|| _bootstrap_configure="$_bootstrap_configure --disable-libgomp"
-	$LIBATOMIC	|| _bootstrap_configure="$_bootstrap_configure --disable-libatomic"
-	$LIBITM		|| _bootstrap_configure="$_bootstrap_configure --disable-libitm"
-	$LIBQUADMATH	|| _arch_configure="$_arch_configure --disable-libquadmath"
+	$_libgomp	|| _bootstrap_configure="$_bootstrap_configure --disable-libgomp"
+	$_libatomic	|| _bootstrap_configure="$_bootstrap_configure --disable-libatomic"
+	$_libitm	|| _bootstrap_configure="$_bootstrap_configure --disable-libitm"
+	$_libquadmath	|| _arch_configure="$_arch_configure --disable-libquadmath"
 
 	msg "Building the following:"
 	echo ""
@@ -297,93 +342,130 @@ build() {
 	echo "  CHOST=$CHOST"
 	echo "  CTARGET=$CTARGET"
 	echo "  CTARGET_ARCH=$CTARGET_ARCH"
-	echo "  CTARGET_LIBC=$CTARGET_LIBC"
 	echo "  languages=$_languages"
 	echo "  arch_configure=$_arch_configure"
-	echo "  libc_configure=$_libc_configure"
 	echo "  cross_configure=$_cross_configure"
 	echo "  bootstrap_configure=$_bootstrap_configure"
-	echo "	hash_style_configure=$_hash_style_configure"
+	echo "  hash_style_configure=$_hash_style_configure"
 	echo ""
+
+	local version="Alpine $pkgver"
+	local gccconfiguration="
+		--prefix=/usr
+		--mandir=/usr/share/man
+		--infodir=/usr/share/info
+		--build=$CBUILD
+		--host=$CHOST
+		--target=$CTARGET
+		--enable-checking=release
+		--disable-cet
+		--disable-fixed-point
+		--disable-libstdcxx-pch
+		--disable-multilib
+		--disable-nls
+		--disable-werror
+		--disable-symvers
+		--enable-__cxa_atexit
+		--enable-default-pie
+		--enable-default-ssp
+		--enable-languages=$_languages
+		--enable-link-serialization=2
+		--enable-linker-build-id
+		$_arch_configure
+		--disable-libssp
+		$_sanitizer_configure
+		$_cross_configure
+		$_bootstrap_configure
+		--with-bugurl=https://gitlab.alpinelinux.org/alpine/aports/-/issues
+		--with-system-zlib
+		$_hash_style_configure
+		"
 
 	mkdir -p "$_builddir"
 	cd "$_builddir"
-	"$_gccdir"/configure --prefix=/usr \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--build=${CBUILD} \
-		--host=${CHOST} \
-		--target=${CTARGET} \
-		--with-pkgversion="Alpine ${pkgver}" \
-		--enable-checking=release \
-		--disable-fixed-point \
-		--disable-libstdcxx-pch \
-		--disable-multilib \
-		--disable-nls \
-		--disable-werror \
-		$_symvers \
-		--enable-__cxa_atexit \
-		--enable-default-pie \
-		--enable-cloog-backend \
-		--enable-languages=$_languages \
-		$_arch_configure \
-		$_libc_configure \
-		$_cross_configure \
-		$_bootstrap_configure \
-		--with-system-zlib \
-		$_hash_style_configure
+	"$builddir"/configure $gccconfiguration \
+		--with-pkgversion="$version"
+
+	msg "building gcc"
+	if $LANG_D && [ "$CBUILD" != "$CTARGET" ]; then
+		# cross-compiling libphobos with parallel make fails
+		make all-target-libphobos
+	fi
 	make
+
+	# we build gccjit separate to not build all of gcc with --enable-host-shared
+	# as doing so slows it down a few %, so for some quick if's here we gain
+	# free performance
+	if $LANG_JIT; then
+		mkdir -p "$_builddir"/libgccjit-build
+		cd "$_builddir"/libgccjit-build
+		"$builddir"/configure $gccconfiguration \
+			--disable-bootstrap \
+			--enable-host-shared \
+			--enable-languages=jit \
+			--with-pkgversion="$version"
+
+		msg "building libgccjit"
+		make all-gcc
+	fi
 }
 
 package() {
 	cd "$_builddir"
-	make -j1 DESTDIR="${pkgdir}" install
+	make -j1 DESTDIR="$pkgdir" install
 
-	ln -s gcc "$pkgdir"/usr/bin/cc
+	[ "$CHOST" = "$CTARGET" ] && ln -s gcc "$pkgdir"/usr/bin/cc
+	ln -s ${CTARGET}-gcc "$pkgdir"/usr/bin/${CTARGET}-cc
+
+	# symlink to vendor-less target triple for
+	# supporting clang --target's fallback match
+	# ref: https://gitlab.alpinelinux.org/alpine/aports/-/issues/16828
+	ln -s "$CTARGET" "$pkgdir/usr/lib/gcc/${CTARGET%%-*}-${CTARGET#*-*-}"
+
+	if $LANG_JIT; then
+		make -C "$_builddir"/libgccjit-build/gcc DESTDIR="$pkgdir" jit.install-common
+	fi
 
 	# we dont support gcj -static
 	# and saving 35MB is not bad.
-	find "$pkgdir" -name libgcj.a -o -name libgtkpeer.a \
-		-o -name libgjsmalsa.a -o -name libgcj-tools.a \
-		-o -name libjvm.a -o -name libgij.a -o -name libgcj_bc.a \
-		-o -name libjavamath.a \
-		| xargs rm -f
+	find "$pkgdir" \( -name libgtkpeer.a \
+		-o -name libgjsmalsa.a \
+		-o -name libgij.a \) \
+		-delete
 
 	# strip debug info from some static libs
-	${STRIP_FOR_TARGET} -g `find "$pkgdir" \( -name libgfortran.a -o -name libobjc.a -o -name libgomp.a \
-		-o -name libmudflap.a -o -name libmudflapth.a \
+	find "$pkgdir" \( -name libgfortran.a -o -name libobjc.a -o -name libgomp.a \
+		-o -name libgphobos.a -o -name libgdruntime.a \
 		-o -name libgcc.a -o -name libgcov.a -o -name libquadmath.a \
 		-o -name libitm.a -o -name libgo.a -o -name libcaf\*.a \
 		-o -name libatomic.a -o -name libasan.a -o -name libtsan.a \) \
-		-a -type f`
+		-a -type f \
+		-exec $STRIP_FOR_TARGET -g {} +
 
-	if $LANG_JAVA; then
-		sed -i -e 's/lib: /&%{static:%eJava programs cannot be linked statically}/' \
-			"$pkgdir"/usr/lib/libgcj.spec
-	fi
-
-	if $LIBGOMP; then
+	if $_libgomp; then
 		mv "$pkgdir"/usr/lib/libgomp.spec "$pkgdir"/$_gcclibdir
 	fi
-	if $LIBITM; then
+	if $_libitm; then
 		mv "$pkgdir"/usr/lib/libitm.spec "$pkgdir"/$_gcclibdir
 	fi
 
 	# remove ffi
 	rm -f "$pkgdir"/usr/lib/libffi* "$pkgdir"/usr/share/man/man3/ffi*
-	find "$pkgdir" -name 'ffi*.h' | xargs rm -f
+	find "$pkgdir" -name 'ffi*.h' -delete
 
 	local gdblib=${_target:+$CTARGET/}lib
-	for i in $(find "$pkgdir"/usr/$gdblib/ -type f -maxdepth 1 -name "*-gdb.py" ); do
-		mkdir -p "$pkgdir"/usr/share/gdb/python/auto-load/usr/$gdblib
-		mv "$i" "$pkgdir"/usr/share/gdb/python/auto-load/usr/$gdblib/
-	done
-
-	paxmark -pmrs "$pkgdir"/$_gcclibexec/cc1
+	if [ -d "$pkgdir"/usr/$gdblib/ ]; then
+		for i in $(find "$pkgdir"/usr/$gdblib/ -type f -maxdepth 1 -name "*-gdb.py"); do
+			mkdir -p "$pkgdir"/usr/share/gdb/python/auto-load/usr/$gdblib
+			mv "$i" "$pkgdir"/usr/share/gdb/python/auto-load/usr/$gdblib/
+		done
+	fi
 
 	# move ada runtime libs
 	if $LANG_ADA; then
-		for i in $(find "$pkgdir"/$_gcclibdir/adalib/ -type f -maxdepth 1 -name "libgna*.so"); do
+		local libgnat_static=
+		[ "$CHOST" = "$CTARGET" ] && libgnat_static="libgna*.a"
+		for i in $(find "$pkgdir"/$_gcclibdir/adalib/ -type f -maxdepth 1 \( -name "libgna*.so" -o -name "$libgnat_static" \) ); do
 			mv "$i" "$pkgdir"/usr/lib/
 			ln -s ../../../../${i##*/} $i
 		done
@@ -392,15 +474,19 @@ package() {
 	if [ "$CHOST" != "$CTARGET" ]; then
 		# cross-gcc: remove any files that would conflict with the
 		# native gcc package
-		rm -rf "$pkgdir"/usr/bin/cc "$pkgdir"/usr/include "$pkgdir"/usr/share
+		rm -rf "$pkgdir"/usr/include "${pkgdir:?}"/usr/share
 		# libcc1 does not depend on target, don't ship it
 		rm -rf "$pkgdir"/usr/lib/libcc1.so*
 
+		# These are moved into packages with arch=$CTARGET_ARCH so remove
+		# cross prefix (doesn't exist when BOOTSTRAP=nolibc)
+		[ "$BOOTSTRAP" != nolibc ] && mv "$pkgdir"/usr/$CTARGET/lib/*.so.* "$pkgdir"/usr/lib/
+
 		# fixup gcc library symlinks to be linker scripts so
 		# linker finds the libs from relocated sysroot
-		for so in "$pkgdir"/usr/$CTARGET/lib/*.so; do
+		for so in "$pkgdir"/usr/"$CTARGET"/lib/*.so; do
 			if [ -h "$so" ]; then
-				local _real=$(basename $(readlink "$so"))
+				local _real=$(basename "$(readlink "$so")")
 				rm -f "$so"
 				echo "GROUP ($_real)" > "$so"
 			fi
@@ -409,29 +495,33 @@ package() {
 		# add c89/c99 wrapper scripts
 		cat >"$pkgdir"/usr/bin/c89 <<'EOF'
 #!/bin/sh
-fl="-std=c89"
+_flavor="-std=c89"
 for opt; do
 	case "$opt" in
-	-ansi|-std=c89|-std=iso9899:1990) fl="";;
+	-ansi|-std=c89|-std=iso9899:1990) _flavor="";;
 	-std=*) echo "$(basename $0) called with non ANSI/ISO C option $opt" >&2
 		exit 1;;
 	esac
 done
-exec gcc $fl ${1+"$@"}
+exec gcc $_flavor ${1+"$@"}
 EOF
 		cat >"$pkgdir"/usr/bin/c99 <<'EOF'
 #!/bin/sh
-fl="-std=c99"
+_flavor="-std=c99"
 for opt; do
 	case "$opt" in
-	-std=c99|-std=iso9899:1999) fl="";;
+	-std=c99|-std=iso9899:1999) _flavor="";;
 	-std=*) echo "$(basename $0) called with non ISO C99 option $opt" >&2
 		exit 1;;
 	esac
 done
-exec gcc $fl ${1+"$@"}
+exec gcc $_flavor ${1+"$@"}
 EOF
 		chmod 755 "$pkgdir"/usr/bin/c?9
+
+		# install lto plugin so regular binutils may use it
+		mkdir -p "$pkgdir"/usr/lib/bfd-plugins
+		ln -s /$_gcclibexec/liblto_plugin.so "$pkgdir/usr/lib/bfd-plugins/"
 	fi
 }
 
@@ -440,60 +530,80 @@ libatomic() {
 	depends=
 	replaces="gcc"
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/${_target:+$CTARGET/}lib/libatomic.so.* "$subpkgdir"/usr/lib/
+	amove usr/lib/libatomic.so.*
 }
 
 libcxx() {
 	pkgdesc="GNU C++ standard runtime library"
 	depends=
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/${_target:+$CTARGET/}lib/libstdc++.so.* "$subpkgdir"/usr/lib/
+	if [ "$CHOST" = "$CTARGET" ]; then
+		# verify that we are using clock_gettime rather than doing direct syscalls
+		# so we dont break 32 bit arches due to time64.
+		nm -D "$pkgdir"/usr/lib/libstdc++.so.* | grep clock_gettime
+	fi
+
+	amove usr/lib/libstdc++.so.*
+}
+
+libcxx_dev() {
+	pkgdesc="GNU C++ standard runtime library (development files)"
+	depends=
+	replaces="g++"
+
+	amove usr/${_target:+$CTARGET/}lib/libstdc++.a \
+		usr/${_target:+$CTARGET/}lib/libstdc++exp.a \
+		usr/${_target:+$CTARGET/}lib/libstdc++.so \
+		usr/${_target:+$CTARGET/}lib/libstdc++fs.a \
+		usr/${_target:+$CTARGET/}lib/libsupc++.a \
+		usr/${_target:+$CTARGET/}include/c++
 }
 
 gpp() {
 	pkgdesc="GNU C++ standard library and compiler"
-	depends="libstdc++=$_gccrel gcc=$_gccrel libc-dev"
-	mkdir -p "$subpkgdir/$_gcclibexec" \
-		"$subpkgdir"/usr/bin \
-		"$subpkgdir"/usr/${_target:+$CTARGET/}include \
-		"$subpkgdir"/usr/${_target:+$CTARGET/}lib \
+	depends="libstdc++-dev$_target=$_gccrel gcc$_target=$_gccrel musl-dev"
+	[ "$CHOST" = "$CTARGET" ] && depends="$depends libstdc++=$_gccrel"
 
-	mv "$pkgdir/$_gcclibexec/cc1plus" "$subpkgdir/$_gcclibexec/"
-	paxmark -pmrs "$subpkgdir/$_gcclibexec/cc1plus"
+	amove $_gcclibexec/cc1plus
+	amove usr/bin/*++
+}
 
-	mv "$pkgdir"/usr/${_target:+$CTARGET/}lib/*++* "$subpkgdir"/usr/${_target:+$CTARGET/}lib/
-	mv "$pkgdir"/usr/${_target:+$CTARGET/}include/c++ "$subpkgdir"/usr/${_target:+$CTARGET/}include/
-	mv "$pkgdir"/usr/bin/*++ "$subpkgdir"/usr/bin/
+jit() {
+	pkgdesc="GCC JIT Library"
+	depends=
+	amove usr/lib/libgccjit.so*
+}
+
+jitdev() {
+	pkgdesc="GCC JIT Library (development files)"
+	depends="libgccjit"
+	amove usr/include/libgccjit*.h
 }
 
 libobjc() {
 	pkgdesc="GNU Objective-C runtime"
 	replaces="objc"
 	depends=
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/${_target:+$CTARGET/}lib/libobjc.so.* "$subpkgdir"/usr/lib/
+
+	amove usr/lib/libobjc.so.*
 }
 
 objc() {
 	pkgdesc="GNU Objective-C"
 	replaces="gcc"
-	depends="libc-dev gcc=$_gccrel libobjc=$_gccrel"
+	depends="musl-dev gcc=$_gccrel libobjc=$_gccrel"
 
-	mkdir -p "$subpkgdir"/$_gcclibdir/include \
-		"$subpkgdir"/usr/lib
-	mv "$pkgdir"/$_gcclibdir/include/objc "$subpkgdir"/$_gcclibdir/include/
-	mv "$pkgdir"/usr/lib/libobjc.so "$pkgdir"/usr/lib/libobjc.a \
-		"$subpkgdir"/usr/lib/
+	amove $_gcclibexec/cc1obj
+	amove $_gcclibdir/include/objc
+	amove usr/lib/libobjc.so
+	amove usr/lib/libobjc.a
 }
 
 libgcc() {
 	pkgdesc="GNU C compiler runtime libraries"
 	depends=
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/${_target:+$CTARGET/}lib/libgcc_s.so.* "$subpkgdir"/usr/lib/
+	amove usr/lib/libgcc_s.so.*
 }
 
 libgomp() {
@@ -501,93 +611,68 @@ libgomp() {
 	depends=
 	replaces="gcc"
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/${_target:+$CTARGET/}lib/libgomp.so.* "$subpkgdir"/usr/lib/
+	amove usr/lib/libgomp.so.*
 }
 
-java() {
-	pkgdesc="Java support for GCC"
-	depends="zlib-dev gcc=$_gccrel libgcj=$_gccrel"
-
-	paxmark -pm "$pkgdir"/$_gcclibexec/ecj1
-	mkdir -p "$subpkgdir"/usr/bin "$subpkgdir"/usr/lib "$subpkgdir"/$_gcclibdir/
-	cd "$pkgdir"/usr/bin
-	mv gcj gcj-dbtool gjavah gcjh jcf-dump "$subpkgdir"/usr/bin/
-	cd "$pkgdir"
-	for i in $(find usr/ -name ecj1 -o -name jc1 -o -name jvgenmain); do
-		mkdir -p "$subpkgdir"/${i%/*}
-		mv "$pkgdir"/$i "$subpkgdir"/$i
-	done
-	for i in "$pkgdir"/usr/lib/libgcj*.so; do
-		if [ -L "$i" ]; then
-			mv "$i" "$subpkgdir"/usr/lib/
-		fi
-	done
-	mv "$pkgdir"/usr/lib/libgij.so "$subpkgdir"/usr/lib/
-	mv "$pkgdir"/usr/lib/libgcj.spec "$subpkgdir"/$_gcclibdir/
-}
-
-libgcj() {
-	pkgdesc="Java runtime library for gcc"
-	# libgcj_bc.so moved from gcc-java to libgcj
-	replaces="gcc-java"
+libgphobos() {
+	pkgdesc="D programming language standard library for GCC"
 	depends=
 
-	mkdir -p "$subpkgdir"/usr/bin
-	cd "$pkgdir"/usr/bin
-	paxmark -pmse "$pkgdir"/usr/bin/gij
-	mv aot-compile gappletviewer gc-analyze gij gjar gjarsigner gkeytool\
-		gnative2ascii gorbd grmic grmid grmiregistry gserialver \
-		gtnameserv jv-convert rebuild-gcj-db \
-		"$subpkgdir"/usr/bin/
-	cd "$pkgdir"
-	for i in $(find usr/lib -name jc1 -o -name jvgenmain); do
-		mkdir -p "$subpkgdir"/${i%/*}
-		mv "$pkgdir"/$i "$subpkgdir"/$i
-	done
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/gcj-* \
-		"$pkgdir"/usr/lib/libgcj_bc.so \
-		"$pkgdir"/usr/lib/libgcj*.so.* \
-		"$pkgdir"/usr/lib/libgij.so.* \
-		"$pkgdir"/usr/lib/logging.properties \
-		"$pkgdir"/usr/lib/security \
-		"$subpkgdir"/usr/lib/
+	amove usr/lib/libgdruntime.so.*
+	amove usr/lib/libgphobos.so.*
+}
 
-	mkdir -p "$subpkgdir"/usr/share/
-	mv "$pkgdir"/usr/share/java "$subpkgdir"/usr/share/
+gdc() {
+	pkgdesc="GCC-based D language compiler"
+	depends="gcc$_target=$_gccrel musl-dev libucontext-dev"
+	[ "$CBUILD" = "$CTARGET" ] && depends="$depends libgphobos=$_gccrel"
+	[ "$CHOST" = "$CTARGET" ] && provides="gcc-gdc-bootstrap=$_gccrel"
+
+	# Copy: The installed '.d' files, the static lib, the binary itself
+	# The shared libs are part of 'libgphobos' so one can run program
+	# without installing the compiler
+	amove $_gcclibexec/d21
+	amove $_gcclibdir/include/d
+	if [ "$CBUILD" = "$CTARGET" ]; then
+		amove usr/lib/libgdruntime.so
+		amove usr/lib/libgphobos.so
+	fi
+	amove usr/${_target:+$CTARGET/}lib/libgdruntime.a
+	amove usr/${_target:+$CTARGET/}lib/libgphobos.a
+	amove usr/${_target:+$CTARGET/}lib/libgphobos.spec
+	amove usr/bin/*gdc
 }
 
 libgo() {
 	pkgdesc="Go runtime library for GCC"
 	depends=
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libgo.so.* "$subpkgdir"/usr/lib/
+	amove usr/lib/libgo.so.*
 }
 
 go() {
-	pkgdesc="Go support for GCC"
-	depends="gcc=$_gccrel libgo=$_gccrel"
+	pkgdesc="GCC Go frontend (intended for bootstrapping community/go)"
+	depends="gcc=$_gccrel libgo=$_gccrel !go"
 
-	mkdir -p "$subpkgdir"/$_gcclibexec \
-		"$subpkgdir"/usr/lib \
-		"$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/lib/go "$subpkgdir"/usr/lib/
-	mv "$pkgdir"/usr/bin/*gccgo "$subpkgdir"/usr/bin/
-	mv "$pkgdir"/$_gcclibexec/go1 "$subpkgdir"/$_gcclibexec/
-	mv "$pkgdir"/usr/lib/libgo.a \
-		"$pkgdir"/usr/lib/libgo.so \
-		"$pkgdir"/usr/lib/libgobegin.a \
-		"$subpkgdir"/usr/lib/
+	amove usr/lib/go
+	amove usr/bin/*go
+	amove usr/bin/*gofmt
+	amove $_gcclibexec/go1
+	amove $_gcclibexec/cgo
+	amove $_gcclibexec/buildid
+	amove $_gcclibexec/test2json
+	amove $_gcclibexec/vet
+	amove usr/lib/libgo.a
+	amove usr/lib/libgo.so
+	amove usr/lib/libgobegin.a
+	amove usr/lib/libgolibbegin.a
 }
 
 libgfortran() {
 	pkgdesc="Fortran runtime library for GCC"
 	depends=
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libgfortran.so.* "$subpkgdir"/usr/lib/
+	amove usr/lib/libgfortran.so.*
 }
 
 libquadmath() {
@@ -595,104 +680,103 @@ libquadmath() {
 	pkgdesc="128-bit math library for GCC"
 	depends=
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libquadmath.so.* "$subpkgdir"/usr/lib/
+	amove usr/lib/libquadmath.so.*
 }
 
 gfortran() {
 	pkgdesc="GNU Fortran Compiler"
 	depends="gcc=$_gccrel libgfortran=$_gccrel"
-	$LIBQUADMATH && depends="$depends libquadmath=$_gccrel"
+	$_libquadmath && depends="$depends libquadmath=$_gccrel"
 	replaces="gcc"
 
-	mkdir -p "$subpkgdir"/$_gcclibexec \
-		"$subpkgdir"/$_gcclibdir \
-		"$subpkgdir"/usr/lib \
-		"$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/*gfortran "$subpkgdir"/usr/bin/
-	mv "$pkgdir"/usr/lib/libgfortran.a \
-		"$pkgdir"/usr/lib/libgfortran.so \
-		"$subpkgdir"/usr/lib/
-	if $LIBQUADMATH; then
-		mv "$pkgdir"/usr/lib/libquadmath.a \
-			"$pkgdir"/usr/lib/libquadmath.so \
-			"$subpkgdir"/usr/lib/
+	amove usr/bin/*gfortran
+	amove usr/lib/libgfortran.a
+	amove usr/lib/libgfortran.so
+	if $_libquadmath; then
+		amove usr/lib/libquadmath.a
+		amove usr/lib/libquadmath.so
 	fi
-	mv "$pkgdir"/$_gcclibexec/f951 "$subpkgdir"/$_gcclibexec
-	mv "$pkgdir"/usr/lib/libgfortran.spec "$subpkgdir"/$_gcclibdir
+	amove $_gcclibdir/finclude
+	amove $_gcclibexec/f951
+	mv -v "$pkgdir"/usr/lib/libgfortran.spec "$subpkgdir"/$_gcclibdir/
 }
 
 libgnat() {
 	pkgdesc="GNU Ada runtime shared libraries"
 	depends=
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libgna*.so "$subpkgdir"/usr/lib/
+	amove usr/lib/libgna*.so
+}
+
+libgnatstatic() {
+	pkgdesc="GNU Ada static libraries"
+	depends=
+
+	amove usr/lib/libgna*.a
 }
 
 gnat() {
 	pkgdesc="Ada support for GCC"
 	depends="gcc=$_gccrel"
+	provides="$pkgname-gnat-bootstrap=$_gccrel"
 	[ "$CHOST" = "$CTARGET" ] && depends="$depends libgnat=$_gccrel"
 
-	mkdir -p "$subpkgdir"/$_gcclibexec \
-		"$subpkgdir"/$_gcclibdir \
-		"$subpkgdir"/usr/bin
-	mv "$pkgdir"/$_gcclibexec/*gnat* "$subpkgdir"/$_gcclibexec/
-	mv "$pkgdir"/$_gcclibdir/*ada* "$subpkgdir"/$_gcclibdir/
-	mv "$pkgdir"/usr/bin/*gnat* "$subpkgdir"/usr/bin/
+	amove $_gcclibexec/*gnat*
+	amove $_gcclibdir/*ada*
+	amove usr/bin/*gnat*
 }
 
-sha512sums="02c60e54527c7adf584798d5251f8a0b80c93d5deafce82501b2c28e6692e0bd783927bbfc4bc527a863c0cccc025150a34740a9e29badb02d4b48e56a8aba90  gcc-6.4.0.tar.xz
-28f8c6fdbcb19e950b1d0bafb3bcc7a8cba87bc673aa6027cece116599cdee80f0cf5e95a1440544890239f5c754e8a93ab46d9daedd937faef445d7ea33b226  ecj-4.9.jar
-a1335adc2fbee98e36c4437ff2587771b98ed4180726779020f65039498235626a411cdb0100dbd20cd19d12f0d94f9a21af179ff624676c28cead9d60598b5d  001_all_default-ssp-strong.patch
-e36e95b81489163abd6fe9d58f7867bdca43e61143afacbfb17f4698c0b16ec5fd0061d8fab7b2ae615540bebd721c2e2227f80401b4e7fc253da9da62e6b513  002_all_default-relro.patch
-f86466c62b8291fac46f9c250c7ad8fa5ab7b1cce2504442fd07ddc4543665b317ae28951f244e39aba29aeaf3fff252ec4f6a147aa16adb2b7aed747dd89188  003_all_default-fortify-source.patch
-51282fea54c7e616367bbeb2479ba13fec6f24eb47bd04e2071907b3b36273b2ff24676f46ef8d22f241c8ab4857307861eee076eab66797c3a50a8ecaa1809a  005_all_default-as-needed.patch
-3398386dd1e079d6545dd9799adc799c6b80e3984fac6899d0e1a7ee21b66d0c7e53cddf17a65d590c883db750f9f79aaedd857355a8b9f7fb9476c906237919  011_all_default-warn-format-security.patch
-9adb0d2b9b67dd957df6c609b8714c7c078efb52cd88770905c37c67827be8fc83d1125037b9c29d77db21ce78756aa2bb0bacdb0b98d869ac126da76a298e21  012_all_default-warn-trampolines.patch
-d35a3ac7e13a4446921a90e1ff3eec1079840c845f9d523c868e24ae21f94cf69ba041de5341ebef96432a6f57598e223381d4286e8fb8baaa25906707f29fbd  020_all_msgfmt-libstdc++-link.patch
-840070a3c423e6206aaa6e63e1d9a0fcd6efd53626cd1240a193f0b60aa5d84216acc4a2a4fa8bce74549b07e6a316b01d638f20cea13dc62473491a302fb3d6  050_all_libiberty-asprintf.patch
-0a0bc72b9366158f5d23fff1928e756fdd212433bac6ab1f00d632f241382820db8db5d475ddf11ea020eaf7e2e71b12fb9b1c3c870cf84adf6c2b16f15aabca  051_all_libiberty-pic.patch
-e7a2eb1b1870e199d6fd753d065781575656fa12baa264f96c5d179689d88c31b8a3f92a5dae96088c05e96aa2bda138364ad7dbcc79e1819a102f192cbb7bab  053_all_libitm-no-fortify-source.patch
-e87da18aa7ab92b02b06168658c63b42a6c73a08fad2a30f81ef6296100fdbe3c3a91548fd0cb24eaf591e862bb08e4b67249bc4b977b07da33523aee0c686bc  067_all_gcc-poison-system-directories.patch
-4a328d1e1a56c20166307edcfa322068915784d9c08025b7f81cf69714da48fc266b6d34f77b9135c2f10da830d9df408276a1b78d1fd218637c2823506593c2  090_all_pr55930-dependency-tracking.patch
-ef052d0c3c9642fcb5ed570069c5a49c8ef523c47ac8ce3f201a801766f72ae4ff7c3725a70ee66e52c0fb559621e35fe0cf5b88b901d71ceadd381f49653a08  201-cilkrts.patch
-808e206f5e107084156fba333d4e091dcbd62f5d7756142bc292d4b0a52619f8c2aaca3617defc2f5b6552ba0439aebd33f4141329d88eab6ddf2dd637d92c08  203-libgcc_s.patch
-fc0de05b36613b732a0222ea005c90653c6a40d6761b6894af2419272f4e74875f37e26af33a9b9940669ef89269c44c46d17ca5bcd54b5cd1176e5eaf2992c1  204-linux_libc_has_function.patch
-98473bcaa77903a223ca9b0d2087c0921b287a2816d308cc32c8fe009e6cbf5dd1ae7fba27794ab8d9c09e117fe534413d91a464d1218474fc123ce0adfdc2c1  205-nopie.patch
-3287d5b443bea8ec64132bcabe869c738ae98ea8f1a86df1c5d18c927f8816edbfcefeefc47792dbbb2bcacf50319af00e01b3735d34525913b64350770ad453  207-static-pie.patch
-d08d7ead2de0429e5c9055d5b029ec2be9a8c821d22cecaf9b51f633652c493333f98963d9267fa2fa63850c50ae5eefd5f59e5910ec10d20044dac082182a8b  libgcc-always-build-gcceh.a.patch
-600fe5098dc54edaa9808fd5717af9dec058953f9ad37d49cfba1db4f7e9a7a8f02019342f75157fc575946fa693259422184de27b7ecc8386d9f3ecc0f7cc5d  gcc-4.9-musl-fortify.patch
-dbe0ee917fc7668571722364ab7c806731e3a31e8bfa30b4941b28b16b877d2a32b4a3897ef533399a28f82d43cac9b28e92de0493f0e779046db56584e07fa4  gcc-6.1-musl-libssp.patch
-bda845a6aa1854d2c883910b115f79ccfa93dfc2b5eac69a3a236d83eb34cadc140731d616ffc24698c7abc8878dd15f231bcc5119f1860e575a120b311706c7  boehm-gc-musl.patch
-fa62556719449caec6b2b434355bfbcaa5ae55ffe017b3e1f827f66a2aae21b79c571ee7a4ce723ea69169bc3a6447e73650991a200cc372adf2f102677518d7  gcc-pure64.patch
-2253941f3d19b6d08801d3782f5f5ed56c3b73fbc9d3561a8f01c702963ac4fab91599c686076e7081eb6a80c37ccd33591ae978996d6eee1dc0ce0f1c50259a  fix-gcj-stdgnu14-link.patch
-f89ddeb21bc8f97e6a850a6b70b4501a8f3e49a4bc8cc82897488decda5d98ad01cb7f6c8b392d452e9579924a523bc75da6e0648c1c976d42e40af48b10343b  fix-gcj-musl.patch
-54d67cc008b735e47771314171930c5d8b8f5f5dc97fcf4214824c105c808f3e75d22d5a4fdf5068ed0457fa0d46c60cfb442e276259a4a5e9b8722a027d18e6  fix-gcj-iconv-musl.patch
-abe9aaf9aa956058d0386a4396a511d176a46bb3906b90e952383646cdc158cbeb0a5dc616a1ccb1ca7d49fd0b5e351532aa15a3b13362abbf1ca4266f54a687  gcc-4.8-build-args.patch
-35d6d59f0b7b968f282f56767c9e0823a7bdc5aa0d450aca50fbd802649a7ca608b47671244a3faa208a9b0d6832cabb5a22724157dc817b2c0ad63d09f93282  fix-cxxflags-passing.patch
-9016b257abd8fa981de44a49512e35db814d1cbb47c1a87cd31c12d4ae20b13e9e149fe41691a7ec3c95bbcfde8a79194a8d2eaf547ceade3a246fad67c47dd8  ada-fixes.patch
-3f5bc334d9f73d06f5f7c876738d02356acdd08958bea0e4d2095ebf15c2c2ec4e411abdae0297505ae9a1699ca01b17338e853184e84663203b192b0d35fc19  ada-shared.patch
-631d4bdef6d8bde34df7978bb53ec28c3c909cf1f87139e5f148138d0f09adc58b41ecf0148bbf50fb4bc916c411e9bf8a2b6c046c75c0e77d754d8c35bcd4d7  ada-musl.patch
-fa44c8158111627aa0e91c43e7cc3aa38642c2041c96532dd4f0932dae4d6f92ea2850b683abcf10e7e120299d42ea6b69adc00002a514c76be8e39e99fa052b  ada-aarch64-multiarch.patch
-4b4a0ff306a8ef34ff6e3284fbfca869012164a47ba7cb099085c1dd03e6ca0cdd462f82710e08c9a02895adc7484e4c5eef17b5aa264cf5d978fe8ad78eea93  300-main-gcc-add-musl-s390x-dynamic-linker.patch
-385bc2fa50204f678964e5148c6170f572701dab920fbec8301f505bda34d182cde0adb7da042fee71719e12fb59f59181897f9b1bb4f4716ff59aad46ca1998  310-build-gcj-s390x.patch
-f4ef08454e28c8732db69115e4998ec153399e8d229dd27f923dbdcf57b68128a65640d026cc7f45b58ba8764ab1eb575d4eb6d6dfc550a87a183f8b94e76181  320-libffi-gnulinux.patch
-01c71cd5881fc07ea3b9b980697e89b3ca0fe98502958ceafc3fca18b2604c844e2f457feab711baf8e03f00a5383b0e38aac7eb954034e306f43d4a37f165ed  fix-rs6000-pie.patch
-34a818d5be67eb1f34e44a80b83c28a9b9c17d37fc9fac639f490d6bb5b53ebe3318140d09c236a17d7c98f5a7792ae3d6cefccda8067a5e942d6305b9d1f87c  fix-linux-header-use-in-libgcc.patch
-86be3338cc9c33089608bc4c5e3b7918c4e500a345c338f361b18c342119a6ed69af5495d72950de7106d760f003528b46ad14795e805f8a3331e206dcb234e3  gcc-pure64-mips.patch
-508f3bca214d88531d739d761d07affc953689b1540905c73420b34c246e1e6b72588cf89f0e1462752633f8ddc88da8c0238be2a1b6e1c213829cecee7924cf  ada-mips64.patch
-7912964bf3a985e9f870250d6e068f715582a4fb04270849d697a50e6aad0cf50df3d483ff80a0eb777d9940fd85526dd8d0b85da9bc71a5f2fbc07616263866  0001-i386-Move-struct-ix86_frame-to-machine_function.patch
-baa27a4b912d8e27cd65a556b09cf45289a0e00e86dae3925f2923d1f3752080e80d80e159c996ef4156c4df1dfc3069114810a846672170ef3ae461ae0ab7e1  0002-i386-Use-reference-of-struct-ix86_frame-to-avoid-cop.patch
-6701d15000bdd7c4c98a8fece8c814f5e4e73603eecf84fe4dc5ac10f79b3074afba7c2cc9e51d08b2abade1c34cb0c944c08ead7a85db94e97158c752fd1aac  0003-i386-Use-const-reference-of-struct-ix86_frame-to-avo.patch
-4e7e71ae57e232b29a6455ec977f60b47df1356eca0e85976ae2b4567c4c39541be9f10c30fe0085d69be5acdb61dff51d3e9d7af587c95d9cd2cb9ee307bd13  0004-x86-Add-mindirect-branch.patch
-07f7fdbd9b4876f36ed7715a35a369dbaf1016f46c42a8935930cfcc9ea250de2dbe8113f077373ccce3c39cd728f957b6c4c7c6a7da299f160a4109f0bbe88d  0005-x86-Add-mfunction-return.patch
-76ea947591e5241f8e6216ce337baaf1b5dfe3f02d8251f77a4acd70e2a5e7798e2867d70f452027f51a2e3baf1b5c94c3bffe9ef8e0a5ce24dc5d509adaf414  0006-x86-Add-mindirect-branch-register.patch
-1c33c5cd34efb44d4fa0ace56e3d27ec802a66e03b08a29ab6122cbc70edbbe22313a34114437a41e09e0a6869af3cea3fb18f5bcb49db2f8e3f155026fe15f0  0007-x86-Add-V-register-operand-modifier.patch
-5366e2cff0629304394bf35e9417c7faea6b6f3fc565d0410a17fdafcb2b30c9a218f8ca098274c09ca4c982ff5b178ad6df5bf464ec541aa086966915c7fe11  0008-x86-Disallow-mindirect-branch-mfunction-return-with-.patch
-67c738b1f6afb09b6f0469c9cb282ab4d51fc8dd8e39df1cfdff8831788c1022081fccd446a482623f649898733aeaaa205cba0aa41162cdbdc74e57de9bb6eb  0009-Use-INVALID_REGNUM-in-indirect-thunk-processing.patch
-b7b59f3203bf53168de2170b91738cd456f6ae205b3fe5bf8aacbaa8cc5624dd09c941ad8f1071d1ab8ab4fb5f69068a4bc792c0486fdec1ee2eb9c83688bb78  0010-i386-Pass-INVALID_REGNUM-as-invalid-register-number.patch
-c53d4c5968865abb709ee8a9af9d57917d43ea3ba31ee8312f9e8f338e9b1b44babf5aa3414848da7267e5cf13a9261815eb9185dc153cbd41ee7ce5ea23d2d0  0011-i386-Update-mfunction-return-for-return-with-pop.patch
-955080ba3e42cfe2f604e5dcef46aa6fca7c899c7808398947af655ff3b7954e30807ef85246986a5cc7db36dbc870db151e9fa8d8bc967b89ea56efdf64614c  0012-i386-Add-TARGET_INDIRECT_BRANCH_REGISTER.patch
-3aae3a9cef8e8afe5a5433db8d9f410e1a2882481af01bb1d33232f987dbb74d7780c32be70b868bb391b3601b65ed3a16d777afea946f5eeaff72aa1e7fa3a9  0013-i386-Don-t-generate-alias-for-function-return-thunk.patch"
+gdb() {
+	pkgdesc="$pkgdesc (gdb printers)"
+	install_if="$pkgname=$pkgver-r$pkgrel gdb"
+
+	amove \
+		usr/share/gdb/python/ \
+		usr/share/gcc-*/python/
+}
+
+sha512sums="
+89047a2e07bd9da265b507b516ed3635adb17491c7f4f67cf090f0bd5b3fc7f2ee6e4cc4008beef7ca884b6b71dffe2bb652b21f01a702e17b468cca2d10b2de  gcc-15.2.0.tar.xz
+fd5cebc5deb1d588583424acbc1b5a6d8d6f5b1bfa9f4bdbc082cfd406723f423d87011ee30e04ed18128a7ed8021cbfc9262becff5419125dc1afb6f407defa  0001-posix_memalign.patch
+6634004cb9feea9ee0d063d6b6984d7db3b10c692b6139bb99169a4f2d74f0e10b5ca0ab31ce346ffef34b8eb9c3f536aa4d94bce1b27f8e0b8a9fc5cc4b7057  0002-gcc-poison-system-directories.patch
+37e089791dbcbad73af866b662cda611dc0970d93e28251c7a9aa898db3b96446654e8b778d7866eb8550ba7f4a57cf22e8514d562bfed0c66613e65550d9c85  0003-specs-turn-on-Wl-z-now-by-default.patch
+d4d5bfeb20a9fac968f37497d86d7eff4a9ac863e015dadbffae24c08236f5efde69b615d95191e2546672ce2d4b30d3627528c64a83fc64b715e8fa6fd4c372  0004-Turn-on-D_FORTIFY_SOURCE-2-by-default-for-C-C-ObjC-O.patch
+4806687c806154dd3d5423ea9ef1203db344dfb8fd21f3eb3543d9f05f4dc01aacc4f012f45db8e890eeddc7b1c75ec06a6b29e29a1ef7b9ec6f853d1854cfd0  0005-On-linux-targets-pass-as-needed-by-default-to-the-li.patch
+6b225df0dd76339b06d5efbe07edd6648391a7b9415a219041189c35c084ceffe8fb96b2660d60d62099e7afdfeb8e053622a2b6660d2e8a13adb924f4bc8c8a  0006-Enable-Wformat-and-Wformat-security-by-default.patch
+e419b7f20a74384bfb1ac792e3625f9bfe69f8031c2c0beb23f4015df9d48a6c6f107d89bea3c20fa56309b022637863c13e90c1565d027eb47c08154389b7a0  0007-Enable-Wtrampolines-by-default.patch
+e6307eec09196900bcd2c0154a62d6694576b4da48a1cf901750b97b4603cd694c4daee2476c33bce09f10bee92a72749face835eb18fbf2c2a50aa1dd251572  0008-gcc-disable-SSP-on-ffreestanding-nostdlib-and-nodefa.patch
+969797f99602c119e1632f0c5be02a566be5fb4c7e59affefb5eb6084a06b97120d99d5ee63fef0dab6c0278c7cecf1d8caa53521cc5b6622de2aaa7deabf86e  0009-gcc-params-set-default-ssp-buffer-size-to-4.patch
+c15f062790367c9e786a4933deec33931438680176ec752b172c2a0504463a23d588ead4350d32e474603750ceb130ba0ccadfcde601bcf8e2eabca5af8322d0  0010-Ensure-that-msgfmt-doesn-t-encounter-problems-during.patch
+03a1012f1022cd68cf08440428e7d6cbf65ea2184e4a088a55976f34af627d80f42f15f713841ec9cbfc4afa39117d4fc384c3f27a4f9ad0ff3947bd45b71c4a  0011-Don-t-declare-asprintf-if-defined-as-a-macro.patch
+8f098de9fcf4bbece0923dc4a2acfc67cf751c1d5c007535c5d88b8637a4482c1a42d5721a2760127498e327f6983bbc865a592a8e0db9ef7efc0e36b6d4102f  0012-libiberty-copy-PIC-objects-during-build-process.patch
+bbe2b561b5288ca724af37353e17b413df8bf247bce724391e75373aee5cdcdb85e6489d51622c11f4041ed8f317278cf687aee14dfc8756398f03f1a796feb9  0013-libgcc_s.patch
+ae34ca2bc5a53ed1c832651e3f6425ca29b5873f1e112b45613277fb9611693be41986d5879593f09149777e3e57d04ba17b142c43eaa990375d31e4e0b4adde  0014-nopie.patch
+2c91a1eadf7236efff42eb53037862a342807596e37c6cc3c270d25c2d89078bf8db68bb2e93e57a8ad39b3af825e33db72e2f48a6311951fff53776933bc48c  0015-ada-fix-shared-linking.patch
+1366d696a952ed35e5e56ab5bd1eba67e58a8ce752c0ef7e7fe4ad3eef44f25ce6016342d11add9548f9e719dc9ee0772064dda68784257a1a3234ae5957f3fb  0016-build-fix-CXXFLAGS_FOR_BUILD-passing.patch
+af739373285e89a4ab0000042b537ff7197b0b366019b56991008c43f3d2b76709d472841cda40e9fb61e6f0dacc0fe8c6b888abb31f393ec1a87acc1c0585b3  0017-add-fortify-headers-paths.patch
+c18f3eef4d7d6fcbfa64570edb71157a62dad1f3d7276f10fe3424e49caa33f57a0a5952f03189199472802a2dd966e4832789685a94911fe9a86bb1fd6c1d50  0018-Alpine-musl-package-provides-libssp_nonshared.a.-We-.patch
+341d39a40ffd896db152863c717798c6885bdde44c9ac645c5d099c2364cbd8f6f526f97cc98302c420682cb5d6d88bbe28d838c7141456f2ba5581f3edfd64f  0019-DP-Use-push-state-pop-state-for-gold-as-well-when-li.patch
+e603652f341909820789a2cec173b8e547ee607b040863f1745b998b8a69d51cb412a4ac55d2c9e3c5192cc298f6288f9dd48fa06fe53ba8f6b1cabbe61c997a  0020-aarch64-disable-multilib-support.patch
+26819f3c3a5844c96cee89fc9766a4f8153e7bb22f6296c6c9fd6a13d45648e3f6c7059397ad7e5be66f55addc21054614b38f480b52a7c9a967cf389735644a  0021-s390x-disable-multilib-support.patch
+8e6e6ed84c8cb39ecc35ad0986a91168fedbae2426c8ec1c83dec85a293777e0ec29eac13130193b1bdc2d98b6ffa180abf574dad70740d4720b4bfdab992ab8  0022-ppc64-le-disable-multilib-support.patch
+264eaa54a76ec5a12294d91ad2f995eddac9210a569ba85aef27176cb015354aa427840bb22f1e3ba2f7761f6f85cc98ddb3b00584b295c6a10a9770c59a2607  0023-x86_64-disable-multilib-support.patch
+47a1a407298b6c259d7faff774f26e4843c9d3764362d74230e7d3f77c46ea8bb51211e09a66bb51c04a9f276ea5b07570fb52312fdb1d354c72a0343bc40c57  0024-riscv-disable-multilib-support.patch
+b86fcf40e75861bdffb00069d3a0c9cec3fe8042d49d6ce2beae48ffeadccc576b8ab36e5a85421db5cffeb080a75f3a66dbcbb825d7f4462d40ec621964efe3  0025-always-build-libgcc_eh.a.patch
+1425543ce064bfd8e33d7e6e07f45cc16d94f156adcfe190c842722652d5ea0c9ba60f6a3e1b444bb0e5bc906ec4f9ca54720b306f274b441600b79bff47dc57  0026-ada-libgnarl-remove-use-of-glibc-specific-pthread_rw.patch
+b8851d0e7fc66201e323007f7c1d702ea8a0d0405aa5945621128ebfb93afd967ec8b3ab6fd4ea779ec10dca2a32e1797f7a2622124ccf8ace2a7596f66ff0bf  0027-ada-libgnarl-use-posix_openpt-instead-of-glibc-speci.patch
+12b09a171d61406a2bfa10bb25398cee8c92676b12506afe7aace7028e94cbf8d7df25f62ff7af07e8ed471c6edd3ab7811fa51dfaf3a221a6b367858b1f032c  0028-ada-libgnarl-adaint-fix-sched.h-inclusion-for-musl.patch
+15bed06ee74a36e9f21f4b29d7bce9c4188769abb6391560e13ea6b165da51f5ae908e141de7510d3d7eec6b998d0fc53de1042fdb7bd056efa703d230a683b4  0029-configure-Add-enable-autolink-libatomic-use-in-LINK_.patch
+4c5501256669fd33527a5394eaa4b84451ee341a943dd24a179b661d3c53ef70e87ed5d5f3e76c6c3f9cb79cb5d120ea40101278a7b9d04a55d9405e4cbf9796  0030-configure-fix-detection-of-atomic-builtins-in-libato.patch
+eecc77e2a9cf956fd752693ad7f8ff8253a7bb557e00564bb488bbc1deac895e63104cc1182a0bdd700e440763f4a72e29876f560e13e4f5e6de2a1d9438c2f6  0031-libstdc-do-not-throw-exceptions-for-non-C-locales-on.patch
+2b09f90d9cb417170060c8ce198bd4aa2e4ef163286c8f24f6e6c5a673ae80f5a883b078b1a5dd5fa71bc1502e08c886687072694da039eb82baa1ea1948ac2c  0032-gdc-unconditionally-link-libgphobos-against-libucont.patch
+99c74242b6d79e6a814f1199b9fb0b56c6a43eb93e5d1a79b674cea750bb025363cdd1505d05cd2195a43c918831fa586c427556ee5bc826aa79cd82e7ee1c24  0033-druntime-link-against-libucontext-on-all-platforms.patch
+4f8f7876bf8647cda47cbd2b145ff31efe2a7ac21c012c4134174f93482aad1fbab2592c66aacc3b05fccd1a694ff97511b794139db4aac719e243c114373240  0034-libgnat-time_t-is-always-64-bit-on-musl-libc.patch
+0069da1d8cb9adb9bab081a34fec680a9ebb1236e606a2497e4565e99bef434518a0f06474a9a1fdfa70811ed3da5d35ca95d267268328f2764bf41c50e924de  0035-libphobos-do-not-use-LFS64-symbols.patch
+1cbe85b63ef13bdf2804bfd3173998a6e86752d8ffc09d4cc75a9ba80b98aec5a04efa732bce97a2f50a90c84b92c442ca8f6639841fe7d6618f928ea65916a6  0036-libgo-fix-lfs64-use.patch
+98fcd5b893a1646edab961a5d00246151c47b449f8eca99c51f4026ffdb53f60b5b9f6426437c0a6411342da10db8983e20337a29cd46ed22b70e0478573ea30  0037-loongarch-disable-multilib-support.patch
+1ad48e39dab351b7bb3e17d9b4b8b78e7de7c736e212638c9d6874b1dde0360dcfc85586c39f515fbd2a6d9910fedc4f0c6ad7ff652b10a5c288c47173671ec7  0038-static-PIE-ensure-static-reaches-the-linker.patch
+9f4c3fa0d17cfcd72626bdbaf51992ff3018f878d673ab19b9056047ee2630b581e5a5a4d4857444f08ba9bcdb0fc94f90dcda6180816e39690d1652843f0d8a  0039-except-Don-t-use-the-cached-value-of-the-gcc_except_.patch
+d166475e340c91bbb24cf257240aab37129b04f2609e5ce323b530ab83853a4c34c525e0072c15732717f1681db07e6b3b0a4d268720c31f460435ccf4c99b7f  0040-ada-libgnat-use-stub-symbolic-module-name-functions.patch
+c717764ef52c0226a23cbf434654cdefa6cbf38ec625648575d9143c5513b16d8914c25015db743033b8a46ac5b2c33ab75e1b67076128d67bb1319e5a83dd85  0041-ada-libgnat-recognize-linux-musleabi-and-linux-muslg.patch
+c3b64b05332bd4dd7fad3fff3cacd4f9de0512943f1548c6f1205fab1a74c83622024f30471805f57d625198cc32f647b32172914528fd5605d0bf61cb0c3ff1  0001-tree-object-size.cc-Fix-assert-constant-offset-in-ch.patch
+"

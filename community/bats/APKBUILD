@@ -1,36 +1,21 @@
-# Maintainer: Jose-Luis Rivas <ghostbar@riseup.net>
+# Contributor: qaqland <qaq@qaq.land>
+# Maintainer: qaqland <qaq@qaq.land>
 pkgname=bats
-pkgver=0.4.0
-pkgrel=2
-pkgdesc="Bash Automated Testing System"
-url="https://github.com/sstephenson/bats"
+pkgver=1.12.0
+pkgrel=0
+pkgdesc="Meta package for Bats"
+url="https://bats-core.readthedocs.io/"
 arch="noarch"
 license="MIT"
-depends="bash"
-subpackages="$pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/sstephenson/$pkgname/archive/v$pkgver.tar.gz
-	0001-test-bats-Add-fake-tput-to-fix-Alpine-tests.patch"
-builddir="$srcdir/$pkgname-$pkgver"
-
-check() {
-	cd "$builddir"
-	bash -c 'bin/bats --tap test'
-}
+depends="
+	bats-core
+	bats-support
+	bats-assert
+	bats-file
+	"
+install="bats.post-install"
+options="!check" # No tests for a metapkg
 
 package() {
-	cd "$builddir"
-
-	mkdir -p "$pkgdir"/usr/lib/bats "$pkgdir"/usr/bin
-
-	# Note: We don't use /usr/libexec in Alpine.
-	cp -r libexec/* "$pkgdir"/usr/lib/bats
-	ln -s ../lib/bats/bats "$pkgdir"/usr/bin/bats
-
-	local i; for i in 1 7; do
-		install -m 644 -D man/bats.$i \
-			"$pkgdir"/usr/share/man/man$i/bats.$i
-	done
+	mkdir -p "$pkgdir"
 }
-
-sha512sums="83c6c0e3ceec149708a8db5d33e95cc84852d8189498c22131c00f4288a6c870f9d522bae9230157f442338dc101e1468451d78dfa274afb83a6f0dd614c8bdb  bats-0.4.0.tar.gz
-f6e6453e0cd783dc6835cd1f1e256bc8fcfad2ba1611bd4901cf586cb227788516ef74cadcad05889b15a23251a2c23f3f07e4676c1d229cb80bec8e8bf49394  0001-test-bats-Add-fake-tput-to-fix-Alpine-tests.patch"

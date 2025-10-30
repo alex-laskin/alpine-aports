@@ -1,0 +1,31 @@
+# Maintainer: Michał Adamski <michal@ert.pl>
+pkgname=py3-aiorpcx
+pkgver=0.23.1
+pkgrel=0
+pkgdesc="Generic async RPC implementation, including JSON-RPC"
+url="https://github.com/kyuupichan/aiorpcX"
+arch="noarch"
+license="MIT"
+depends="python3 py3-websockets"
+makedepends="py3-setuptools"
+checkdepends="py3-pytest py3-pytest-asyncio"
+subpackages="$pkgname-pyc"
+source="https://github.com/kyuupichan/aiorpcX/archive/refs/tags/$pkgver/py3-aiorcpx-$pkgver.tar.gz"
+builddir="$srcdir/aiorpcX-$pkgver"
+options="net" # checks make network requests
+
+build() {
+	python3 setup.py build
+}
+
+check() {
+	PYTHONPATH=build/lib pytest
+}
+
+package() {
+	python3 setup.py install --skip-build --root="$pkgdir"
+}
+
+sha512sums="
+e92f68da0783bcf66926047ab2af12b5971f4bab0a028a639e53440c9cfc39ba54ddbdd1c2a20a6dacf73dac583305f692851c0d911cd68d6aabdbe131b1a8e1  py3-aiorcpx-0.23.1.tar.gz
+"

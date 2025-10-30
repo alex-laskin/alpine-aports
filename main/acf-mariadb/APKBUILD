@@ -2,25 +2,21 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-mariadb
 pkgver=0.2.0
-pkgrel=2
+pkgrel=5
 pkgdesc="ACF module for mariadb"
-url="http://git.alpinelinux.org/cgit/acf/$pkgname"
+url="https://gitlab.alpinelinux.org/acf/acf-mariadb"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core mariadb mariadb-client lua-sql-mysql acf-db-lib"
-makedepends="acf-db-lib"
-install=
-subpackages=""
 replaces="acf-mysql"
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-mariadb/-/archive/v$pkgver/acf-mariadb-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
-
 	make DESTDIR="$pkgdir" install
-
 }
 
-md5sums="fb82e7105ddf1d8e453ce73e6583d0eb  acf-mariadb-0.2.0.tar.xz"
-sha256sums="a5338d8f1d492acd557a899ec07131c8181cc10a43ec4e31a13ebcbced3b971e  acf-mariadb-0.2.0.tar.xz"
-sha512sums="7974ed3c59e1fc4d22dee3e4becda359b67c97bec30d254c7c0ce2569883667626326f9fd6b2c6ef7dd57fe013635b3fb7c239f0f873d86e6b244582da835995  acf-mariadb-0.2.0.tar.xz"
+sha512sums="
+b9159cf26749dda29b378d0b9ab06fd2ea026e8c1acb20f6fa4e1dbd3b180f295b75e508ed62cf6f6e465a272191c0015577280170a93d8bf68c21fa5449dee9  acf-mariadb-v0.2.0.tar.gz
+"

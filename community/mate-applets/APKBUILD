@@ -1,42 +1,56 @@
 # Contributor: Alan Lacerda <alacerda@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=mate-applets
-pkgver=1.20.2
+pkgver=1.28.1
 pkgrel=0
 pkgdesc="Applets for use with the MATE panel"
 url="https://github.com/mate-desktop/mate-applets"
 arch="all"
-license="GPL-2.0"
+license="GPL-2.0-or-later"
 depends="mate-icon-theme"
-makedepends="intltool gtk+3.0-dev mate-panel-dev libwnck3-dev
-	mate-desktop-dev dconf-dev itstool linux-headers libxml2-dev
-	libxml2-utils libgtop-dev libmateweather-dev wireless-tools-dev
-	gucharmap-dev libnotify-dev"
+makedepends="
+	dbus-glib-dev
+	dconf-dev
+	gtk+3.0-dev
+	gtksourceview4-dev
+	gucharmap-dev
+	intltool
+	itstool
+	libgtop-dev
+	libmateweather-dev
+	libnl3-dev
+	libnotify-dev
+	libwnck3-dev
+	libxml2-dev
+	libxml2-utils
+	linux-headers
+	mate-desktop-dev
+	mate-panel-dev
+	polkit-dev
+	upower-dev
+	"
 subpackages="$pkgname-doc $pkgname-lang"
-source="http://pub.mate-desktop.org/releases/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-options="suid"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://pub.mate-desktop.org/releases/${pkgver%.*}/mate-applets-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--sysconfdir=/etc \
 		--prefix=/usr \
 		--enable-static=no \
-		--disable-stickynotes
+		--enable-polkit
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="cff51c0a515165debb1eed56064fe3d5db698156117e89b2cb015d47f8f8dfd5b2d1d3e155ee33b1af372fc07579282d88bffe50dc71583a5bae13ceaab1f16f  mate-applets-1.20.2.tar.xz"
+sha512sums="
+34deb17371ee18c5e42a361a0b2bcedc57dbf5d05718c40ecf48c1eda51d8775b48770136e382af6dd436a7aab3ab46df5a3cf2e161d172497ea69e4cae7d940  mate-applets-1.28.1.tar.xz
+"

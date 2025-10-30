@@ -1,22 +1,32 @@
 # Contributor: Alan Lacerda <alacerda@alpinelinux.org>
 # Maintainer: Alan Lacerda <alacerda@alpinelinux.org>
 pkgname=mate-panel
-pkgver=1.21.0
+pkgver=1.28.2
 pkgrel=0
 pkgdesc="The MATE panel is the area on your desktop from which you can run applications"
 url="https://github.com/mate-desktop/mate-panel"
 arch="all"
-license="GPL-2.0"
-depends="mate-common mate-desktop"
-makedepends="librsvg-dev libmateweather-dev libtool intltool itstool
-	mate-menus-dev dconf-dev libice-dev libsm-dev libcanberra-dev dbus-glib-dev
-	libwnck3-dev libsoup-dev mate-desktop-dev libxml2-utils"
+license="GPL-2.0-or-later AND LGPL-2.0-or-later"
+depends="dconf-editor mate-common" # added dconf-editor due to issue #15428
+makedepends="
+	dconf-dev
+	intltool
+	itstool
+	libcanberra-dev
+	libice-dev
+	libmateweather-dev
+	librsvg-dev
+	libsm-dev
+	libtool
+	libwnck3-dev
+	libxml2-utils
+	mate-desktop-dev
+	mate-menus-dev
+	"
 subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
-source="http://pub.mate-desktop.org/releases/${pkgver%.*}/$pkgname-$pkgver.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://pub.mate-desktop.org/releases/${pkgver%.*}/mate-panel-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,13 +37,13 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="${pkgdir}" install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="053f4f3a4451b86638ca6ad79a7bea70db0fd9a2fe88ce6bd640ac6110d7401db91d60386ec674624f48fd5348de23110a1032aa590c798d2aa584861435417b  mate-panel-1.21.0.tar.xz"
+sha512sums="
+68eb7805826676c3536b047c041797837e29df123e76f6f319d9e1c81c31e88959372d3a5034df10e8218b82a5fd35023a9f8adc34b9a655bc4e173315d4bcb8  mate-panel-1.28.2.tar.xz
+"

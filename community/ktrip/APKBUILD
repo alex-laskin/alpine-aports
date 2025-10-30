@@ -1,0 +1,52 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=ktrip
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="A public transport assistant"
+# armhf blocked by qt6-qtdeclarative
+arch="all !armhf"
+url="https://invent.kde.org/utilities/ktrip"
+license="GPL-2.0-only OR GPL-3.0-only"
+depends="
+	kde-icons
+	kirigami
+	kirigami-addons
+	qqc2-desktop-style
+	sonnet
+	"
+makedepends="
+	extra-cmake-modules
+	kconfig-dev
+	kcontacts-dev
+	kcrash-dev
+	ki18n-dev
+	kirigami-addons-dev
+	kitemmodels-dev
+	kpublictransport-dev
+	qqc2-desktop-style-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-dev
+	samurai
+	"
+_repo_url="https://invent.kde.org/utilities/ktrip.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/ktrip-$pkgver.tar.xz"
+options="!check" # No tests
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DKF_IGNORE_PLATFORM_CHECK=ON
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+b511cd35d70da28397ed593fccde72774a4f965ce3a3c327ed841ddf03416511008a9143d23a30b3739189e453d4dffdd06a3a986d7f576cdfc04a15080ec81f  ktrip-25.08.1.tar.xz
+"

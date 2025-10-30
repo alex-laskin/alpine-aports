@@ -1,76 +1,143 @@
-# Maintainer: Yves Schumann <yves@eisfair.org>
-
+# Contributor: Yves Schumann <yves@eisfair.org>
+# Maintainer: Ariadne Conill <ariadne@dereferenced.org>
 pkgname=quassel
-pkgver=0.12.5
-pkgrel=0
-url="http://www.quassel-irc.org/"
+pkgver=0.14.0
+pkgrel=17
+url="https://www.quassel-irc.org/"
 pkgdesc="Distributed IRC client - metapackage"
 arch="all"
-license="GPL"
-install="quassel-core.pre-install"
-depends="quassel-common"
-makedepends="qt-dev cmake dbus-dev libressl-dev paxmark"
-subpackages="$pkgname-common::noarch $pkgname-core $pkgname-client"
-source="http://www.quassel-irc.org/pub/quassel-$pkgver.tar.bz2
-       quasselcore.confd
-       quasselcore.initd"
+license="GPL-2.0-or-later"
+options="!check"
+install="$pkgname-core.pre-install"
+pkgusers="quassel"
+pkggroups="quassel"
+makedepends="
+	boost-dev
+	cmake
+	dbus-dev
+	extra-cmake-modules
+	icu-dev
+	openldap-dev
+	openssl-dev>3
+	qca-dev
+	qt5-qtbase-dev
+	qt5-qtmultimedia-dev
+	qt5-qttools-dev
+	samurai
+	zlib-dev
+	"
+source="https://www.quassel-irc.org/pub/quassel-$pkgver.tar.bz2
+	quasselcore.confd
+	quasselcore.initd
+	"
+subpackages="
+	$pkgname-common::noarch
+	$pkgname-core
+	$pkgname-core-openrc:core_openrc
+	$pkgname-client
+	$pkgname-mono
+	$pkgname-libs-core:core_libs
+	$pkgname-libs-qtui:qtui_libs
+	$pkgname-libs-client:client_libs
+	$pkgname-libs-common:common_libs
+	$pkgname-libs-uisupport:uisupport_libs
+	"
+
+# secfixes:
+#   0.13.1-r6:
+#     - CVE-2021-34825
 
 build() {
-	cd "$srcdir"
-	mkdir build
-
-	cd build
-	cmake \
-		-DCMAKE_INSTALL_PREFIX=/usr/ \
-		-DWITH_KDE=0 \
-		-DCMAKE_BUILD_TYPE="Release" \
-		-DWITH_OPENSSL=ON \
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
 		-DWANT_CORE=ON \
 		-DWANT_MONO=ON \
 		-DWANT_QTCLIENT=ON \
-		-DWITH_DBUS=OFF \
-		-DWITH_OXYGEN=OFF \
-		-DWITH_PHONON=OFF \
-		-DWITH_WEBKIT=OFF \
-		../quassel-$pkgver/ || return 1
-	make
+		-DWITH_KDE=0 \
+		-DWITH_WEBKIT=OFF
+	cmake --build build
 }
 
 package() {
-	cd "$srcdir"/build
-	make DESTDIR="$pkgdir" install/fast || return 1
-	paxmark -m "$pkgdir"/usr/bin/quasselcore || return 1
+	# install monolithic client by default
+	depends="$pkgname-mono"
+	DESTDIR="$pkgdir" cmake --install build
+
+	install -Dm0644 "$srcdir"/quasselcore.confd \
+		"$pkgdir"/etc/conf.d/quasselcore
+	install -Dm0755 "$srcdir"/quasselcore.initd \
+		"$pkgdir"/etc/init.d/quasselcore
 }
 
 common() {
-	pkgdesc="Quassel common/shared files"
-	depends=
-	mkdir -p "$subpkgdir"/usr/share
-	mv "$pkgdir"/usr/share/icons \
-		"$subpkgdir"/usr/share
+	pkgdesc="Distributed IRC client - common/shared files"
+
+	amove usr/share/icons \
+		usr/share/$pkgname
 }
 
 core() {
-	pkgdesc="Core component of distributed IRC client"
-	depends="$pkgname-common"
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/quasselcore "$subpkgdir"/usr/bin/ || return 1
-	install -Dm0644 "$srcdir"/quasselcore.confd \
-		"$subpkgdir"/etc/conf.d/quasselcore || return 1
-	install -Dm0755 ${srcdir}/quasselcore.initd \
-		"$subpkgdir"/etc/init.d/quasselcore || return 1
+	pkgdesc="Distributed IRC client - server"
+	depends="qt5-qtbase-postgresql qt5-qtbase-sqlite quassel-common=$pkgver-r$pkgrel"
+
+	amove usr/bin/quasselcore
+}
+
+core_openrc() {
+	pkgdesc="Distributed IRC client - server (OpenRC init scripts)"
+	install_if="openrc $pkgname-core=$pkgver-r$pkgrel"
+
+	default_openrc
 }
 
 client() {
-	pkgdesc="Quassel client"
-	depends="$pkgname-common"
-	mkdir -p "$subpkgdir"/usr/bin \
-		"$subpkgdir"/usr/share/
-	mv "$pkgdir"/usr/bin/quasselclient "$subpkgdir"/usr/bin/ || return 1
-	mv "$pkgdir"/usr/share/pixmaps \
-		"$pkgdir"/usr/share/applications \
-		"$subpkgdir"/usr/share/
+	pkgdesc="Distributed IRC client - client"
+	depends="quassel-common=$pkgver-r$pkgrel"
+
+	amove usr/bin/quasselclient \
+		usr/share/applications/quasselclient.desktop
 }
-sha512sums="3a0263d7bec9ef4b0d8ef6ea53784f95e0efbadc0f03b49005908411b0b53543ebc66189fb4100c117d87264b648f2a1b01be48c371f926b9f326b1ffc870685  quassel-0.12.5.tar.bz2
-e03df342f47945f948106883a7757262ab7a8a7d21f0b4dd01cfcc95e836c2e00f2e0177a353b4f7a4b6f80ffa970be06d49aa9a42cad1f3834382267e5a0d7f  quasselcore.confd
-a7181ea28d821e39c005aaaaeed821f815371f76c2e98bd5935013bb9a0ba0ab6fce9c202bab6be3eaa7895773150fc5832ea3ce9050dbea73d6db514f51da6a  quasselcore.initd"
+
+mono() {
+	pkgdesc="Distributed IRC client - monolithic all-in-one package"
+
+	amove usr/bin/quassel \
+		usr/share/applications/quassel.desktop
+}
+
+core_libs() {
+	pkgdesc="Distributed IRC client - server libraries"
+
+	amove usr/lib/libquassel-core.so*
+}
+
+qtui_libs() {
+	pkgdesc="Distributed IRC client - qtui libraries"
+
+	amove usr/lib/libquassel-qtui.so*
+}
+
+client_libs() {
+	pkgdesc="Distributed IRC client - client libraries"
+
+	amove usr/lib/libquassel-client.so*
+}
+
+common_libs() {
+	pkgdesc="Distributed IRC client - common libraries"
+
+	amove usr/lib/libquassel-common.so*
+}
+
+uisupport_libs() {
+	pkgdesc="Distributed IRC client - uisupport libraries"
+
+	amove usr/lib/libquassel-uisupport.so*
+}
+
+sha512sums="
+ea6b9723acab5ce73f760692770c1340c03bf277d2c99a2520345bfb6a7bb6fdc64a01dccfd7026341b46ee727821e1bcc2f487be72dfbc155f1de1ad264763f  quassel-0.14.0.tar.bz2
+56d4b05fcb2702c103a611a170e444e237bd7c8626219063e5853c3efa5d91e21fa9b726b056393070e35b7d7efe0a145ac3ab61413bc8033642d7acb622b638  quasselcore.confd
+7a0dd5a04b28c3099b4c9e98a25e6dc2b72bdb1e450e7299f9556487f6b34748ae881a4ccb955396e2ac0eab5d3fce4dbea426d7fa498d069f5d185057efa4cf  quasselcore.initd
+"

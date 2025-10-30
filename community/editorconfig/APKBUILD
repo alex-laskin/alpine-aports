@@ -1,40 +1,51 @@
-# Contributor:
+# Contributor: omni <omni+alpine@hack.org>
 # Maintainer: Paul Morgan <jumanjiman@gmail.com>
 pkgname=editorconfig
 _pkgname=$pkgname-core-c
-pkgver=0.12.2
-pkgrel=0
-pkgdesc="EditorConfig core library written in C (for use by plugins supporting EditorConfig parsing)"
+pkgver=0.12.9
+_testname=editorconfig-core-test
+_testver=d91029bdf1e3e0307714afe0d2cde7ba6fd208ab
+pkgrel=1
+pkgdesc="core library written in C for use by plugins supporting EditorConfig parsing"
 url="https://github.com/editorconfig/editorconfig-core-c"
 arch="all"
 license="BSD-2-Clause"
-makedepends="cmake doxygen pcre-dev"
-subpackages="$pkgname-dev $pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/editorconfig/$_pkgname/archive/v$pkgver.tar.gz"
+makedepends="cmake pcre2-dev samurai"
+subpackages="lib$pkgname:libs $pkgname-static $pkgname-dev"
+source="$pkgname-$pkgver.tar.gz::https://github.com/editorconfig/$_pkgname/archive/v$pkgver.tar.gz
+	$_testname-$_testver.tar.gz::https://github.com/editorconfig/$_testname/archive/$_testver.tar.gz
+	"
 builddir="$srcdir/$_pkgname-$pkgver"
 
-build() {
-	cd "$builddir"
+prepare() {
+	# Tests are taken from a github release tarball so place them in the tree
+	rmdir tests
+	mv ../"$_testname"-"$_testver" tests
+	default_prepare
+}
 
-	cmake . \
-		-DCMAKE_BUILD_TYPE=MinSizeRel \
-		-DCMAKE_C_FLAGS_MINSIZEREL="$CFLAGS" \
-		-DCMAKE_CXX_FLAGS_MINSIZEREL="$CXXFLAGS" \
-		-DCMAKE_EXE_LINKER_FLAGS_MINSIZEREL="$LDFLAGS" \
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_INSTALL_LIBDIR=lib \
-		-DINI_ALLOW_MULTILINE=1
-	make
+		-DBUILD_DOCUMENTATION=False
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
 }
 
 package() {
-	cd "$builddir"
-
-	make install DESTDIR="$pkgdir"
+	DESTDIR="$pkgdir" cmake --install build
 
 	# Remove symlink to editorconfig-$pkgver.
-	rm -f "$pkgdir/usr/bin/$pkgname"
-	mv -f "$pkgdir/usr/bin/$pkgname-$pkgver" "$pkgdir/usr/bin/$pkgname"
+	rm -f "$pkgdir"/usr/bin/"$pkgname"
+	mv -f "$pkgdir"/usr/bin/"$pkgname"-"$pkgver" "$pkgdir"/usr/bin/"$pkgname"
 }
 
-sha512sums="6ab3e4f7f95c83c0781064ca15bb70394bb947f9d4cd1348224f02e25c65021d14439b913775d7cfafb93476158799c34438fa548adf3c7ec6dbfd6f1052a046  editorconfig-0.12.2.tar.gz"
+sha512sums="
+c5769871c8fc945f9fedf9d33803a4df03eadaee4b724243e6a653fb8418e35417c33c0f6ba8e1ea709d9841a21c7da36fd0fd696be5cc9ac36610812b9dd1f6  editorconfig-0.12.9.tar.gz
+530ac91b7dc5b433c59251edd5928c6f9c579c343b85f0dbd7dc71de6eb2e34328dbb398f0e68a416f4f22c9c7bfa13a792bcfe4c0469902e3a1fe2ba6c9841f  editorconfig-core-test-d91029bdf1e3e0307714afe0d2cde7ba6fd208ab.tar.gz
+"

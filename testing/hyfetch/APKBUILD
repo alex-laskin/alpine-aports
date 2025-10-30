@@ -1,0 +1,43 @@
+# Contributor: Robin Candau <robincandau@protonmail.com>
+# Maintainer: Robin Candau <robincandau@protonmail.com>
+pkgname=hyfetch
+pkgver=2.0.4
+pkgrel=0
+pkgdesc="Neofetch with LGBTQ+ pride flags!"
+url="https://github.com/hykilpikonna/hyfetch"
+arch="all"
+license="MIT"
+depends="bash"
+makedepends="cargo cargo-auditable"
+subpackages="$pkgname-doc $pkgname-bash-completion $pkgname-zsh-completion"
+source="$pkgname-$pkgver.tar.gz::https://github.com/hykilpikonna/hyfetch/archive/$pkgver.tar.gz"
+options="net" # cargo fetch
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+}
+
+check() {
+	# there will be a "${c1}", it's normal.
+	target/release/hyfetch --test-print
+}
+
+package() {
+	install -Dm 755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
+
+	install -Dm 644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+	install -Dm 644 LICENSE.md "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+	install -Dm 644 "docs/$pkgname.1" "$pkgdir/usr/share/man/man1/$pkgname.1"
+	install -Dm 644 "$pkgname/scripts/autocomplete.bash" "$pkgdir/usr/share/bash-completion/completions/$pkgname"
+	install -Dm 644 "$pkgname/scripts/autocomplete.zsh" "$pkgdir/usr/share/zsh/site-functions/_$pkgname"
+}
+
+sha512sums="
+81f15e8a48551338ad80f44bafa3dd6ea3585a3af1939b7bdbe3703afe04bcc93ee05ecef2749b92e9652a9aa6a9184e35e0b264e3c21bbe57a46ad38e19addb  hyfetch-2.0.4.tar.gz
+"

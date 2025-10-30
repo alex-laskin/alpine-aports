@@ -1,67 +1,55 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=kmod
-pkgver=24
+pkgver=34.2
 pkgrel=1
 pkgdesc="Linux kernel module management utilities"
 url="http://git.kernel.org/?p=utils/kernel/kmod/kmod.git;a=summary"
 arch="all"
 options="!check"  # https://bugs.gentoo.org/408915#c3
 license="GPL-2.0-or-later"
-depends=""
-depends_dev=""
 # gnu sed is needed for symlink
-makedepends_build="sed libxslt"
-makedepends_host="$depends_dev zlib-dev xz-dev"
+makedepends_build="bash coreutils scdoc meson sed"
+makedepends_host="zlib-dev xz-dev zstd-dev openssl-dev>3"
 makedepends="$makedepends_build $makedepends_host"
-install=""
-triggers="$pkgname.trigger=/lib/modules/*"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-openrc
-	$pkgname-bash-completion:bashcomp:noarch"
-source="https://kernel.org/pub/linux/utils/kernel/kmod/kmod-$pkgver.tar.xz
-	strndupa.patch
-	kmod-static-nodes.initd
+triggers="$pkgname.trigger=/lib/modules/*:/usr/lib/modules/*"
+subpackages="
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-libs
+	$pkgname-bash-completion
+	$pkgname-fish-completion
+	$pkgname-zsh-completion
 	"
+source="https://kernel.org/pub/linux/utils/kernel/kmod/kmod-$pkgver.tar.xz"
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
+	if [ -z "$BOOTSTRAP" ]; then
+		export CFLAGS="$CFLAGS -flto=auto"
+	fi
+
+	abuild-meson \
 		--bindir=/bin \
-		--sysconfdir=/etc \
-		--with-rootlibdir=/lib \
-		--with-zlib \
-		--with-xz
-	make
+		--sbindir=/sbin \
+		-Dfishcompletiondir=/usr/share/fish/vendor_completions.d \
+		. output
+	meson compile -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	local i
-	mkdir -p "$pkgdir"/sbin
-	for i in lsmod rmmod insmod modinfo modprobe depmod; do
-		ln -sf ../bin/kmod "$pkgdir"/sbin/$i
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	local d
+	for d in depmod.d modprobe.d; do
+		rmdir "$pkgdir"/usr/lib/$d
+		rmdir "$pkgdir"/etc/$d
 	done
-	for i in lsmod modinfo; do
-		ln -s kmod "$pkgdir"/bin/$i
-	done
-	install -Dm755 "$srcdir"/kmod-static-nodes.initd \
-		"$pkgdir"/etc/init.d/kmod-static-nodes
 }
 
-bashcomp() {
-	pkgdesc="Bash completion for $pkgname"
-	depends=""
-	install_if="bash-completion $pkgname=$pkgver-r$pkgrel"
-
-	mkdir -p "$subpkgdir"/usr/share
-	mv "$pkgdir"/usr/share/bash-completion "$subpkgdir"/usr/share/
+libs() {
+	license="LGPL-2.1-or-later"
+	default_libs
 }
 
-
-sha512sums="58c8da100418b6325de1595bceee4115cbdd7151d03a028c0b1f6d5d3e6611c667e27f3a0245d29781125581849fd1e854fa8d87b63c4b8fa3f196d0a97e1779  kmod-24.tar.xz
-f2ea3527bfba182c5e15557c224a5bba8c7e2ea3d21cf604e6eb2277226dcf983c3aeb9ac44a322c7f2b4942b35135da999d63a5b946b829d3f3b09c050a0f17  strndupa.patch
-7f0f89fe98167f71b7924f341ba701d001158225463c2f5e39f706a0224b1e952ee901b441f28cb15787563e83bb6e54eb752bf8669ae7c0ffbb11984542f354  kmod-static-nodes.initd"
+sha512sums="
+0e095c45ad61a6c61ce1ad61b9aa10cf5040e688b749f9a933b0e7d12de493c58027a5068b459cbbce05576fc564a22b83a3dbef1e6511b2a3e27034c88afd33  kmod-34.2.tar.xz
+"

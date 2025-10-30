@@ -1,0 +1,48 @@
+# Contributor: Usia Bechtle <usia@bechtlebox.de>
+# Maintainer: jane400 <alpine@j4ne.de>
+pkgname=railway
+pkgver=2.9.0
+pkgrel=0
+pkgdesc="Railway lets you look up travel information for many different railways"
+url="https://gitlab.com/schmiddi-on-mobile/railway"
+arch="all"
+license="GPL-3.0-or-later"
+makedepends="
+	blueprint-compiler
+	cargo
+	desktop-file-utils
+	gtk4.0-dev
+	libadwaita-dev
+	libglibutil-dev
+	meson
+	openssl-dev
+	"
+subpackages="$pkgname-lang"
+source="https://gitlab.com/schmiddi-on-mobile/railway/-/archive/$pkgver/railway-$pkgver.tar.gz"
+options="!check" # no tests
+
+provides="diebahn=$pkgver-r$pkgrel"
+replaces="diebahn"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+
+build() {
+	abuild-meson . output
+	meson compile -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+
+	cd "$pkgdir"/usr/bin
+	ln -sv diebahn railway
+}
+
+sha512sums="
+ef3ec4a746ff68a50005a50c06c0b39010b61d3c7a9a8fcf01097babe980c2a7578ff4c123b460d85ac34684dd9eb288c1a65d204f93c2a52ae4d5e3d16fb276  railway-2.9.0.tar.gz
+"

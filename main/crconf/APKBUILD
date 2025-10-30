@@ -2,24 +2,22 @@
 pkgname=crconf
 pkgver=0_pre2
 _realver=pre2
-pkgrel=0
+pkgrel=3
 pkgdesc="Linux crypto layer configuration tool"
 url="https://sourceforge.net/projects/crconf/"
 arch="all"
-license="GPL-2.0"
-depends=""
+license="GPL-2.0-or-later"
 makedepends="linux-headers"
-source="http://downloads.sourceforge.net/project/crconf/crconf-$_realver.tar.gz"
+source="https://downloads.sourceforge.net/project/crconf/crconf-$_realver.tar.gz"
 
 builddir="$srcdir"/$pkgname-$_realver
+options="!check"
 
 build() {
-	cd $builddir
 	make
 }
 
 package() {
-	cd $builddir
 	make -j1 DESTDIR="$pkgdir" install
 }
 

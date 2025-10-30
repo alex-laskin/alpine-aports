@@ -1,32 +1,50 @@
 # Contributor: Fabian Affolter <fabian@affolter-engineering.ch>
-# Maintainer: Fabian Affolter <fabian@affolter-engineering.ch>
+maintainer="Achill Gilgenast <achill@achill.org>"
 pkgname=py3-yarl
-_pkgname=yarl
-pkgver=1.2.6
-pkgrel=0
+pkgver=1.20.0
+pkgrel=1
 pkgdesc="Yet another URL library"
-url="http://yarl.readthedocs.io"
-arch="all"
+url="https://yarl.aio-libs.org/"
 license="Apache-2.0"
-depends="py3-multidict"
-makedepends="py3-setuptools python3-dev"
-checkdepends="py3-pytest"
-source="https://files.pythonhosted.org/packages/source/${_pkgname:0:1}/$_pkgname/$_pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$_pkgname-$pkgver"
+arch="all"
+depends="python3 py3-idna py3-multidict py3-propcache"
+makedepends="
+	cython
+	py3-expandvars
+	py3-gpep517
+	py3-propcache
+	py3-setuptools
+	py3-wheel
+	python3-dev
+	"
+checkdepends="
+	py3-hypothesis
+	py3-pytest-codspeed
+	py3-pytest-cov
+	py3-pytest-xdist
+	"
+subpackages="$pkgname-pyc"
+source="https://github.com/aio-libs/yarl/releases/download/v$pkgver/yarl-$pkgver.tar.gz"
+builddir="$srcdir/yarl-$pkgver"
 
 build() {
-	cd "$builddir"
-	python3 setup.py build
+	gpep517 build-wheel \
+		--wheel-dir "$builddir"/.dist \
+		--output-fd 3 3>&1 >&2
 }
 
 check() {
-	cd "$builddir"
-	python3 setup.py test
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	cd .testenv
+	bin/python3 -m pytest -n auto -p no:warnings ../tests
 }
 
 package() {
-	cd "$builddir"
-	python3 setup.py install --root="$pkgdir"
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
 }
 
-sha512sums="44384a11944808583139bf87846cd0080545efddb04be750d923e1b7dc8a4f88c3801b9e6fe742136298c79e60ac94e2584e3b39e42f002af4d6bd970896d3f2  yarl-1.2.6.tar.gz"
+sha512sums="
+826bd2d95a8de05630a597b2427a3c37e50b6d44a73d7003ffb20add68abed4742fb5102c7bdfdb69509b39e7e63bf506ffa0f22138715bf9c8c1a3836bb7607  yarl-1.20.0.tar.gz
+"

@@ -1,0 +1,48 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-launcher
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Application launcher for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-launcher"
+arch="all"
+license="GPL-3.0-or-later"
+depends="
+	pop-launcher
+"
+makedepends="
+	appstream-glib
+	cargo
+	desktop-file-utils
+	intltool
+	just
+	libxkbcommon-dev
+	wayland-dev
+	wayland-protocols
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-launcher/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo build --release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+3ff768da3fdc602568349e129b966e5c9f4e265c859cd3cc19d6c9da3d40169035d39e9a935338d4e6141fd988f1d38d19898922522286a7a6adc9219973dcbf  cosmic-launcher-1.0.0_beta4.tar.gz
+"

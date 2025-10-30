@@ -1,0 +1,33 @@
+# Contributor: Matthias Ahouansou <matthias@ahouansou.cz>
+maintainer="Matthias Ahouansou <matthias@ahouansou.cz>"
+pkgname=markdown-oxide
+pkgver=0.25.8
+pkgrel=0
+pkgdesc="PKM (Personal-Knowledge-Management System) for your favorite text-editor through the Language-Server-Protocol"
+url="https://oxide.md"
+arch="all"
+license="Apache-2.0"
+makedepends="cargo-auditable"
+source="$pkgname-$pkgver.tar.gz::https://github.com/Feel-ix-343/markdown-oxide/archive/refs/tags/v$pkgver.tar.gz"
+options="net" # cargo packages
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+check() {
+	cargo test --frozen
+}
+
+build() {
+	cargo auditable build --release --frozen
+}
+
+package() {
+	install -Dm755 target/release/markdown-oxide -t "$pkgdir"/usr/bin
+}
+
+sha512sums="
+837ee94658cda985864a02c40e3218d17190524dfbaba869dbcf9fb8e73d3e09387b96bd24c346f3bc83780d7f3ab2eb3db885c3d386576c4e1b356a5127e550  markdown-oxide-0.25.8.tar.gz
+"

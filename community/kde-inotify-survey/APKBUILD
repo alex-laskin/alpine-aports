@@ -1,0 +1,49 @@
+# Contributor: Bart Ribbers <bribbers@disroot.org>
+
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kde-inotify-survey
+pkgver=25.08.1
+pkgrel=0
+pkgdesc="Tooling for monitoring inotify limits and informing the user when they have been or about to be reached"
+url="https://invent.kde.org/system/kde-inotify-survey"
+# armhf blocked by extra-cmake-modules
+arch="all !armhf"
+license="BSD-3-Clause AND (GPL-2.0-only OR GPL-3.0-only)"
+# zstd is purely used to unpack the source archive
+makedepends="
+	extra-cmake-modules
+	kauth-dev
+	kcoreaddons-dev
+	kdbusaddons-dev
+	ki18n-dev
+	kio-dev
+	knotifications-dev
+	polkit-qt-dev
+	qt6-qtbase-dev
+	qt6-qtdeclarative-dev
+	samurai
+	"
+_repo_url="https://invent.kde.org/system/kde-inotify-survey.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/kde-inotify-survey-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+check() {
+	ctest --test-dir build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+58f45144174c14b1763536f0cf9f717ca05be12d93d83496fc6f442c4149f3933c243cc8897d64d6fe66d820db574de26dca21df361a9bc608daed2c884aef08  kde-inotify-survey-25.08.1.tar.xz
+"

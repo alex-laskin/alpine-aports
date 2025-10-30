@@ -1,0 +1,42 @@
+# Contributor: Leo <thinkabit.ukim@gmail.com>
+# Maintainer: omni <omni+alpine@hack.org>
+pkgname=ion-shell
+pkgver=1.0.5_git20240818
+pkgrel=0
+_commit=b1b9475f2332a95108a12545e6e09f5b30f74e63/
+pkgdesc="modern system shell with simple, yet powerful, syntax"
+url="https://doc.redox-os.org/ion-manual/"
+# loongarch64: blocked by old nix crate, bumping currently not possible
+# s390x: blocked by nix crate
+arch="all !loongarch64 !s390x"
+license="MIT"
+makedepends="cargo cargo-auditable"
+install="$pkgname.post-install $pkgname.post-upgrade $pkgname.pre-deinstall"
+source="$pkgname-$pkgver.tar.gz::https://gitlab.redox-os.org/redox-os/ion/-/archive/$_commit.tar.gz
+	0002-remove_errno-dragonfly.patch
+	0003-remove_redox_users.patch
+	"
+builddir="$srcdir/ion-$_commit"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	install -Dm0755 target/release/ion -t "$pkgdir"/usr/bin
+}
+
+sha512sums="
+98161c5a7cdc9112ecce35866db9b32b63eca5b89af88cd75a414ed121e91d521b3f83fefd5af693f9dfe3babc151c7ea83f75adb28847feb9ba54b94f43b790  ion-shell-1.0.5_git20240818.tar.gz
+ed944f7988564107033314cf3f282a83a47e49408ae1c3edd4719c20c0eed73d9be3b6bb47f907f9433c4bbc20e87a5aefef1c390736afa8ad03db9006ce044f  0002-remove_errno-dragonfly.patch
+5bda74a6b52a4af91bd0f951d9097df8080f27713e059991a3feb6384b3940e7548c6e05c397ada4160d317d4e43123417df0d7a4853424d32805e44068713be  0003-remove_redox_users.patch
+"

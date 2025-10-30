@@ -1,83 +1,90 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=cairo
-pkgver=1.14.12
-pkgrel=2
+pkgver=1.18.4
+pkgrel=0
 pkgdesc="A vector graphics library"
-url="http://cairographics.org/"
+url="https://cairographics.org/"
 arch="all"
 options="!check"  # Recursive dependency on gtk+2.0 for check.
-license="LGPL-2.0-or-later MPL-1.1"
-depends=
-depends_dev="fontconfig-dev freetype-dev libxrender-dev pixman-dev
-	xcb-util-dev libxext-dev $pkgname-tools"
-makedepends="$depends_dev zlib-dev expat-dev glib-dev libpng-dev autoconf automake libtool"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-gobject $pkgname-tools $pkgname-dbg"
-# fontconfig-ultimate https://github.com/bohoomil/fontconfig-ultimate
-_ultver="2016-04-23"
-source="http://cairographics.org/releases/$pkgname-$pkgver.tar.xz
-	fontconfig-ultimate-$_ultver.tar.gz::https://github.com/bohoomil/fontconfig-ultimate/archive/$_ultver.tar.gz
-	musl-stacksize.patch
-	cairo-1.14.6-colored-emojis.patch
+license="LGPL-2.1-or-later OR MPL-1.1"
+depends_dev="
+	$pkgname-tools=$pkgver-r$pkgrel
+	fontconfig-dev
+	freetype-dev
+	libxext-dev
+	libxrender-dev
+	pixman-dev
+	xcb-util-dev
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+makedepends="
+	$depends_dev
+	expat-dev
+	glib-dev
+	gtk-doc
+	libpng-dev
+	meson
+	zlib-dev
+	"
+subpackages="
+	$pkgname-dbg
+	$pkgname-static
+	$pkgname-dev
+	$pkgname-doc
+	$pkgname-gobject
+	$pkgname-tools
+	"
+source="https://gitlab.freedesktop.org/cairo/cairo/-/archive/$pkgver/cairo-$pkgver.tar.bz2
+	musl-stacksize.patch
+	"
 
-prepare() {
-	cd "$builddir"
-	default_prepare
-
-	# infinality
-	for j in "$srcdir"/fontconfig-ultimate-$_ultver/$pkgname/*.patch; do
-		msg "Applying ${j}"
-		patch -p1 -i $j
-	done
-}
+# secfixes:
+#   1.17.4-r1:
+#     - CVE-2019-6462
+#   1.16.0-r2:
+#     - CVE-2020-35492
+#   1.16.0-r1:
+#     - CVE-2018-19876
 
 build() {
-	cd "$builddir"
-	autoreconf -vif
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--localstatedir=/var \
-		--enable-ft \
-		--enable-gobject \
-		--enable-pdf \
-		--enable-png \
-		--enable-ps \
-		--enable-svg \
-		--enable-tee \
-		--enable-x \
-		--enable-xcb \
-		--enable-xcb-shm \
-		--enable-xlib \
-		--enable-xlib-xrender \
-		--disable-xlib-xcb \
-		--disable-static
-	make
+	abuild-meson \
+		-Db_lto=true \
+		-Ddefault_library=both \
+		-Dgtk_doc=true \
+		-Dtests="$(want_check && echo enabled || echo disabled)" \
+		-Dfontconfig=enabled \
+		-Dfreetype=enabled \
+		-Dglib=enabled \
+		-Dpng=enabled \
+		-Dtee=enabled \
+		-Dxcb=enabled \
+		-Dxlib=enabled \
+		-Dzlib=enabled \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
 gobject() {
 	pkgdesc="$pkgdesc (gobject bindings)"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libcairo-gobject.so.* "$subpkgdir"/usr/lib/
+
+	amove usr/lib/libcairo-gobject.so.*
 }
 
 tools() {
 	pkgdesc="$pkgdesc (development tools)"
-	mkdir -p "$subpkgdir"/usr/lib/cairo
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
-	mv "$pkgdir"/usr/lib/cairo/libcairo-trace.* \
-		"$subpkgdir"/usr/lib/cairo/
+
+	amove usr/bin
+	amove usr/lib/cairo/libcairo-trace.*
 }
 
-sha512sums="ede6e75ae95605bf5c4b3859b1824cf125c4a2a35a67d38244cc70951ca44b1d4fd7cf622953d3a7cb868fb5b00856ef6d68ee615276b76eec437641290b01e1  cairo-1.14.12.tar.xz
-d8185f4ec74f44c4746acf7e79bba7ff7ffd9d35bdabeb25e10b4e12825942d910931aa857f1645e5c8185bcb40a1f1ffe1e7e647428e9ea66618b2aec52fac3  fontconfig-ultimate-2016-04-23.tar.gz
+sha512sums="
+27b98a17510b4d6f0187fcb280fea1b47ae31243f6999081a7ac94f8cf3c789c05fa6eb0fe65844808ef9ac11bcd29a4c3688c871a6950d888667840385acf9b  cairo-1.18.4.tar.bz2
 86f26fe41deb5e14f553c999090d1ec1d92a534fa7984112c9a7f1d6c6a8f1b7bb735947e8ec3f26e817f56410efe8cc46c5e682f6a278d49b40a683513740e0  musl-stacksize.patch
-d178d413f0e258c7970340bea6e2fcaf8d9c6cfed3d831c29dcbd7b1a782e0b8c9106fca0d2d4beb6939a8993cc2554464b6fb4df888a736f8083cde226a41c6  cairo-1.14.6-colored-emojis.patch"
+"

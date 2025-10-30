@@ -1,0 +1,42 @@
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: mio <miyopan@e.email>
+maintainer="mio <miyopan@e.email>"
+pkgname=libgedit-amtk
+pkgver=5.9.1
+pkgrel=0
+pkgdesc="Gedit Technology — actions, menus and toolbars kit"
+url="https://gitlab.gnome.org/World/gedit/libgedit-amtk"
+arch="all"
+license="LGPL-3.0-or-later"
+makedepends="
+	docbook-xsl-nons
+	glib-dev
+	gobject-introspection-dev
+	gtk-doc
+	gtk+3.0-dev
+	meson
+	"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+source="https://gitlab.gnome.org/World/gedit/libgedit-amtk/-/archive/$pkgver/libgedit-amtk-$pkgver.tar.gz"
+replaces="amtk"
+
+build() {
+	abuild-meson \
+		-Db_lto=true \
+		-Dgobject_introspection=true \
+		-Dgtk_doc=true \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test -v -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+7f96f0d9fb43384369c975c15fa8577c1a93bdc0a87a93dcc1039de783a72fe2c332172ce72755fe1e37e92d6d51821c21b16dd5e4d427076a842d8328e2baac  libgedit-amtk-5.9.1.tar.gz
+"

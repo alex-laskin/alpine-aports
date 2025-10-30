@@ -1,22 +1,18 @@
 # Contributor: Stuart Cardall <developer@it-offshore.co.uk>
 # Maintainer: Stuart Cardall <developer@it-offshore.co.uk>
 pkgname=which
-pkgver=2.21
-pkgrel=1
+pkgver=2.23
+pkgrel=0
 pkgdesc="A utility to show the full path of commands"
-url="http://savannah.gnu.org/projects/which"
+url="https://savannah.gnu.org/projects/which"
 arch="all"
-license="GPL-3.0"
-depends=""
-depends_dev=""
-makedepends="$depends_dev"
-install=""
+license="GPL-2.0-or-later"
 subpackages="$pkgname-doc"
-source="http://ftp.gnu.org/gnu/$pkgname/$pkgname-$pkgver.tar.gz"
+source="https://ftp.gnu.org/gnu/which/which-$pkgver.tar.gz
+	gcc15.patch
+	"
 
-builddir="$srcdir"/$pkgname-$pkgver
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -25,15 +21,14 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-md5sums="097ff1a324ae02e0a3b0369f07a7544a  which-2.21.tar.gz"
-sha256sums="f4a245b94124b377d8b49646bf421f9155d36aa7614b6ebf83705d3ffc76eaad  which-2.21.tar.gz"
-sha512sums="d2f04a5c5291f2d7d1226982da7cf999d36cfe24d3f7bda145508efcfb359511251d3c68b860c0ddcedd66b15a0587b648a35ab6d1f173707565305c506dfc61  which-2.21.tar.gz"
+sha512sums="
+738807f79e8cfc5967541a28ae7021247c04c4177279f09be2c19c069af450a7e3b19baf9079fe5569b25b4630bb400be242a123647e52c9fe54f0ad007317bf  which-2.23.tar.gz
+459f3f02347a6e8a7f57741b75dd6ac88b79085854781324dd807a04aecac6ba12ecc34f530ee19b67ab316d98d2c1d245f126f8d054d119ef4344185a455efd  gcc15.patch
+"

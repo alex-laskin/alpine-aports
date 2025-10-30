@@ -1,28 +1,36 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=imlib2
-pkgver=1.5.1
+pkgver=1.12.4
 pkgrel=0
 pkgdesc="Image manipulation library"
-url="https://sourceforge.net/projects/enlightenment"
+url="https://sourceforge.net/projects/enlightenment/"
 arch="all"
 license="Imlib2"
 subpackages="$pkgname-dev"
 depends_dev="freetype-dev libxext-dev libsm-dev"
-makedepends="$depends_dev tiff-dev giflib-dev bzip2-dev libpng-dev
-	libid3tag-dev libjpeg-turbo-dev zlib-dev util-linux-dev"
-source="http://downloads.sourceforge.net/enlightenment/$pkgname-src/$pkgname-$pkgver.tar.bz2"
+makedepends="
+	$depends_dev
+	tiff-dev
+	bzip2-dev
+	giflib-dev
+	libid3tag-dev
+	libjpeg-turbo-dev
+	libpng-dev
+	libwebp-dev
+	zlib-dev
+	"
+source="https://downloads.sourceforge.net/enlightenment/imlib2-$pkgver.tar.gz"
 
-builddir="$srcdir/$pkgname-$pkgver"
 build() {
-	cd "$builddir"
+	CFLAGS="$CFLAGS -flto=auto" \
+	CXXFLAGS="$CXXFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--sysconfdir=/etc/imlib2 \
 		--x-libraries=/usr/lib \
-		--disable-mmx \
-		--disable-amd64 \
+		--disable-static \
 		--enable-visibility-hiding \
 		--with-x \
 		--with-bzip2 \
@@ -31,18 +39,19 @@ build() {
 		--with-jpeg \
 		--with-png \
 		--with-tiff \
+		--with-webp \
 		--with-zlib
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR=$pkgdir install
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="f9d971674887d4af067c6921e34b6fe598db0317052bc864b676c526b36373ce021d9d49cad95aa64dbbd8e74f1831ddf3ed105900e3df2b66a6b53f7f27c732  imlib2-1.5.1.tar.bz2"
+sha512sums="
+2686d73745316d206ee2e8859a6879a528cfd5ba5ff46a7c7d98a7c9af578a989f4f56a740da2dc52d444a8e927094683736ef2d431decd410b0ac3b33b460a5  imlib2-1.12.4.tar.gz
+"

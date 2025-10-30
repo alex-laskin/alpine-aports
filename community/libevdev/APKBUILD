@@ -1,0 +1,41 @@
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=libevdev
+pkgver=1.13.5
+pkgrel=0
+pkgdesc="Kernel Evdev Device Wrapper Library"
+url="https://www.freedesktop.org/wiki/Software/libevdev"
+arch="all"
+license="MIT"
+options="!check"  # Requires CONFIG_INPUT_UINPUT in kernel
+depends_dev="linux-headers"
+makedepends="
+	$depends_dev
+	doxygen
+	meson
+	python3
+	"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-tools"
+source="https://www.freedesktop.org/software/libevdev/libevdev-$pkgver.tar.xz"
+
+build() {
+	abuild-meson \
+		-Db_lto=true \
+		-Dtests=disabled \
+		-Ddocumentation=enabled \
+		-Dcoverity=false \
+		. output
+	meson compile -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+tools() {
+	pkgdesc="$pkgdesc (tools)"
+	amove usr/bin
+}
+
+sha512sums="
+2ca066235c9d6729e965e2df1df192285b3d41a20aeb2bc4eb21d14dc469198d5270d1cd900dee0b6cf1bdf9efd3c47ec310bfbd9e4965b3bcc3ef440efba604  libevdev-1.13.5.tar.xz
+"

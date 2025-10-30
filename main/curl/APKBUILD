@@ -1,26 +1,173 @@
 # Contributor: Sergei Lukin <sergej.lukin@gmail.com>
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
-# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+
+# RESTRICTED: Do NOT enable the rustls or hyper backends, as they depend on Rust
+# and Rust is not yet available on all architectures.  Any commit which changes
+# this aport from arch=all WILL be reverted.
+
+maintainer="Achill Gilgenast <achill@achill.org>"
 pkgname=curl
-pkgver=7.60.0
+pkgver=8.16.0
 pkgrel=1
 pkgdesc="URL retrival utility and library"
-url="https://curl.haxx.se"
+url="https://curl.se/"
 arch="all"
-license="MIT"
-depends="ca-certificates"
-depends_dev="libressl-dev libssh2-dev nghttp2-dev zlib-dev"
-checkdepends="python2"
-makedepends="$depends_dev autoconf automake groff libtool perl"
-subpackages="$pkgname-dbg $pkgname-doc $pkgname-dev libcurl"
-source="https://curl.haxx.se/download/$pkgname-$pkgver.tar.xz
-	0001-openssl-fix-build-with-libressl-2.7.patch
-	use-OPENSSL_config.patch
+license="curl"
+depends="ca-certificates-bundle"
+depends_dev="
+	brotli-dev
+	c-ares-dev
+	libidn2-dev
+	libpsl-dev
+	nghttp2-dev
+	nghttp3-dev
+	openssl-dev>3
+	zlib-dev
+	zstd-dev
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+checkdepends="nghttp2 python3"
+makedepends_host="$depends_dev"
+makedepends_build="groff perl"
+subpackages="$pkgname-dbg $pkgname-static $pkgname-doc $pkgname-dev libcurl"
+if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+	subpackages="$subpackages $pkgname-zsh-completion $pkgname-fish-completion"
+fi
+source="https://curl.se/download/curl-$pkgver.tar.xz
+	reg-asyn-thrdd.patch
+	reg-setopt.patch
+	"
+options="net" # Required for running tests
+if [ -n "$BOOTSTRAP" ] || [ -n "$APORTS_BOOTSTRAP" ]; then
+	options="$options !check" # remove python3 dependency
+fi
+provides="wcurl=$pkgver-r$pkgrel"
+replaces="wcurl"
 
 # secfixes:
+#   8.16.0-r0:
+#     - CVE-2025-9086
+#     - CVE-2025-10148
+#   8.14.1-r0:
+#     - CVE-2025-5399
+#   8.14.0-r0:
+#     - CVE-2025-5025
+#     - CVE-2025-4947
+#   8.12.0-r0:
+#     - CVE-2025-0167
+#     - CVE-2025-0665
+#     - CVE-2025-0725
+#   8.11.1-r0:
+#     - CVE-2024-11053
+#   8.11.0-r0:
+#     - CVE-2024-9681
+#   8.10.0-r0:
+#     - CVE-2024-8096
+#   8.9.1-r0:
+#     - CVE-2024-7264
+#   8.9.0-r0:
+#     - CVE-2024-6197
+#     - CVE-2024-6874
+#   8.7.1-r0:
+#     - CVE-2024-2004
+#     - CVE-2024-2379
+#     - CVE-2024-2398
+#     - CVE-2024-2466
+#   8.6.0-r0:
+#     - CVE-2024-0853
+#   8.5.0-r0:
+#     - CVE-2023-46218
+#     - CVE-2023-46219
+#   8.4.0-r0:
+#     - CVE-2023-38545
+#     - CVE-2023-38546
+#   8.3.0-r0:
+#     - CVE-2023-38039
+#   8.1.0-r0:
+#     - CVE-2023-28319
+#     - CVE-2023-28320
+#     - CVE-2023-28321
+#     - CVE-2023-28322
+#   8.0.0-r0:
+#     - CVE-2023-27533
+#     - CVE-2023-27534
+#     - CVE-2023-27535
+#     - CVE-2023-27536
+#     - CVE-2023-27537
+#     - CVE-2023-27538
+#   7.88.0-r0:
+#     - CVE-2023-23914
+#     - CVE-2023-23915
+#     - CVE-2023-23916
+#   7.87.0-r0:
+#     - CVE-2022-43551
+#     - CVE-2022-43552
+#   7.86.0-r0:
+#     - CVE-2022-32221
+#     - CVE-2022-35260
+#     - CVE-2022-42915
+#     - CVE-2022-42916
+#   7.85.0-r0:
+#     - CVE-2022-35252
+#   7.84.0-r0:
+#     - CVE-2022-32205
+#     - CVE-2022-32206
+#     - CVE-2022-32207
+#     - CVE-2022-32208
+#   7.83.1-r0:
+#     - CVE-2022-27778
+#     - CVE-2022-27779
+#     - CVE-2022-27780
+#     - CVE-2022-27781
+#     - CVE-2022-27782
+#     - CVE-2022-30115
+#   7.83.0-r0:
+#     - CVE-2022-22576
+#     - CVE-2022-27774
+#     - CVE-2022-27775
+#     - CVE-2022-27776
+#   7.79.0-r0:
+#     - CVE-2021-22945
+#     - CVE-2021-22946
+#     - CVE-2021-22947
+#   7.78.0-r0:
+#     - CVE-2021-22922
+#     - CVE-2021-22923
+#     - CVE-2021-22924
+#     - CVE-2021-22925
+#   7.77.0-r0:
+#     - CVE-2021-22898
+#     - CVE-2021-22901
+#   7.76.0-r0:
+#     - CVE-2021-22876
+#     - CVE-2021-22890
+#   7.74.0-r0:
+#     - CVE-2020-8284
+#     - CVE-2020-8285
+#     - CVE-2020-8286
+#   7.72.0-r0:
+#     - CVE-2020-8231
+#   7.71.0-r0:
+#     - CVE-2020-8169
+#     - CVE-2020-8177
+#   7.66.0-r0:
+#     - CVE-2019-5481
+#     - CVE-2019-5482
+#   7.65.0-r0:
+#     - CVE-2019-5435
+#     - CVE-2019-5436
+#   7.64.0-r0:
+#     - CVE-2018-16890
+#     - CVE-2019-3822
+#     - CVE-2019-3823
+#   7.62.0-r0:
+#     - CVE-2018-16839
+#     - CVE-2018-16840
+#     - CVE-2018-16842
+#   7.61.1-r0:
+#     - CVE-2018-14618
+#   7.61.0-r0:
+#     - CVE-2018-0500
 #   7.60.0-r0:
 #     - CVE-2018-1000300
 #     - CVE-2018-1000301
@@ -42,11 +189,11 @@ builddir="$srcdir/$pkgname-$pkgver"
 #     - CVE-2017-7468
 #   7.53.1-r2:
 #     - CVE-2017-7407
-#   7.53.0:
+#   7.53.0-r0:
 #     - CVE-2017-2629
-#   7.52.1:
+#   7.52.1-r0:
 #     - CVE-2016-9594
-#   7.51.0:
+#   7.51.0-r0:
 #     - CVE-2016-8615
 #     - CVE-2016-8616
 #     - CVE-2016-8617
@@ -58,53 +205,82 @@ builddir="$srcdir/$pkgname-$pkgver"
 #     - CVE-2016-8623
 #     - CVE-2016-8624
 #     - CVE-2016-8625
-#   7.50.3:
+#   7.50.3-r0:
 #     - CVE-2016-7167
-#   7.50.2:
+#   7.50.2-r0:
 #     - CVE-2016-7141
-#   7.50.1:
+#   7.50.1-r0:
 #     - CVE-2016-5419
 #     - CVE-2016-5420
 #     - CVE-2016-5421
-#   7.36.0:
+#   7.36.0-r0:
 #     - CVE-2014-0138
 #     - CVE-2014-0139
+#   0:
+#     - CVE-2021-22897
 
 build() {
-	cd "$builddir"
-	autoreconf -vif
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
+		--enable-ares \
 		--enable-ipv6 \
 		--enable-unix-sockets \
-		--without-libidn \
-		--without-libidn2 \
-		--with-libssh2 \
+		--enable-static \
+		--with-libidn2 \
 		--with-nghttp2 \
+		--with-nghttp3 \
+		--with-openssl \
+		--with-openssl-quic \
+		--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
+		--with-ca-path=/etc/ssl/certs \
+		--with-zsh-functions-dir \
+		--with-fish-functions-dir \
 		--disable-ldap \
-		--with-pic
+		--with-pic \
+		--enable-websockets \
+		--without-libssh2 # https://bugs.alpinelinux.org/issues/10222
 	make
+
+	# generation of completions is not supported when cross-compiling.
+	if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+		make -C scripts/
+	fi
 }
 
 check() {
-	cd "$builddir"
-	make check
+	make -C tests
+	make -j1 -C tests TFLAGS="-j$JOBS" nonflaky-test
 }
 
 package() {
-	cd "$builddir"
+	# depends on exactly the same build of libcurl
+	depends="libcurl=$pkgver-r$pkgrel"
+
 	make install DESTDIR="$pkgdir"
+	if [ -z "$BOOTSTRAP" ] && [ -z "$APORTS_BOOTSTRAP" ]; then
+		install -Dm644 scripts/_curl -t \
+			"$pkgdir"/usr/share/zsh/site-functions/
+		install -Dm644 scripts/curl.fish -t \
+			"$pkgdir"/usr/share/fish/vendor_completions.d/
+	fi
 }
 
 libcurl() {
 	pkgdesc="The multiprotocol file transfer library"
 
-	mkdir -p "$subpkgdir"/usr
-	mv "$pkgdir"/usr/lib "$subpkgdir"/usr
+	amove usr/lib
 }
 
-sha512sums="96a0c32ca846a76bba75e9e560ad4c15df79540992ed1a83713095be94ddba039f289bda9678762fd79fb9691fe810735178fb9dc970c37012dff96b8ce08abf  curl-7.60.0.tar.xz
-16c9b54cfa996a61278c0a899840be9e42477661ff6d69d6a772671aeb50a597e9de9328ba3c0a5cb71fa073e4a58db5f3962aab7636a9f1327cad343ff05ae9  0001-openssl-fix-build-with-libressl-2.7.patch
-708527e73f9512c50e2250ca26786ba8994dc05fd2e362c1feb274e251219fb4bfc97e7e7722aa12424ccaf4c511d90d8820561c82a24f103b9ee2b743f4be28  use-OPENSSL_config.patch"
+dev() {
+	default_dev
+	# Used by trurl
+	install -Dm755 -t "$subpkgdir"/usr/bin "$builddir"/scripts/cd2nroff
+}
+
+sha512sums="
+8262c3dc113cfd5744ef1b82dbccaa69448a9395ad5c094c22df5cf537a047a927d3332db2cb3be12a31a68a60d8d0fa8485b916e975eda36a4ebd860da4f621  curl-8.16.0.tar.xz
+bb922fad628caaa8917c60cfe6aeab92fd60704e23a799afe2797bd68d87e37befa95e001ffb23de0bdbe0624fb46d9ae3fa6d687bb8cd64f66e0a8d7b2e7a51  reg-asyn-thrdd.patch
+ddfa7fd78ce08c4b2011525bcc417c7fb0adda0a62907717e1d1af4ec81e18c8090ac673b6c94a1ccd76ef82797c3f4824231dffebf90682d3c384db3e8b5942  reg-setopt.patch
+"

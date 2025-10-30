@@ -1,33 +1,40 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libisofs
-pkgver=1.4.8
+pkgver=1.5.6
 pkgrel=0
 pkgdesc="Library to pack up hard disk files and directories into a ISO 9660 disk image"
-url="http://libburnia-project.org/"
+url="https://dev.lovelyhq.com/libburnia/libisofs"
 arch="all"
-license="GPL"
-depends=""
+license="GPL-2.0-or-later"
 makedepends="acl-dev zlib-dev"
 subpackages="$pkgname-dev"
-source="http://files.libburnia-project.org/releases/libisofs-$pkgver.tar.gz"
+source="https://files.libburnia-project.org/releases/libisofs-$pkgver.tar.gz"
 
-_builddir="$srcdir"/$pkgname-$pkgver
+prepare() {
+	default_prepare
+	update_config_sub
+}
+
 build() {
-	cd "$_builddir"
+	CFLAGS="$CFLAGS -flto=auto" \
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--enable-libacl \
 		--enable-xattr \
-		--disable-static \
-		|| return 1
-	make || return 1
+		--disable-static
+	make
+}
+
+check() {
+	make check
 }
 
 package() {
-	cd "$_builddir"
-	make -j1 DESTDIR="$pkgdir" install || return 1
+	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="0c6f505a951a1b7fce63bf63c715e5acb3158c15be2660627d2380771f025ec88bd67a4c2b8c86ef9dbb649a23cb26b826e875e7c87ff46c8bcd13d831fe8bcc  libisofs-1.4.8.tar.gz"
+sha512sums="
+a5f573bbe9758e072fad195cc9beb672568273ddb993ece9c15585ad3f99efb0deae6fefb6d3d40b9712e73e3bc68869d79d923b2a09623d190f5dc84974d65f  libisofs-1.5.6.tar.gz
+"

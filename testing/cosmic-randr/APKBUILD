@@ -1,0 +1,40 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-randr
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Display configuration library for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-randr"
+arch="all"
+license="MPL-2.0"
+depends="wayland"
+makedepends="
+	cargo
+	just
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-randr/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	just build-release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+aae5a79de18bde5ef86621977d77c3aba94ce6e429dd5d46ff532e4679efab9e6d9fe5a8a6b6a589580f4e5c657620b76f681e17030276938e13ab4bdf4b1e2e  cosmic-randr-1.0.0_beta4.tar.gz
+"

@@ -1,0 +1,68 @@
+# Maintainer: Sam Day <me@samcday.com>
+pkgname=greetd-phrog
+pkgver=0.46.0
+pkgrel=0
+pkgdesc="Mobile device greeter"
+url=https://github.com/samcday/phrog
+# s390x: blocked by greetd
+# armhf: blocked by phosh
+arch="all !s390x !armhf"
+license="GPL-3.0-only"
+depends="
+	phosh
+	greetd
+	greetd-phrog-schemas
+	libphosh"
+makedepends="
+	cargo
+	cargo-auditable
+	foot
+	libphosh-dev"
+checkdepends="xvfb-run"
+
+source="https://github.com/samcday/phrog/archive/$pkgver/phrog-$pkgver.tar.gz"
+subpackages="$pkgname-schemas::noarch"
+builddir="$srcdir/phrog-$pkgver"
+# net: cargo fetch
+options="net"
+
+# Tests are flaky on loongarch64 + armv7
+if [ "$CARCH" = "loongarch64" ] || [ "$CARCH" = "armv7" ]; then
+	options="$options !check"
+fi
+
+export RUSTFLAGS="$RUSTFLAGS --remap-path-prefix=$builddir=/build/"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --release --frozen
+}
+
+package() {
+	install -Dm644 data/mobi.phosh.phrog.gschema.xml -t "$pkgdir"/usr/share/glib-2.0/schemas/
+	install -Dm644 data/phrog.session -t "$pkgdir"/usr/share/gnome-session/sessions/
+	install -Dm644 data/mobi.phosh.Phrog.desktop -t "$pkgdir"/usr/share/applications/
+	install -Dm644 dist/alpine/greetd-config.toml -t "$pkgdir"/etc/phrog/
+	install -d "$pkgdir"/usr/share/phrog/autostart
+	install -d "$pkgdir"/etc/phrog/autostart
+	install -Dm755 target/release/phrog -t "$pkgdir"/usr/bin/
+	install -Dm755 data/phrog-greetd-session -t "$pkgdir"/usr/libexec/
+}
+
+check() {
+	export XDG_RUNTIME_DIR="$builddir"
+	dbus-run-session xvfb-run -a phoc -E "cargo test --frozen"
+}
+
+schemas() {
+	pkgdesc="Phrog schema files"
+	depends=""
+	amove usr/share/glib-2.0/schemas
+}
+sha512sums="
+4e1960dc867602e97454179e84fb7442b4d47a7fa1106e527d23a9e7e8065f0602ae2f645e5a8d203a8dbdd5f7bbe99fac962fd85c5d8fa6ebb5a89b2efc89ca  phrog-0.46.0.tar.gz
+"

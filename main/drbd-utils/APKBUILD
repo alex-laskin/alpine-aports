@@ -1,32 +1,45 @@
 # Contributor: Leonardo Arena <rnalrd@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=drbd-utils
-pkgver=9.4.0
+pkgver=9.32.0
 pkgrel=0
 pkgdesc="Network-based RAID 1"
-url="http://www.drbd.org"
+url="https://www.drbd.org"
 arch="all"
 license="GPL-2.0-or-later"
 depends="bash"
-makedepends="bison docbook-xsl flex libxslt linux-headers"
+makedepends="
+	asciidoctor
+	bison
+	docbook-xsl
+	flex
+	keyutils-dev
+	libxslt
+	linux-headers
+	po4a
+	"
 options="!check"  # no tests provided
 provides="drbd=$pkgver-r$pkgrel"
-subpackages="$pkgname-doc $pkgname-pacemaker::noarch
-	$pkgname-bash-completion:bashcomp:noarch"
-source="https://links.linbit.com/sources/drbd/utils/$pkgname-$pkgver.tar.gz
+subpackages="
+	$pkgname-bash-completion
+	$pkgname-doc
+	$pkgname-openrc
+	$pkgname-pacemaker::noarch
+	"
+source="https://pkg.linbit.com/downloads/drbd/utils/drbd-utils-$pkgver.tar.gz
 	drbdsetup-permissions.patch
 	drbd.initd
 	"
-builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
-	cd "$builddir"
-
-	./configure --prefix=/usr \
-		--sbindir=/sbin \
+	CFLAGS="$CFLAGS -flto=auto" \
+	CXXFLAGS="$CXXFLAGS -flto=auto" \
+	./configure \
+		--host=$CHOST \
+		--build=$CBUILD \
+		--disable-dependency-tracking \
+		--prefix=/usr \
 		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
 		--localstatedir=/var \
 		--with-pacemaker \
 		--with-drbdmon \
@@ -40,9 +53,8 @@ build() {
 }
 
 package() {
-	cd "$builddir"
-
 	make DESTDIR="$pkgdir" install
+	rmdir "$pkgdir"/var/lock
 
 	install -m755 -D "$srcdir/drbd.initd" "$pkgdir/etc/init.d/drbd"
 }
@@ -50,20 +62,11 @@ package() {
 pacemaker() {
 	depends="$pkgname=$pkgver-r$pkgrel"
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/ocf "$subpkgdir"/usr/lib
+	amove usr/lib/ocf
 }
 
-bashcomp() {
-	pkgdesc="Bash completions for $pkgname"
-	depends=""
-	install_if="$pkgname=$pkgver-r$pkgrel bash-completion"
-
-	mkdir -p "$subpkgdir"/usr/share/bash-completion
-	mv "$pkgdir"/etc/bash_completion.d \
-		"$subpkgdir"/usr/share/bash-completion/completions
-}
-
-sha512sums="8b0af8d90450cdb4b83252f743d99a27d3ddb19bfbcbe44e2212dded21f4d8220a6145d66cd7f3b1708aaa41d440b804d7244791d58c9a6bf57e94f3f704f3d1  drbd-utils-9.4.0.tar.gz
-562ae8eee03148666fb6e6e700c1eb9086f6901e176ea6cd007e3ac4e39d1cdaf967064de74dc1ad620155996dc7011bd0e2abd1c9595ff9bf5f4413673726f3  drbdsetup-permissions.patch
-bb465e32273aaba0b86ae681bc94c58bb51f542221f51ced197e22b316ce1bc9a0b4fe1f43af07ef13b3f0946466a43218f0a2ab7f4210adbb00174a503b64d7  drbd.initd"
+sha512sums="
+6c39cacaa33b0a4a1183ec246079f114f5473c34219cfe1bf6f550dfdaf61e2ce732a28ef06d2e9fceb2b0666e866cf7bb2b184d337dadb83c3fe44afcf1d8c0  drbd-utils-9.32.0.tar.gz
+39a64a59577a28f8dc5f968bcfd35ab04b010ec1b9390dcaedefa609b8999ec4aabf2cfaf2db7dfd8348d8d09aca5720839de51b3bfb093960b3c61f92ebe4f0  drbdsetup-permissions.patch
+0e2ff2244ec3f18944ff42609e9ec12de33d1b472fb9bb71f0f68ab67edfa2d2019059f405d58b33a43fcec6bf883f2be9ea3e7362d76f348b952a497a12757e  drbd.initd
+"

@@ -1,42 +1,44 @@
 # Contributor: Valery Kartel <valery.kartel@gmail.com>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=rrdtool
-pkgver=1.7.0
-pkgrel=0
+pkgver=1.9.0
+pkgrel=5
 pkgdesc="Data logging and graphing application"
 url="http://www.rrdtool.org"
 arch="all"
-license="GPL"
-depends="font-sony-misc"
+license="GPL-2.0-or-later"
+depends="font-cantarell"
 makedepends="libart-lgpl-dev libpng-dev freetype-dev perl-dev cairo-dev libxml2-dev
-	pango-dev lua lua-dev python2-dev py-setuptools groff
-	autoconf automake libtool"
-subpackages="$pkgname-dev $pkgname-doc perl-rrd:perl_rrd lua-rrd:lua_rrd py-rrd:py_rrd
-	$pkgname-cached $pkgname-cgi $pkgname-utils librrd:libs"
-source="http://oss.oetiker.ch/$pkgname/pub/$pkgname-$pkgver.tar.gz
+	pango-dev lua lua-dev tcl-dev groff autoconf automake libtool"
+checkdepends="diffutils bash"
+subpackages="$pkgname-dev $pkgname-doc perl-rrd:perl_rrd lua-rrd:lua_rrd tcl-rrd:tcl_rrd
+	$pkgname-cached $pkgname-cached-openrc:cached_openrc $pkgname-cgi $pkgname-utils librrd:libs"
+source="https://github.com/oetiker/rrdtool-1.x/releases/download/v$pkgver/rrdtool-$pkgver.tar.gz
 	lua-install-cmod.patch
-	libm-underlinking.patch
-	no-posix-fallocate.patch
 	dont-install-in-usr-local.patch
+
 	rrdcached.initd
 	"
-options="!check" # As of 1.7.0 9/21 tests fails.
-builddir="$srcdir"/$pkgname-$pkgver
+case "$CARCH" in
+	# FIXME 3 tests fail
+	arm*) options="!check" ;;
+esac
+
+replaces="py-rrd" # Removed due to depending on EOL python 2
 
 prepare() {
-	cd "$builddir"
 	default_prepare
+	update_config_sub
+
 	libtoolize --force && aclocal && autoconf --force && automake --add-missing
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--disable-nls \
-		--disable-tcl \
 		--disable-ruby \
 		--enable-rrdcgi \
 		--enable-perl-site-install \
@@ -46,12 +48,10 @@ build() {
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	export INSTALLDIRS=vendor
 	make DESTDIR="$pkgdir" install
 	find "$pkgdir" -name '.packlist' -delete
@@ -80,11 +80,12 @@ lua_rrd() {
 	mv "$pkgdir"/usr/lib/lua "$subpkgdir"/usr/lib/
 }
 
-py_rrd() {
+tcl_rrd() {
 	depends=
-	pkgdesc="Python interface for rrdtool"
+	pkgdesc="Tcl interface for rrdtool"
 	mkdir -p "$subpkgdir"/usr/lib/
-	mv "$pkgdir"/usr/lib/python* "$subpkgdir"/usr/lib/
+	mv "$pkgdir"/usr/lib/tclrrd"$pkgver".so "$subpkgdir"/usr/lib/
+	mv "$pkgdir"/usr/lib/rrdtool "$subpkgdir"/usr/lib/
 }
 
 cached() {
@@ -94,6 +95,13 @@ cached() {
 		"$subpkgdir"/var/lib/rrdcached/db \
 		"$subpkgdir"/var/lib/rrdcached/journal
 	mv "$pkgdir"/usr/bin/rrdcached "$subpkgdir"/usr/sbin
+}
+
+cached_openrc() {
+	depends=
+	pkgdesc="RRDtool data caching daemon (OpenRC init scripts)"
+	install_if="openrc ${subpkgname%-openrc}=$pkgver-r$pkgrel"
+
 	install -Dm755 "$srcdir"/rrdcached.initd "$subpkgdir"/etc/init.d/rrdcached
 }
 
@@ -119,9 +127,9 @@ libs() {
 	default_libs
 }
 
-sha512sums="36d979561601135d74622eaf183701de15cba5e25118f7a308926a695ba84ecb33c3d16511bf4bc80cff055853e2eb85065bc4ed8aef19fc0277c6430ecd319f  rrdtool-1.7.0.tar.gz
+sha512sums="
+ebeb1fd9e1eed8e01d4d08a4f07aa22c272cc95ac87852f81a892690e6f446b5398bf64689ea99622779cba490722d97b325bda2d2a6d4dfc0719929b2a4c041  rrdtool-1.9.0.tar.gz
 904fb16b065d879d8cec95e1f4bf67f5a3ff29afc023e8ba2b5636ba1cf5213f24279f2e9179e8a1acb889eee68b0b6527803aad14fcae9c3b98afdbf9e1f89f  lua-install-cmod.patch
-49c1d9a8523d9b5a3e4df8e9cc8da58490d4329e88ec12021d50db0b45c780ed465a30521f3a397c0d28bab5d5c1a3839bbe1ae062d8bc645420d16690b9797c  libm-underlinking.patch
-853f21b1d4935fd25184e8ac1be683a95952237705e6f7b9072a8247d1307e38c4b31117bcdc12ce1a812d7a6ac711cebfba833ef640b01e4fff1f2b7d0018ef  no-posix-fallocate.patch
 7b01d5b7c83270e0e45f3186cd0882c206173d2801678c98f1a427be1927898e602535a4cd9c808e2ab8fd393a1fb5267efae53c889c368a502a06d18cfae9aa  dont-install-in-usr-local.patch
-c0c27b2c2dfa8e7ec1cb1160d2bda8d7996bbea67f4ce7779da029f583c35e5e415cf46e2a1e5cb8ed2e63d2c58a68fd7471ee6bd820db4c0f4eeeb5c252f8a3  rrdcached.initd"
+c0c27b2c2dfa8e7ec1cb1160d2bda8d7996bbea67f4ce7779da029f583c35e5e415cf46e2a1e5cb8ed2e63d2c58a68fd7471ee6bd820db4c0f4eeeb5c252f8a3  rrdcached.initd
+"

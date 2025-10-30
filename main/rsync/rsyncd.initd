@@ -4,7 +4,7 @@
 
 command="/usr/bin/rsync"
 command_args="--daemon --no-detach --config=$cfgfile
-	$command_args $RSYNC_OPTS"
+	$command_args $RSYNC_OPTS"  # RSYNC_OPTS is here for backward compatibility
 command_background="yes"
 
 pidfile="/run/$RC_SVCNAME.pid"

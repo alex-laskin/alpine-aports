@@ -1,25 +1,25 @@
 # Contributor: Sascha Paunovic <azarus@posteo.net>
 # Maintainer: Sascha Paunovic <azarus@posteo.net>
 pkgname=sacc
-pkgver=1.00
+pkgver=1.07
 pkgrel=1
 pkgdesc="saccomys, simple console gopher client"
 url="gopher://bitreich.org/1/scm/sacc"
 arch="all"
 license="ISC"
-makedepends="ncurses-dev"
+options="!check" # sacc does not have checks
+makedepends="ncurses-dev libretls-dev"
 subpackages="$pkgname-doc"
-source="ftp://bitreich.org/releases/$pkgname/$pkgname-v$pkgver.tgz"
-builddir="$srcdir/$pkgname-v$pkgver"
+source="ftp://bitreich.org/releases/sacc/sacc-$pkgver.tar.gz"
 
 build() {
-	cd "$builddir"
 	make
 }
 
 package() {
-	cd "$builddir"
 	make install PREFIX=/usr DESTDIR="$pkgdir"
 }
 
-sha512sums="9bc45264246f1b3fbc54b621963d8eeec6dd45b3c0e3a329e0755189b69fdafd385689f75bc2ec2ff85960d96cf7bba9816e6dc1aa43c5750d093719806dc2c2  sacc-v1.00.tgz"
+sha512sums="
+df4ea8ba797a0ff826cd6afa3840106bdb0e3d358d790ffbece9537b01819d7f60e13f92318cf1a6d18cf1e0408c6ac4518bb9bd7552a941bd2e9ec3a9c37aa8  sacc-1.07.tar.gz
+"

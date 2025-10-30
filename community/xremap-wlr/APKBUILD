@@ -1,0 +1,37 @@
+# Contributor: Coco Liliace <coco@liliace.dev>
+# Maintainer: Coco Liliace <coco@liliace.dev>
+pkgname=xremap-wlr
+pkgver=0.14.2
+pkgrel=0
+pkgdesc="Key remapper for Wayland"
+url="https://github.com/k0kubun/xremap"
+# s390x: nix crate fails to build
+# loongarch64: libc crate fails to build
+arch="all !s390x !loongarch64"
+license="MIT"
+makedepends="cargo cargo-auditable"
+replaces="xremap-sway"
+source="$pkgname-$pkgver.tar.gz::https://github.com/k0kubun/xremap/archive/v$pkgver.tar.gz"
+builddir="$srcdir/xremap-$pkgver"
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release --features wlroots
+}
+
+check() {
+	cargo test --frozen
+}
+
+package() {
+	install -Dm755 -t "$pkgdir"/usr/bin ./target/release/xremap
+}
+
+sha512sums="
+9cd091011f4694d37fac44d3aa53a144eac3ad7e32f25fa6906b4a7c856147d5d22dff04a10bfa3ca8a4229f9826683433df4e6670602934b2e789af3089c197  xremap-wlr-0.14.2.tar.gz
+"

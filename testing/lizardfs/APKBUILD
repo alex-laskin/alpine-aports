@@ -1,203 +1,160 @@
-# Contributor:
-# Maintainer:
+# Contributor: Michael Pirogov <vbnet.ru@gmail.com>
+# Maintainer: Michael Pirogov <vbnet.ru@gmail.com>
 pkgname=lizardfs
-pkgver=2.6.0
-pkgrel=2
-pkgdesc="a highly reliable, scalable and efficient distributed file system"
+pkgver=3.13.0
+pkgrel=17
+pkgdesc="Highly reliable, scalable and efficient distributed file system"
 url="https://github.com/lizardfs/lizardfs/"
-arch=""
-license="GPL-3.0"
-depends=""
-depends_dev=""
-makedepends="$depends_dev boost-dev cmake fuse-dev zlib-dev asciidoc python2"
+arch="all"
+license="GPL-3.0-only"
+makedepends="
+	asciidoc
+	boost-dev
+	cmake
+	db-dev
+	fuse-dev
+	fuse3-dev
+	isa-l-dev
+	judy-dev
+	libpcap-dev
+	libtool
+	linux-pam-dev
+	python3-dev
+	samurai
+	spdlog-dev
+	thrift-dev
+	zlib-dev
+	"
+checkdepends="gtest-dev"
 pkgusers="mfs"
 pkggroups="mfs"
+options="!check" # need to setup a virtual machine
 install="$pkgname.pre-install"
-subpackages="$pkgname-doc $pkgname-master $pkgname-metalogger
-	$pkgname-chunkserver $pkgname-client $pkgname-cgi $pkgname-cgiserv
-	$pkgname-adm"
-source="lizardfs-$pkgver.tar.gz::https://github.com/lizardfs/lizardfs/archive/v$pkgver.tar.gz
-	fix-headers.patch
-	0001-common-Add-multi-platform-endian-conversion-function.patch
-
-	lizardfs-cgiserv.initd
-	lizardfs-chunkserver.initd
-	lizardfs-master.initd
-	lizardfs-metalogger.initd
+subpackages="
+	$pkgname-doc
+	$pkgname-client
+	$pkgname-master
+	$pkgname-chunkserver
+	$pkgname-metalogger
+	$pkgname-cgi::noarch
+	$pkgname-cgiserv::noarch
+	$pkgname-metalogger-openrc:metalogger_openrc
+	$pkgname-master-openrc:master_openrc
+	$pkgname-chunkserver-openrc:chunkserver_openrc
+	$pkgname-cgiserv-openrc:cgiserv_openrc
+	$pkgname-bash-completion
 	"
-
-_builddir="$srcdir"/lizardfs-$pkgver
-prepare() {
-	local i
-	cd "$_builddir"
-	for i in $source; do
-		case $i in
-		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
-		esac
-	done
-	mkdir -p build
-}
+source="$pkgname-$pkgver.tar.gz::https://github.com/lizardfs/lizardfs/archive/refs/tags/$pkgver-rc3.tar.gz
+	gcc13.patch
+	$pkgname-uraft.patch
+	$pkgname-cgiserv.initd
+	$pkgname-chunkserver.initd
+	$pkgname-cgiserv.confd
+	$pkgname-master.initd
+	$pkgname-metalogger.initd
+	$pkgname-iostat-header.patch
+	$pkgname-cstdio-header.patch
+	"
+builddir="$srcdir/$pkgname-$pkgver-rc3"
 
 build() {
-	cd "$_builddir"/build
-	cmake .. \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_PREFIX="/" \
-		-DENABLE_TESTS=NO \
-		-DENABLE_DEBIAN_PATHS=YES \
-		|| return 1
-	make || return 1
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake3.5 -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DENABLE_TESTS="$(want_check && echo ON || echo OFF)" \
+		-DENABLE_DOCS=NO \
+		-DENABLE_JEMALLOC=YES \
+		-DCMAKE_INSTALL_PREFIX=/ \
+		-DENABLE_POLONAISE=OFF \
+		-DTHROW_INSTEAD_OF_ABORT=YES \
+		-Wno-dev \
+		$CMAKE_CROSSOPTS
+	cmake --build build
 }
 
 package() {
-	cd "$_builddir"/build
-	make DESTDIR="$pkgdir" install || return 1
-	chown -R mfs:mfs "$pkgdir"/var/lib/mfs
-	for i in $source; do
-		case $i in
-		*.initd)
-			install -Dm755 "$srcdir"/$i \
-				"$pkgdir"/etc/init.d/${i%.*} || return 1
-			;;
-		esac
-	done
-}
+	DESTDIR="$pkgdir" cmake --install build
+	chown -R mfs:mfs "$pkgdir"/var/lib/lizardfs
 
-_mv_files() {
-	local i
-	for i in "$@"; do
-		case $i in
-		*/*) mkdir -p "$subpkgdir"/${i%/*};;
-		*) mkdir -p "$subpkgdir";;
-		esac
-		mv "$pkgdir"/$i "$subpkgdir"/$i || return 1
-	done
+	mkdir -p "$pkgdir"/usr/share/bash-completion
+	mv "$pkgdir"/etc/bash_completion.d "$pkgdir"/usr/share/bash-completion/completions
 }
 
 master() {
 	pkgdesc="LizardFS master server"
 	depends="lizardfs=$pkgver-r$pkgrel"
-	cd "$pkgdir"
-	_mv_files \
+	amove \
 		usr/sbin/mfsmaster \
 		usr/sbin/mfsrestoremaster \
 		usr/sbin/mfsmetadump \
 		usr/sbin/mfsmetarestore \
-		etc/mfs/mfsexports.cfg.dist \
-		etc/mfs/mfstopology.cfg.dist \
-		etc/mfs/mfsgoals.cfg.dist \
-		etc/mfs/mfsmaster.cfg.dist \
-		etc/mfs/globaliolimits.cfg.dist \
-		var/lib/mfs/metadata.mfs.empty \
-		etc/init.d/lizardfs-master \
-		|| return 1
-	chown -R mfs:mfs "$subpkgdir"/var/lib/mfs
+		var/lib/lizardfs/metadata.mfs.empty
+	chown -R $pkgusers:$pkggroups "$subpkgdir"/var/lib/lizardfs
+}
+
+master_openrc() {
+	default_openrc
+	install -Dm755 "$srcdir"/$pkgname-master.initd "$subpkgdir"/etc/init.d/$pkgname-master
 }
 
 metalogger() {
 	pkgdesc="LizardFS metadata replication server"
 	depends="lizardfs=$pkgver-r$pkgrel"
-	cd "$pkgdir"
-	_mv_files \
-		usr/sbin/mfsmetalogger \
-		etc/mfs/mfsmetalogger.cfg.dist \
-		etc/init.d/lizardfs-metalogger \
-		|| return 1
+	amove usr/sbin/mfsmetalogger
+}
+
+metalogger_openrc() {
+	default_openrc
+	install -Dm755 "$srcdir"/$pkgname-metalogger.initd "$subpkgdir"/etc/init.d/$pkgname-metalogger
 }
 
 chunkserver() {
 	pkgdesc="LizardFS data server"
 	depends="lizardfs=$pkgver-r$pkgrel"
-	cd "$pkgdir"
-	_mv_files \
-		usr/sbin/mfschunkserver \
-		etc/mfs/mfschunkserver.cfg.dist \
-		etc/mfs/mfshdd.cfg.dist \
-		etc/init.d/lizardfs-chunkserver \
-		|| return 1
+	amove usr/sbin/mfschunkserver
+}
+
+chunkserver_openrc() {
+	default_openrc
+	install -Dm755 "$srcdir"/$pkgname-chunkserver.initd "$subpkgdir"/etc/init.d/$pkgname-chunkserver
 }
 
 client() {
 	pkgdesc="LizardFS client"
-	depends="fuse"
-	cd "$pkgdir"
-	_mv_files \
-		usr/bin/mfstools \
-		usr/bin/mfsmount \
-		usr/bin/mfssnapshot \
-		usr/bin/mfsappendchunks \
-		usr/bin/mfscheckfile \
-		usr/bin/mfsdeleattr \
-		usr/bin/mfsdirinfo \
-		usr/bin/mfsfileinfo \
-		usr/bin/mfsfilerepair \
-		usr/bin/mfsgeteattr \
-		usr/bin/mfsgetgoal \
-		usr/bin/mfsgettrashtime \
-		usr/bin/mfsmakesnapshot \
-		usr/bin/mfsrepquota \
-		usr/bin/mfsrgetgoal \
-		usr/bin/mfsrgettrashtime \
-		usr/bin/mfsrsetgoal \
-		usr/bin/mfsrsettrashtime \
-		usr/bin/mfsseteattr \
-		usr/bin/mfssetgoal \
-		usr/bin/mfssetquota \
-		usr/bin/mfssettrashtime \
-		etc/mfs/mfsmount.cfg.dist \
-		etc/mfs/iolimits.cfg.dist \
-		|| return 1
+	depends="fuse fuse3"
+	amove usr/bin/*
 
 }
 
 cgi() {
 	pkgdesc="LizardFS CGI Monitor"
-	depends="python2"
-	cd "$pkgdir"
-	_mv_files \
-		usr/share/mfscgi \
-		|| return 1
+	depends="python3"
+	amove usr/share/mfscgi
 }
 
 cgiserv() {
 	pkgdesc="Simple CGI-capable HTTP server to run LizardFS CGI Monitor"
 	depends="$pkgname-cgi=$pkgver-r$pkgrel"
-	cd "$pkgdir"
-	_mv_files \
-		usr/sbin/lizardfs-cgiserver \
-		usr/sbin/mfscgiserv \
-		etc/init.d/lizardfs-cgiserv \
-		|| return 1
+	amove usr/sbin/mfscgiserv
 }
 
-adm() {
-	pkgdesc="LizardFS administration utility"
-	depends=""
-	cd "$pkgdir"
-	_mv_files \
-		usr/bin/lizardfs-admin \
-		usr/bin/lizardfs-probe \
-		|| return 1
+cgiserv_openrc() {
+	default_openrc
+	install -Dm755 "$srcdir"/$pkgname-cgiserv.initd "$subpkgdir"/etc/init.d/$pkgname-cgiserv
+	install -Dm755 "$srcdir"/$pkgname-cgiserv.confd "$subpkgdir"/etc/conf.d/$pkgname-cgiserv
 }
 
-md5sums="9765bca6f8812a6fbca58a04e2f33c6e  lizardfs-2.6.0.tar.gz
-a04e01504edff691389236697d9e9f72  fix-headers.patch
-8beae2dc879a6e3bc778fa63409dd5be  0001-common-Add-multi-platform-endian-conversion-function.patch
-fcd290b193fbedc9035cbd4be46463b7  lizardfs-cgiserv.initd
-deffb670f92d3675b8716c79d8ba954f  lizardfs-chunkserver.initd
-3185ec14fe09cc7c74dc8c9b00b289e8  lizardfs-master.initd
-17022128ce9dce94e632a59fbd2c5f05  lizardfs-metalogger.initd"
-sha256sums="f7f7e3c64d4907db318113d224b9296ebcd629028ad3e13894eb592dac8d9161  lizardfs-2.6.0.tar.gz
-2db07acf838c6b468d4ea3a5ad831e7cacf95a0067140d03640f9f01fde15175  fix-headers.patch
-24a2b699fdf96c8ead795b5ad962502421bbac64a4bc4d7cf68dfaee16cc6b19  0001-common-Add-multi-platform-endian-conversion-function.patch
-e080c484e67f6ec25816a5c90b12a3c867a5b123fa73aa9442f76bc5a8e90264  lizardfs-cgiserv.initd
-b0157cf08cb22bdee27f9f88a11806341868102177021535e3ee66be5afd311b  lizardfs-chunkserver.initd
-1ef583e31532a9012406be0643f432bc059dc22eacc71c9aca1d2cef722e67c7  lizardfs-master.initd
-05b091d78fe3f4efab6ba916e0e91b0c628a9eb45244ee793bf473ccac825d6e  lizardfs-metalogger.initd"
-sha512sums="a80277cf625e175728147f1850cc6ad234d490589a825bfede23e53720ffef7d8c5d21ed8ce6a31217c8901e04cb5c91ac581da3795a592756c5f8f3257537ff  lizardfs-2.6.0.tar.gz
-eaeff3c67951bccb7e3963981c5bae2f582c6cddfadbd604f0151ace49ade0524d51665c7a7821b59c80d61aade05900368c9f7022793131f03e44df6c96c3f8  fix-headers.patch
-f5c391717b36315ec62ee71a24d41409a5138d2ba3579e392e9b29c08bb4c8711c4f71440518cc6ee03f13cdb265515cc544f99b5c368717aae1da1a9ca9ca9f  0001-common-Add-multi-platform-endian-conversion-function.patch
-2c78af05c2eeba866c25c58d996c64d16a590248660a362e29a52065af93c126c6eb3232c8cdbb797e60cca406608b77f29ce62717446b7c3d1a8d35e0a722d8  lizardfs-cgiserv.initd
-f5de527f2c6f729d49c365cbac64d938d8f90de2c78ac2f4fdbb445532fbc6438ed7380b7963f70cfbf99d48282d7da6a8dbb3df9ae84ac7d2fcebda2ce308c8  lizardfs-chunkserver.initd
-6234131965bf52ef0bb859a50010b649b10b81786ff302f6ff65429d03026b32d0e1ad2daeab99dea4bd8cc94ac5aed75707d640adf33b4fb79e22185e77ac01  lizardfs-master.initd
-76951ecdbaa69cef0fc383bbc3d36b1eb00aced3c98750676ab159a44a9e50d29ebe188080a08a2a09df6c62f6899bb093cf94e9e3e1688826f5ff8dfdc0fa68  lizardfs-metalogger.initd"
+sha512sums="
+5e57c0704d30d1e4f7fd7c2ac6ed889d0075d86ad20536fc927f4fe0d228b907c4ac2697d3c17d0313853f27506fdf6441bf9559d3ed79ae95f51595ec3363d9  lizardfs-3.13.0.tar.gz
+b0c13076aeef2489897ab73138101fbbd239ae4c7375bb45dc280b42dd5d7a761a46a97b64f3b5274c99a4318758024db593cb91a0d9a82e58b71ef45b20bf4c  gcc13.patch
+ec38f06048c2719bba1a8e751411468270e9bc82c955c897dde21cd1e428be686e2b3ae680a57813370ec89e264f66132acd27f84f2ade6f5a63c0b8e2ece256  lizardfs-uraft.patch
+c698aff4de9aeb76202a809e44ac8d0ec9c6348a806b1c813c2a40858339b1c139a480a9c5aff40bf2c9821883c6c0dfeabb010f3faa5746673235f0fb3c5a76  lizardfs-cgiserv.initd
+56a714f3d29030ca12dc1859a1121b2a89606a2ccccec65481e2eb0b846757dea71dfe5f5a6d648b32e731d14b7d7725f79703851365b0862d7eb415a5f49dfb  lizardfs-chunkserver.initd
+b5c625f0004df33889de60ddad37e41f3acf081b37247606a1544e5f63354e121fe4cce511a6e60f4f2c0305155faf0614b8a4bce7267929fe68a1a4b546b582  lizardfs-cgiserv.confd
+a041fa324d37bda098ad65e9d6507f281ed388471956ca79aa33b8b0d1c4a9d528662a2410c47f3856183d6378ac7fb417c3d7ec314f624e7e5dac7c5e4247f0  lizardfs-master.initd
+8e73a7715e7a010d435efb9058ed67aad1caa95c840d3f1fae6bafd2a700cedbb0244d29363929d8e8d9a2036a2e0b173c0c2f7b52529ba4088e1296479fc0f5  lizardfs-metalogger.initd
+fed14323975cd2d916bcc78d15ec105176106024faa6587a5b6dc3f2c7c5cf3632491babf2865459ac614ba885ee79e301aac4f19c27c4f04780a4a9d94e9312  lizardfs-iostat-header.patch
+b91f07af8a1d82ac9530e0ddc5984ee1f3cba9af7d6e9bf2093d04fbd0862d98860a2db2bd13fe6e0eea0cd7bfd2254a8973a5a398402c1682c51b54267b82cf  lizardfs-cstdio-header.patch
+"

@@ -1,23 +1,26 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libxmu
-pkgver=1.1.2
-pkgrel=1
+pkgver=1.2.1
+pkgrel=0
 pkgdesc="X11 miscellaneous micro-utility library"
-url="http://xorg.freedesktop.org/"
+url="https://xorg.freedesktop.org/"
 arch="all"
-license="custom"
-options="!check"  # No test suite.
+license="MIT"
 subpackages="$pkgname-dev $pkgname-doc"
-depends=
-makedepends="libxext-dev libxt-dev libx11-dev libsm-dev
-	util-linux-dev util-macros xmlto"
-source="http://www.x.org/releases/individual/lib/libXmu-$pkgver.tar.bz2"
 depends_dev="util-linux-dev"
-
+makedepends="
+	libsm-dev
+	libx11-dev
+	libxext-dev
+	libxt-dev
+	util-linux-dev
+	util-macros
+	xmlto
+	"
+source="https://www.x.org/releases/individual/lib/libXmu-$pkgver.tar.xz"
 builddir="$srcdir"/libXmu-$pkgver
-build()
-{
-	cd "$builddir"
+
+build() {
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -27,12 +30,15 @@ build()
 	make
 }
 
-package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-	install -Dm644 $srcdir/libXmu-$pkgver/COPYING \
-		$pkgdir/usr/share/licenses/$pkgname/COPYING
+check() {
+	make check
 }
-md5sums="41d92ab627dfa06568076043f3e089e4  libXmu-1.1.2.tar.bz2"
-sha256sums="756edc7c383254eef8b4e1b733c3bf1dc061b523c9f9833ac7058378b8349d0b  libXmu-1.1.2.tar.bz2"
-sha512sums="eba4e3d10f7d75ba8464881fb69f295a89774a4b37793197d75f3312e3a342b2df8b7e13e3f5c887962704329b5347ff2f3395e229af9dadf46a93b1e8613cfc  libXmu-1.1.2.tar.bz2"
+
+package() {
+	make DESTDIR="$pkgdir" install
+	install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
+}
+
+sha512sums="
+05a30e5961e00e940ad7ec4eb94ec482b5cbe808585972bf70c849333af3fddf4ae4bd87895d706507fb3a94ed0fb73ea161e0e27dc2840323a1a1af49c0e8a3  libXmu-1.2.1.tar.xz
+"

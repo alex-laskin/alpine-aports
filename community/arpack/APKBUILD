@@ -2,17 +2,22 @@
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=arpack
 _pkgname=$pkgname-ng
-pkgver=3.5.0
-pkgrel=1
+pkgver=3.8.0
+pkgrel=3
 pkgdesc="Collection of Fortran77 subroutines designed to solve large scale eigenvalue problems"
 url="https://github.com/opencollab/arpack-ng"
 arch="all"
-license="BSD"
-depends=""
+license="BSD-3-Clause"
 depends_dev="openblas-dev>=0.3.0"
-makedepends="$depends_dev autoconf automake gfortran libtool"
+makedepends="
+	$depends_dev
+	autoconf
+	automake
+	gfortran
+	libtool
+	"
 subpackages="$pkgname-dev $pkgname-doc"
-source="$pkgname-$pkgver.tar.gz::https://github.com/opencollab/$_pkgname/archive/$pkgver.tar.gz"
+source="https://github.com/opencollab/$_pkgname/archive/$pkgver/arpack-$pkgver.tar.gz"
 builddir="$srcdir/$_pkgname-$pkgver"
 
 # Tests hang on ppc64le when running via abuild, don't know why.
@@ -29,14 +34,14 @@ fi
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 
 	./bootstrap
 	cp -ar "$builddir" "$_builddir64"
 }
 
 build() {
-	cd "$builddir"
+	export FFLAGS="$FFLAGS -fallow-argument-mismatch"
+
 	_build
 
 	if [ "$_ilp64" = yes ]; then
@@ -56,12 +61,14 @@ _build() {
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
+		--enable-shared \
+		--enable-static \
+		--enable-icb \
 		"$@"
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
@@ -70,11 +77,9 @@ package() {
 		make -C "$_builddir64" DESTDIR="$pkgdir" install
 	fi
 
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 
-	install -D -m644 COPYING \
-		"$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	install -D -m644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
 
 	install -d "$pkgdir"/usr/share/doc/$pkgname
 	mv DOCUMENTS/* "$pkgdir"/usr/share/doc/$pkgname/
@@ -83,8 +88,9 @@ package() {
 ilp64() {
 	pkgdesc="$pkgdesc (ILP64)"
 
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/libarpack64_* "$subpkgdir"/usr/lib/
+	amove usr/lib/libarpack64_*
 }
 
-sha512sums="67181c783e61d5d2214ccbfa0de8efd55148537feca30376760f7009995694f68c9fc14991306fa19ad67598497510b6e0d42b68dc56dd581dc2a798e3a4b369  arpack-3.5.0.tar.gz"
+sha512sums="
+8969c74c4c0459ea2d29ea49d5260f668fd33f73886df0da78a42a94aea93c9f5fb70f5df035266db68807ab09a92c13487a7a4e6ca64922145aade8a148a2de  arpack-3.8.0.tar.gz
+"

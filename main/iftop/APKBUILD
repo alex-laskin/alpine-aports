@@ -1,38 +1,42 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=iftop
-pkgver=0.17
-pkgrel=7
+pkgver=1.0_pre4
+_pkgver=${pkgver/_/}
+pkgrel=0
 pkgdesc="A tool to display bandwidth usage on an interface"
-url="http://www.ex-parrot.com/~pdw/iftop/"
+url="https://www.ex-parrot.com/~pdw/iftop/"
 arch="all"
-license="GPL-2.0"
-depends=""
+license="GPL-2.0-or-later"
 makedepends="libpcap-dev>=1 ncurses-dev"
+options="!check" # no tests
 subpackages="$pkgname-doc"
-source="http://www.ex-parrot.com/~pdw/$pkgname/download/$pkgname-$pkgver.tar.gz"
+source="https://www.ex-parrot.com/~pdw/iftop/download/iftop-$_pkgver.tar.gz
+	0001-fix-build-with-gcc15.patch
+	0002-iftop-mac-address.patch
+	"
+builddir="$srcdir/$pkgname-$_pkgver"
 
-_builddir="$srcdir"/iftop-$pkgver
 prepare() {
-	cd "$_builddir"
-	update_config_sub || return 1
+	default_prepare
+	update_config_sub
 }
 
 build() {
-	cd "$_builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
-		--mandir=/usr/share/man \
-		|| return 1
-	make || return 1
+		--mandir=/usr/share/man
+	# https://wiki.gentoo.org/wiki/Gcc_10_porting_notes/fno_common
+	make CFLAGS="$CFLAGS -fcommon"
 }
 
-package()  {
-	cd "$_builddir"
-	make DESTDIR="$pkgdir" install || return 1
+package() {
+	make DESTDIR="$pkgdir" install
 }
 
-md5sums="062bc8fb3856580319857326e0b8752d  iftop-0.17.tar.gz"
-sha256sums="d032547c708307159ff5fd0df23ebd3cfa7799c31536fa0aea1820318a8e0eac  iftop-0.17.tar.gz"
-sha512sums="41e3bc5feac5927f67356f491fcab7a28f7a32102cc33c67d81c1dc755273c42e32b540b14b6254a540f1b6c1b1ad6c50e3095c3b5282db2ea12dd0049ce2ebd  iftop-0.17.tar.gz"
+sha512sums="
+abd74e8025bb82fef9ebab4997b1d018201a523d47c0128128ca37797490046538d74758dc4471735c22b890e5bd238ad6b2a30776d465138ede367cdd263d22  iftop-1.0pre4.tar.gz
+92c64f0adaee495bb36c7182a36f5afa0ec2483ab46a53fff02d6acb5e5d802f55fd25985b0055e0598db493b4363e78fd172671530ee5617e0356bcac00bd68  0001-fix-build-with-gcc15.patch
+227e26c378312569da3a12df397a9249168dddf69dc12df14944b1efd7022b5988db82ff9e73e0c5b743ab5f1e3662446ce0e1c712d3c339a0bcc3d45c3ff67a  0002-iftop-mac-address.patch
+"

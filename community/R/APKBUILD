@@ -2,34 +2,62 @@
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Maintainer: Jakub Jirutka <jakub@jirutka.cz>
 pkgname=R
-pkgver=3.5.0
+pkgver=4.5.1
 pkgrel=1
 pkgdesc="Language and environment for statistical computing"
-url="https://www.r-project.org"
-arch="all"
-license="GPL-2.0 GPL-3 LGPL-2.1"
-depends="$pkgname-mathlib"
-depends_dev="gcc gfortran icu-dev libjpeg-turbo libpng-dev make openblas-dev>=0.3.0
-	pcre-dev>=8.10 readline-dev xz-dev zlib-dev bzip2-dev curl-dev>=7.28
+url="https://www.R-project.org/"
+# riscv64: fails tests of complex arithmetic, including example(complex)
+arch="all !riscv64"
+license="( GPL-2.0-only OR GPL-3.0-only ) AND LGPL-2.1-or-later"
+depends="$pkgname-mathlib tzdata"
+depends_dev="
+	$pkgname=$pkgver-r$pkgrel
+	bzip2-dev
+	curl-dev>=7.28
+	gcc
+	gfortran
+	icu-dev
+	libdeflate-dev
+	libjpeg-turbo
+	libpng-dev
+	make
+	musl-dev
+	openblas-dev>=0.3.0
+	pcre2-dev
+	readline-dev
+	xz-dev
+	zlib-dev
 	"
-makedepends="$depends_dev cairo-dev libxmu-dev openjdk8-jre-base pango-dev
-	perl tiff-dev tk-dev
+makedepends="
+	$depends_dev
+	cairo-dev
+	java-jdk
+	libxmu-dev
+	pango-dev
+	perl
+	tiff-dev
+	tk-dev
 	"
 install="$pkgname.post-install"
-subpackages="$pkgname-mathlib $pkgname-dev $pkgname-doc"
-source="https://cran.r-project.org/src/base/R-${pkgver%%.*}/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-static $pkgname-mathlib $pkgname-dev $pkgname-doc"
+source="https://cran.r-project.org/src/base/R-${pkgver%%.*}/R-$pkgver.tar.gz"
 
 _rhome="usr/lib/R"
 ldpath="/$_rhome/lib"
 
 build() {
-	cd "$builddir"
+	# Performance is more important than size for R. Moreover, -O2 has
+	# only minimal impact on the R package size (less than 1 %).
+	export CFLAGS="${CFLAGS/-Os/-O2}"
+	export CPPFLAGS="${CPPFLAGS/-Os/-O2}"
+	export CXXFLAGS="${CXXFLAGS/-Os/-O2}"
 
 	# CXXFLAGS is propagated to /etc/R/Makeconf that is read when building
 	# additional R modules. -D__MUSL__ is needed for some modules like Rcpp.
 	# htps://github.com/RcppCore/Rcpp/issues/448
-	CXXFLAGS="$CXXFLAGS -D__MUSL__" ./configure \
+	export CXXFLAGS="$CXXFLAGS -D__MUSL__"
+
+	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc/R \
 		--localstatedir=/var \
@@ -41,6 +69,7 @@ build() {
 		--disable-nls \
 		--enable-R-shlib \
 		--enable-java \
+		--enable-lto \
 		--without-recommended-packages \
 		--with-blas=openblas \
 		--with-cairo \
@@ -52,22 +81,40 @@ build() {
 		--with-tcltk \
 		--with-x
 
-	make -j1
-	make -j1 -C src/nmath/standalone
+	make
+	make -C src/nmath/standalone
 }
 
-# TODO: Run provided test suite.
 check() {
-	cd "$builddir"
+	# Some tests fail if R cannot infer a time zone
+	export TZ=UTC
 
-	./bin/R --version
-	./bin/R --slave --vanilla -e 'print("Hello, world!")'
+	# Try running R (and also aid debugging).
+	./bin/R --vanilla -s -e 'sessionInfo(); R_compiled_by(); str(.Machine)'
+
+	case "$CARCH" in
+		# A (non-portable) numerical regression test currently (R 4.4.0)
+		# fails on the aarch64, loongarch64 and s390x runners.
+		# Run at least two basic test suites:
+		aarch64 | s390x | loongarch64)
+			make -C tests test-Examples && make -C tests test-Specific || {
+				tail -v -n 42 tests/Examples/*.fail tests/*.fail 2>/dev/null; exit 1
+			}
+		;;
+		*)
+			make check || {
+				tail -v -n 42 tests/Examples/*.fail tests/*.fail 2>/dev/null; exit 1
+			}
+		;;
+	esac
+
+	# NOTE: EST5EDT-related differences reported for datetime.Rout are known
+	# (see <https://mm.icann.org/pipermail/tz/2024-March/058740.html>
+	# or also <https://bugs.r-project.org/show_bug.cgi?id=16843#c12>)
 }
 
 package() {
 	local destdir="$pkgdir/$_rhome"
-
-	cd "$builddir"
 
 	make DESTDIR="$pkgdir" install
 
@@ -97,9 +144,12 @@ package() {
 
 mathlib() {
 	pkgdesc="Standalone math library from the R project"
+	depends=
 
 	mkdir -p "$subpkgdir"/usr/lib
 	mv "$pkgdir"/usr/lib/libRmath.so* "$subpkgdir"/usr/lib
 }
 
-sha512sums="c2703e892eb6f12ec7b536540b823d4ef011dddcbdca06c12d438bc1f07debae9dbd0f72abb6f0d4c577a3c74b155452ef527489cf023ed892109dd86c23bc37  R-3.5.0.tar.gz"
+sha512sums="
+b357bb6db93d1068d90505da02f14872d28f00d42e531a078c001370d14df4dd28202b5ae359d793b29c6396d89db42849711375a96048210895bfb42d0a62d1  R-4.5.1.tar.gz
+"

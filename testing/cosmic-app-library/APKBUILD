@@ -1,0 +1,44 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-app-library
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Application launcher for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-applibrary"
+# loongarch64: https://github.com/bytecodealliance/rustix/issues/1496
+arch="all !loongarch64"
+license="GPL-3.0-only"
+depends="
+	cosmic-icons
+"
+makedepends="
+	cargo
+	just
+	libxkbcommon-dev
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-applibrary/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/cosmic-applibrary-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	just build-release --frozen
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+1d40bbdebabe72e34cb8510b62921bab6ad7cec536ddc38a7e281778edab5745583d9276eb339ea2869a29db27c84754b5c802788771042638747bd085f4399e  cosmic-app-library-1.0.0_beta4.tar.gz
+"

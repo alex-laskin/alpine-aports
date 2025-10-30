@@ -1,0 +1,54 @@
+# Contributor: Holger Jaekel <holger.jaekel@gmx.de>
+maintainer="Holger Jaekel <holger.jaekel@gmx.de>"
+pkgname=py3-shapely
+pkgver=2.1.1
+pkgrel=0
+pkgdesc="Manipulation and analysis of geometric objects in the Cartesian plane"
+url="https://pypi.org/project/Shapely"
+arch="all"
+license="BSD-3-Clause"
+depends="
+	py3-numpy
+	"
+makedepends="
+	cython
+	geos-dev
+	py3-gpep517
+	py3-matplotlib
+	py3-numpy-dev
+	py3-packaging
+	py3-setuptools
+	py3-wheel
+	python3-dev
+	"
+checkdepends="
+	py3-pytest
+	"
+subpackages="$pkgname-pyc"
+source="https://files.pythonhosted.org/packages/source/s/shapely/shapely-$pkgver.tar.gz
+	"
+builddir="$srcdir/shapely-$pkgver"
+
+build() {
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	mv shapely backup
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest -x
+	mv backup shapely
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+	rm -r "$pkgdir"/usr/lib/python3.*/site-packages/shapely/tests
+}
+
+sha512sums="
+dec996dad131b60a7d87f8481e7e44e069adc9264220b90848a1818b36c356cc272b03b6b652c6c413112c441bdc6fcae1a690e7e830c42c31973e8e11d58298  shapely-2.1.1.tar.gz
+"

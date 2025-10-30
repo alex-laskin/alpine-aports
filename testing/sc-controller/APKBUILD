@@ -1,0 +1,56 @@
+# Contributor: Joshua Murphy <joshuamurphy@posteo.net>
+maintainer="Joshua Murphy <joshuamurphy@posteo.net>"
+pkgname=sc-controller
+pkgver=0.5.3
+pkgrel=0
+pkgdesc="User-mode driver and GTK3 based GUI for the Steam Controller"
+url="https://github.com/C0rn3j/sc-controller"
+arch="all"
+license="GPL-2.0-only"
+depends="
+	gtk+3.0
+	gtk-layer-shell
+	libayatana-appindicator
+	librsvg
+	py3-cairo
+	py3-evdev
+	py3-gobject3
+	py3-ioctl-opt
+	py3-libacl
+	py3-libusb1
+	py3-vdf
+	"
+makedepends="
+	linux-headers
+	py3-gpep517
+	py3-setuptools
+	py3-setuptools_scm
+	py3-wheel
+	python3-dev
+	zlib-dev
+	"
+checkdepends="py3-pytest py3-toml"
+subpackages="$pkgname-pyc"
+source="$pkgname-$pkgver.tar.gz::https://github.com/C0rn3j/sc-controller/archive/v$pkgver.tar.gz"
+
+build() {
+	export SETUPTOOLS_SCM_PRETEND_VERSION=$pkgver
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
+}
+
+check() {
+	python3 -m venv --clear --without-pip --system-site-packages .testenv
+	.testenv/bin/python3 -m installer .dist/*.whl
+	.testenv/bin/python3 -m pytest
+}
+
+package() {
+	python3 -m installer -d "$pkgdir" \
+		.dist/*.whl
+}
+
+sha512sums="
+b321c5ec5409b8c58c81437be7843b6430b1b0bb30daf2524edcd19b6965ed22e470de54f474bc7845b1e3d4dc873daa40470e847ab54300bf7f05e5fcbaebf8  sc-controller-0.5.3.tar.gz
+"

@@ -1,42 +1,34 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=font-mutt-misc
-pkgver=1.0.3
-pkgrel=0
-pkgdesc="X.org misc font"
-url="http://xorg.freedesktop.org/"
-arch="all"
+pkgver=1.0.4
+pkgrel=1
+pkgdesc="X.orgmiscfont"
+url="https://xorg.freedesktop.org/"
+arch="noarch"
 license="custom"
-depends="encodings font-alias mkfontscale mkfontdir fontconfig"
+options="!check"
+depends="encodings font-alias mkfontscale fontconfig"
 makedepends="font-util-dev bdftopcf"
-install=
-source="http://www.x.org/releases/individual/font/$pkgname-$pkgver.tar.bz2"
-
-prepare() {
-	cd "$srcdir"/$pkgname-$pkgver
-	update_config_sub || return 1
-}
+source="https://www.x.org/releases/individual/font/font-mutt-misc-$pkgver.tar.xz"
 
 build() {
-	cd "$srcdir"/$pkgname-$pkgver
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--with-mapfiles=/usr/share/fonts/util \
-		--with-fontdir=/usr/share/fonts/misc \
-		|| return 1
-	make || return 1
+		--with-fontdir=/usr/share/fonts/misc
+	make
 }
 
 package() {
-	cd "$srcdir"/$pkgname-$pkgver
-	make -j1 DESTDIR="$pkgdir" \
+	make DESTDIR="$pkgdir" \
 		MKFONTDIR=: \
 		MKFONTSCALE=: \
 		FCCACHE=: \
-		install || return 1
+		install
 }
 
-md5sums="56b0296e8862fc1df5cdbb4efe604e86  font-mutt-misc-1.0.3.tar.bz2"
-sha256sums="bd5f7adb34367c197773a9801df5bce7b019664941900b2a31fbfe1ff2830f8f  font-mutt-misc-1.0.3.tar.bz2"
-sha512sums="7b152f6c1464d806b1f76664d9b619858c3cb3ea63027b6be1f69897e939e3a0b5312ddf230e0a42a8f3e3701e50f41917cac6ce566c05bc74dfa49bdf2ed4db  font-mutt-misc-1.0.3.tar.bz2"
+sha512sums="
+9cbc82e6a519572576cb60f4d6b9795468666d53ac7df17d6736ab04190cb5f58c8b57be61ab509fc9372e1114c6aaa5e0d098ec1fa63dc5d8638916614f7046  font-mutt-misc-1.0.4.tar.xz
+"

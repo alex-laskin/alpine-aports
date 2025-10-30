@@ -1,21 +1,68 @@
 # Contributor: Francesco Colista <fcolista@alpinelinux.org>
 # Maintainer: Francesco Colista <fcolista@alpinelinux.org>
 pkgname=podofo
-pkgver=0.9.5
-pkgrel=3
-pkgdesc="A C++ library to work with the PDF file format"
-url="http://podofo.sourceforge.net"
-arch="all"
-license="GPL"
-depends=
-makedepends="tiff-dev libpng-dev fontconfig-dev
-cmake lua-dev libressl-dev libidn-dev"
-install=""
-subpackages="$pkgname-dev $pkgname-doc"
-source="http://downloads.sourceforge.net/${pkgname}/${pkgname}-${pkgver}.tar.gz"
-builddir="$srcdir"/$pkgname-$pkgver
+pkgver=0.10.4
+pkgrel=0
+# tests
+_resources=4afe5c3fdb543a4347681b2e52252f1b10f12f24
+pkgdesc="C++ library to work with the PDF file format"
+url="https://podofo.sourceforge.net/"
+# s390x: fails bunch of tests on big endian
+arch="all !s390x"
+license="GPL-2.0-only"
+makedepends="
+	cmake
+	fontconfig-dev
+	libidn-dev
+	libpng-dev
+	libxml2-dev
+	lua-dev
+	openssl-dev
+	samurai
+	tiff-dev
+	"
+subpackages="$pkgname-dev"
+source="$pkgname-$pkgver.tar.gz::https://github.com/podofo/podofo/archive/refs/tags/$pkgver.tar.gz
+	podofo-resources-$_resources.tar.gz::https://github.com/podofo/podofo-resources/archive/$_resources.tar.gz
+	disable-failing-tests.patch
+	"
 
 # secfixes:
+#   0.9.7-r0:
+#     - CVE-2019-9199
+#     - CVE-2019-9687
+#     - CVE-2018-19532
+#     - CVE-2018-20751
+#     - CVE-2018-20797
+#     - CVE-2019-10723
+#     - CVE-2019-20093
+#   0.9.6-r0:
+#     - CVE-2017-6848
+#     - CVE-2017-7378
+#     - CVE-2017-7379
+#     - CVE-2017-7380
+#     - CVE-2017-7381
+#     - CVE-2017-7382
+#     - CVE-2017-7383
+#     - CVE-2017-7994
+#     - CVE-2017-8053
+#     - CVE-2017-8054
+#     - CVE-2017-8378
+#     - CVE-2017-8787
+#     - CVE-2018-5295
+#     - CVE-2018-5296
+#     - CVE-2018-5308
+#     - CVE-2018-5309
+#     - CVE-2018-5783
+#     - CVE-2018-6352
+#     - CVE-2018-8000
+#     - CVE-2018-8001
+#     - CVE-2018-8002
+#     - CVE-2018-11254
+#     - CVE-2018-11255
+#     - CVE-2018-11256
+#     - CVE-2018-12982
+#     - CVE-2018-12983
 #   0.9.5-r0:
 #     - CVE-2017-6843
 #     - CVE-2017-6844
@@ -24,22 +71,41 @@ builddir="$srcdir"/$pkgname-$pkgver
 #     - CVE-2017-6847
 #     - CVE-2017-6849
 
-build() {
-	cd "$builddir"
-	mkdir build
-	cd build
-	cmake -DCMAKE_INSTALL_PREFIX=/usr .. \
-		-DPODOFO_BUILD_SHARED=1 \
-		-DPODOFO_HAVE_JPEG_LIB=1 \
-		-DPODOFO_HAVE_PNG_LIB=1 \
-		-DPODOFO_HAVE_TIFF_LIB=1
-	make || return 1
-}
-package() {
-	cd "$builddir"/build
-	make DESTDIR="$pkgdir" install || return 1
+prepare() {
+	default_prepare
+
+	rmdir extern/resources
+	ln -sfv "$srcdir"/podofo-resources-$_resources extern/resources
 }
 
-md5sums="4751a6cf41250bea550a73ff960b7228  podofo-0.9.5.tar.gz"
-sha256sums="854981cb897ebc14bac854ea0f25305372261a48a205363fe1c61659ba7b5304  podofo-0.9.5.tar.gz"
-sha512sums="d13b30bfebc89b809173cd2251eed1f15dfa90abb58371bfdce875797d40663923571824ad2b0b1d97aa1be212bdbb710c3a0439bc05bed7022b8eb75ca74705  podofo-0.9.5.tar.gz"
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=None \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DPODOFO_BUILD_STATIC=0 \
+		-DPODOFO_BUILD_TEST="$(want_check && echo ON || echo OFF)" \
+		-DPODOFO_HAVE_JPEG_LIB=ON \
+		-DPODOFO_HAVE_PNG_LIB=ON \
+		-DPODOFO_HAVE_TIFF_LIB=ON
+	cmake --build build
+}
+
+check() {
+	# testCMYKConstructor fails on ppc64le
+	# testHexNames fails on x86 due to non-sse math
+	timeout 600 \
+	ctest --test-dir build \
+		-E '(testCMYKConstructor|testHexNames)'
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+	mkdir -p "$pkgdir"/usr/lib/cmake/
+	mv "$pkgdir"/usr/share/podofo "$pkgdir"/usr/lib/cmake/
+}
+
+sha512sums="
+963d8e2ad6516a0be4d3d416881e58e2384f07f0c006a8a33656d25f6a6b52858344750a4959e0aef568370df1cb052fc08f308aeec3795844a59cc8c47cff23  podofo-0.10.4.tar.gz
+4cb33e5a6050ef745cda42b7fdf53fee9f45d4d488555b79c9cdd6680c5265065aac92ad3d72ea0b75eee9a73098f920a3dd61b7728db6d2171888cbc83c6d55  podofo-resources-4afe5c3fdb543a4347681b2e52252f1b10f12f24.tar.gz
+d852c319a728fb936b9c6bdd2c329a35b0002fe3da3cadde882b3d73d5b2f28e6212e9cbf2bb6077022df37af3d15517f1af7d8b7523a154a380b8ad3411b56e  disable-failing-tests.patch
+"

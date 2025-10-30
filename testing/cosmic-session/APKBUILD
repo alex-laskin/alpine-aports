@@ -1,0 +1,64 @@
+# Contributor: Clayton Craft <clayton@craftyguy.net>
+# Maintainer: Clayton Craft <clayton@craftyguy.net>
+pkgname=cosmic-session
+pkgver=1.0.0_beta4
+_upstreamver="${pkgver/_beta/-beta.}"
+_upstreamver="${_upstreamver/_p/.}"
+pkgrel=0
+pkgdesc="Session manager for the COSMIC Desktop Environment"
+url="https://github.com/pop-os/cosmic-session"
+arch="all !armhf !armv7 !loongarch64 !s390x !x86" # many apps missing
+license="GPL-3.0-or-later"
+depends="
+	bash
+	cosmic-app-library
+	cosmic-applets
+	cosmic-bg
+	cosmic-comp
+	cosmic-files
+	cosmic-greeter
+	cosmic-icons
+	cosmic-idle
+	cosmic-launcher
+	cosmic-notifications
+	cosmic-osd
+	cosmic-panel
+	cosmic-randr
+	cosmic-screenshot
+	cosmic-settings
+	cosmic-settings-daemon
+	cosmic-workspaces
+	dbus
+	xwayland
+"
+makedepends="
+	cargo
+	dbus-dev
+	glib-dev
+	just
+	wayland-protocols
+"
+options="net !check"  # fetch dependencies, no tests
+source="$pkgname-$pkgver.tar.gz::https://github.com/pop-os/cosmic-session/archive/refs/tags/epoch-$_upstreamver.tar.gz"
+builddir="$srcdir/$pkgname-epoch-$_upstreamver"
+
+prepare() {
+	default_prepare
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	just build
+}
+
+check() {
+	cargo test --release --frozen
+}
+
+package() {
+	just rootdir="$pkgdir" install
+}
+
+sha512sums="
+cf273ca629ab5dfeb96727fd302f7546b9d84d7412678c96b7d80285d7b0c47920e6cb9363bcf456a568cee45a66513c5e03f4848b51e890e11ae29dcc884997  cosmic-session-1.0.0_beta4.tar.gz
+"

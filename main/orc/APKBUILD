@@ -1,56 +1,45 @@
 # Contributor: Łukasz Jendrysik <scadu@yandex.com>
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=orc
-pkgver=0.4.28
+pkgver=0.4.41
 pkgrel=0
-pkgdesc="The Oil Run-time Compiler"
+pkgdesc="Oil Run-time Compiler"
 url="https://gstreamer.freedesktop.org/modules/orc.html"
 arch="all"
-license="BSD"
-makedepends="linux-headers"
-subpackages="$pkgname-dev $pkgname-doc $pkgname-compiler"
-source="https://gstreamer.freedesktop.org/src/orc/${pkgname}-${pkgver}.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+license="BSD-2-Clause"
+depends_dev="$pkgname-compiler=$pkgver-r$pkgrel"
+makedepends="linux-headers meson"
+subpackages="$pkgname-dev $pkgname-compiler"
+source="https://gstreamer.freedesktop.org/src/orc/orc-$pkgver.tar.xz"
 
-case "$CARCH" in
-	# FIXME: Test exec_opcodes_sys fails on armhf.
-	armhf) options="!check";;
-esac
+# secfixes:
+#   0.4.39-r0:
+#     - CVE-2024-40897
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--localstatedir=/var
-	make
+	abuild-meson \
+		-Db_lto=true \
+		-Dorc-test=disabled \
+		-Dbenchmarks=enabled \
+		-Dtools=enabled \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
-}
-
-dev() {
-	default_dev
-	mkdir -p "$subpkgdir"/usr/bin
-	mv "$pkgdir"/usr/bin/orc-bugreport "$subpkgdir"/usr/bin/
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
 compiler() {
 	pkgdesc="Orc compiler"
-	mkdir -p "$subpkgdir"/usr/
-	mv "$pkgdir"/usr/bin "$subpkgdir"/usr/
+
+	amove usr/bin
 }
 
-sha512sums="2ae3100e7d0c03eba9a8a10a8924da4d729e1967b63e5dfdf88c4aee907d7ece82c782d74f4cb7e28a366dd74ce5e1ddc6e2b971e5a2f879b0501cc313b93410  orc-0.4.28.tar.xz"
+sha512sums="
+8c1dc497b2e2dd9a071ea0cb66bbf4bda0bad64f41c1ce0b9c87eb61c1fcf27d4cbef6c30ef00fed57c3623458aa683d39904f7c37072072eda6c51bcdd94091  orc-0.4.41.tar.xz
+"

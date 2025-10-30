@@ -1,33 +1,37 @@
 # Contributor: Bartłomiej Piotrowski <bpiotrowski@alpinelinux.org>
-# Maintainer: A. Wilcox <awilfox@adelielinux.org>
+# Maintainer: Patrycja Rosa <alpine@ptrcnull.me>
 pkgname=uptimed
-pkgver=0.4.0
-pkgrel=1
+pkgver=0.4.7
+pkgrel=0
 pkgdesc='System uptime record daemon'
 arch="all"
 options="!check"  # No tests
-url="http://podgorny.cz/uptimed/"
+url="https://github.com/rpodgorny/uptimed"
 license="GPL-2.0-only"
 subpackages="$pkgname-doc $pkgname-openrc"
 makedepends="autoconf automake libtool"
 source="$pkgname-$pkgver.tar.gz::https://github.com/rpodgorny/uptimed/archive/v$pkgver.tar.gz
-	uptimed.init"
-builddir="$srcdir/$pkgname-$pkgver"
+	uptimed.init
+	gcc-15.patch
+	"
+
+prepare() {
+	default_prepare
+	autoreconf -vif
+}
 
 build() {
-	cd "$builddir"
-	autoreconf -vif
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
 		--prefix=/usr \
 		--sysconfdir=/etc \
-		--mandir=/usr/share/man
+		--mandir=/usr/share/man \
+		--disable-static
 	make
 }
 
 package() {
-	cd "$builddir"
 	make install DESTDIR="$pkgdir"
 	mv "$pkgdir"/etc/uptimed.conf-dist \
 		"$pkgdir"/etc/uptimed.conf
@@ -35,5 +39,8 @@ package() {
 		"$pkgdir"/etc/init.d/uptimed
 }
 
-sha512sums="918cd9e065d5005daf5062f14dffb725cb6d6764aa571fd45d63de3f7349b910cbae0dedc832f9bfb52a42caea90e8aec8390685baaf0718fec827240e517900  uptimed-0.4.0.tar.gz
-0884e9f5ace5a69b8eea4401c7f3b84f0a434f0ceb2b920919e83f318eb9e54182932de174cf1666ddddbab84c146781f3dd78571e80cc274963a72bf4f53a6b  uptimed.init"
+sha512sums="
+857357d3f21770ea04710eae7775dad562b1112c3d17e3d771d67d80fc11d1e5aeb8a869a70cdb76c103e0fd6384273c4498a3d5cbd33035b3b72dcce65ea211  uptimed-0.4.7.tar.gz
+52566676d85baa354a3378294559979529fabeb802edaaadca2ee3a76f804a25fe6d8313b3db34e0346b088a097bcef2775f2c9d39ec36451f2d07c26e6eda4a  uptimed.init
+adcdcf9f23022becee3596f0ea19af33593991a46623f8d73891a38b97b22fdb7d1afdb7ffbad7639061dc5ebe69d6aa850b2ae0f3a242aa3b60232e3db81d12  gcc-15.patch
+"

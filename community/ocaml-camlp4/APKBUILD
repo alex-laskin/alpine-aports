@@ -1,59 +1,76 @@
 # Contributor: Jon Ong <jonongjs@rottenmage.com>
 # Contributor: Jakub Jirutka <jakub@jirutka.cz>
-# Maintainer: Anil Madhavapeddy <anil@recoil.org>
+# Contributor: Anil Madhavapeddy <anil@recoil.org>
+# Maintainer: omni <omni+alpine@hack.org>
 pkgname=ocaml-camlp4
 _pkgname=camlp4
 # NOTE: camlp4 version must match ocaml version!
-pkgver=4.06.1
-_pkgver="${pkgver%.*}+${pkgver##*.}"
+pkgver=4.14.0
+_pkgver="${pkgver%.*}+1"
 _ocamlver=${pkgver%.*}
-pkgrel=1
+pkgrel=4
 pkgdesc="Caml preprocessor and pretty-printer"
-url="https://github.com/ocaml/camlp4/releases"
-arch="all !x86 !armhf !s390x"  # ocaml not avail on excluded platforms
-license="LGPL-2.0-or-later-WITH-linking-exception"
-depends="ocaml-runtime=~$_ocamlver ocaml-ocamlbuild"
+url="https://github.com/camlp4/camlp4"
+arch="all !riscv64 !loongarch64" # ocaml
+license="LGPL-2.0-or-later WITH OCaml-LGPL-linking-exception"
+depends="ocaml-runtime~$_ocamlver ocaml-ocamlbuild"
 depends_dev="$pkgname=$pkgver-r$pkgrel"
-makedepends="ocaml=~$_ocamlver ocaml-compiler-libs=~$_ocamlver
-	ocaml-findlib ocaml-ocamlbuild-dev ocamlbuild"
+makedepends="
+	ocaml~$_ocamlver
+	ocaml-compiler-libs~$_ocamlver
+	ocaml-findlib
+	ocamlbuild
+	"
 replaces="camlp4"  # for backward compatibility
 provides="camlp4=$pkgver-r$pkgrel"  # for backward compatibility
 subpackages="$pkgname-dev"
-source="$pkgname-$_pkgver.tar.gz::https://github.com/ocaml/$_pkgname/archive/$_pkgver.tar.gz"
+source="$pkgname-$_pkgver.tar.gz::https://github.com/camlp4/camlp4/archive/$_pkgver.tar.gz"
 builddir="$srcdir/$_pkgname-${_pkgver/+/-}"
 
 build() {
-	cd "$builddir"
-
-	./configure
+	./configure \
+		--bindir="/usr/bin" \
+		--libdir="/usr/lib/ocaml" \
+		--pkgdir="/usr/lib/ocaml"
 	make -j1 all camlp4/META
 }
 
 package() {
-	cd "$builddir"
-
-	make BINDIR="$pkgdir/usr/bin" \
-		LIBDIR="$pkgdir/usr/lib/ocaml" \
-		PKGDIR="$pkgdir/usr/lib/ocaml" \
+	make DESTDIR="$pkgdir" \
 		install install-META
 }
 
 dev() {
 	default_dev
 	replaces="camlp4"  # for backward compatibility
-	local sitelib="usr/lib/ocaml/$_pkgname"
 
 	cd "$pkgdir"
 
 	mkdir -p "$subpkgdir"/usr
 	mv usr/bin "$subpkgdir"/usr/
-
-	local path
-	for path in $(find $sitelib/ -name '*.cmx' -o -name '*.cmxa'); do
-		mkdir -p "$subpkgdir"/${path%/*}
-		mv "$path" "$subpkgdir"/${path%/*}/
-	done
-	rmdir "$subpkgdir"/$sitelib 2>/dev/null || true
 }
 
-sha512sums="32be92c4e64a985a3d2880e2201351961a4b7138a8be6e3f17e9b8e038a1660d13596f29fe0249c8c4183cd8cd06277cebc58f42609c8d2028032e893490fe43  ocaml-camlp4-4.06+1.tar.gz"
+prepare_py_provides() {
+	local datadir="${subpkgdir:-$pkgdir}"
+	local pkgbasedir=${pkgbasedir:-"$startdir/pkg"}
+	local controldir="$pkgbasedir"/.control.${subpkgname:-$pkgname}
+
+	options_has "!tracedeps" && return 0
+
+	ocaml4-abuild-find provides \
+		"$datadir"/usr/lib/ocaml \
+		"$controldir" \
+		"$pkgver-r$pkgrel"
+}
+
+scan_python3_dependency() {
+	local controldir="$2" datadir="$3"
+
+	ocaml4-abuild-find requires \
+		"$datadir"/usr/lib/ocaml \
+		"$controldir"
+}
+
+sha512sums="
+7838bcfc88edec73667669ea6562435b946e79f0b4a0e8117a83b403936337f08aaf8abe39d8f800483d77381ae122fc89aa68505cf60ec2f1cc835a04da93f2  ocaml-camlp4-4.14+1.tar.gz
+"

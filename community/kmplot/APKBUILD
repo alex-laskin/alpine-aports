@@ -1,0 +1,44 @@
+# The group tag is just to easily find this APKBUILD by some scripts for automation
+# group=kde-applications
+maintainer="team/kde <bribbers@disroot.org>"
+pkgname=kmplot
+pkgver=25.08.1
+pkgrel=0
+# armhf blocked by qt6-qtdeclarative -> ki18n
+arch="all !armhf"
+url="https://edu.kde.org/kmplot"
+pkgdesc="Mathematical Function Plotter"
+license="GPL-2.0-or-later AND GFDL-1.2-only"
+makedepends="
+	extra-cmake-modules
+	kcrash-dev
+	kdbusaddons-dev
+	kdoctools-dev
+	kguiaddons-dev
+	ki18n-dev
+	kparts-dev
+	kwidgetsaddons-dev
+	qt6-qtbase-dev
+	qt6-qtsvg-dev
+	samurai
+	"
+subpackages="$pkgname-doc $pkgname-lang"
+_repo_url="https://invent.kde.org/education/kmplot.git"
+source="https://download.kde.org/stable/release-service/$pkgver/src/kmplot-$pkgver.tar.xz"
+options="!check" # No tests
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib
+	cmake --build build
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}
+
+sha512sums="
+46f38048f10c5a9bfffa2530326b3126bb7f49c1c8b87625d08e0078f43d9f3c54e1db01199e1f19fbb5cdfd0a6b9de8f48889547979c1eca53c04390d4de7ac  kmplot-25.08.1.tar.xz
+"

@@ -1,0 +1,38 @@
+# Maintainer: qaqland <qaq@qaq.land>
+pkgname=bash-pinyin-completion-rs
+pkgver=1.0.0
+pkgrel=0
+pkgdesc="Simple completion script for pinyin, written in rust"
+url="https://github.com/AOSC-Dev/bash-pinyin-completion-rs"
+arch="all"
+license="GPL-3.0-or-later"
+depends="bash-completion"
+makedepends="cargo cargo-auditable"
+subpackages="$pkgname-doc"
+source="https://github.com/AOSC-Dev/bash-pinyin-completion-rs/archive/v$pkgver/bash-pinyin-completion-rs-$pkgver.tar.gz"
+options="net" # cargo fetch
+
+prepare() {
+	default_prepare
+
+	cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+	cargo auditable build --frozen --release
+}
+
+check() {
+	cargo test --frozen
+}
+
+package() {
+	install -Dm755 target/release/bash-pinyin-completion-rs -t "$pkgdir"/usr/bin/
+	install -Dm644 scripts/bash_pinyin_completion -t "$pkgdir"/etc/bash_completion.d/
+
+	install -Dm644 LICENSE -t "$pkgdir"/usr/share/licenses/$pkgname/
+}
+
+sha512sums="
+ba07110f3c538208491e87c829d783bab71de9966e3777dd146c01564bb8bfba11d79d2450621eda29943a65d31c4c65248c284a9a006a2c93388b4410b9b19e  bash-pinyin-completion-rs-1.0.0.tar.gz
+"

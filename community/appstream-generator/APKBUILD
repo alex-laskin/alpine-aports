@@ -1,0 +1,62 @@
+# Contributor: Rasmus Thomsen <oss@cogitri.dev>
+# Maintainer: Pablo Correa Gomez <pabloyoyoista@postmarketos.org>
+pkgname=appstream-generator
+pkgver=0.9.2
+pkgrel=0
+pkgdesc="fast AppStream metadata generator"
+url="https://github.com/ximion/appstream-generator"
+arch="x86_64 aarch64 loongarch64" # ldc
+license="LGPL-3.0-or-later"
+depends="optipng ffmpeg"
+# coreutils: needs cp with --no-preserve-ownership
+makedepends="
+	appstream-dev
+	cairo-dev
+	coreutils
+	curl-dev
+	fontconfig-dev
+	freetype-dev
+	gdk-pixbuf-dev
+	gir-to-d
+	glibd-dev
+	gobject-introspection-dev
+	ldc
+	libarchive-dev
+	librsvg-dev
+	lmdb-dev
+	meson
+	npm
+	pango-dev
+	yarn
+	"
+options="net"
+subpackages="$pkgname-doc"
+source="https://github.com/ximion/appstream-generator/archive/v$pkgver/appstream-generator-$pkgver.tar.gz
+	"
+
+export ASGEN_YARN_EXTRA_ARGS="--frozen-lockfile"
+
+build() {
+	abuild-meson -Drpmmd=false . output
+	meson compile -C output
+}
+
+check() {
+	case "$CARCH" in
+	loongarch64)
+		# asgen_tests times out with the standard timeout on the builder
+		meson test --timeout-multiplier 10 --print-errorlogs -C output
+		;;
+	*)
+		meson test --print-errorlogs -C output
+		;;
+	esac
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+ea92ee69b190a636d9d173d3bdd0be0df1f5a323af7d1fa3224ea8d0fee22243c63afcf93eaff112fd26a6db8f5892eb2bb953b7892f281315fd55a0c45510b4  appstream-generator-0.9.2.tar.gz
+"

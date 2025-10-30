@@ -1,0 +1,95 @@
+# Contributor: Jakub Jirutka <jakub@jirutka.cz>
+# Maintainer: Jakub Jirutka <jakub@jirutka.cz>
+#
+# TODO: Separate packages into subpackages?
+# TODO: Install even packages from the full tarball?
+# TODO: Figure out how to run tests.
+pkgname=racket
+pkgver=8.18
+pkgrel=0
+pkgdesc="general purpose programming language in the Lisp-Scheme family"
+url="https://racket-lang.org/"
+arch="all"
+license="Apache-2.0 OR MIT"
+depends="
+	ca-certificates
+	libcrypto3
+	libssl3
+	"
+makedepends="
+	chrpath
+	libffi-dev
+	libucontext-dev
+	lz4-dev
+	ncurses-dev
+	zlib-dev
+	"
+subpackages="
+	$pkgname-dbg
+	$pkgname-dev
+	$pkgname-doc
+	"
+source="
+	https://download.racket-lang.org/releases/$pkgver/installers/racket-minimal-$pkgver-src.tgz
+	gcc-15.patch
+	"
+builddir="$srcdir/$pkgname-$pkgver/src"
+
+_flags=
+case "$CARCH" in
+	# Racket CS (Chez Scheme backend) is not supported on these platforms,
+	# so build only BC (custom backend).
+	ppc64le | riscv64 | s390x)
+		pkgdesc="Racket BC - $pkgdesc"
+		license="($license) AND LGPL-3.0-or-later"
+		_flags="--enable-bconly --enable-bcdefault --enable-shared"
+	;;
+	*)
+		pkgdesc="Racket CS - $pkgdesc"
+		# NOTE: --enable-shared is not supported for CS.
+		_flags="--enable-csonly --enable-csdefault"
+	;;
+esac
+
+prepare() {
+	default_prepare
+	update_config_sub || true
+
+	# Remove bundled libffi to be sure that system-provided is used.
+	rm -Rf bc/foreign/libffi
+}
+
+build() {
+	export CFLAGS="${CFLAGS/-Os/-O2} -D_GNU_SOURCE"
+	export CPPFLAGS="${CPPFLAGS/-Os/-O2}"
+	export CXXFLAGS="${CXXFLAGS/-Os/-O2}"
+	export LDFLAGS="$LDFLAGS -lucontext"
+
+	# --enable-sharezo - this shouldn't be enabled for Racket CS because it
+	#   installs arch-dependent files to /usr/share, but
+	#   https://github.com/racket/racket/issues/3878#issuecomment-863358344
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--target=$CTARGET \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--disable-docs \
+		--disable-strip \
+		--enable-sharezo \
+		--enable-libz \
+		--enable-liblz4 \
+		$_flags
+	make
+}
+
+package() {
+	make install DESTDIR="$pkgdir"
+
+	rmdir "$pkgdir"/usr/share/applications
+}
+
+sha512sums="
+0d3a11a37372c4e5b82cc4480d09afe3af5660b7726e7b7f59ce62614e857e26b7add664a5bcd56a4c5903f39daa414b0f2cedeb743b9e2a434bc3f6f80e398b  racket-minimal-8.18-src.tgz
+e4341bc14eeb4597ce0b690f0749bdc956894ed1bd86f7e4abcd01d9a89d973346f92ec3bf287808a43ab4b53fd6c19364cbaa5e873ea3964c717cf839120448  gcc-15.patch
+"

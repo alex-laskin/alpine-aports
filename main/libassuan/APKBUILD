@@ -1,34 +1,32 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=libassuan
-pkgver=2.5.1
+pkgver=3.0.2
 pkgrel=0
-pkgdesc="A IPC library used by some GnuPG related software"
+pkgdesc="IPC library used by some GnuPG related software"
 url="https://www.gnupg.org/software/libassuan/index.html"
 arch="all"
-license="LGPL-2.0-or-later"
-depends=
+license="LGPL-2.1-or-later"
 makedepends="libgpg-error-dev"
-subpackages="${pkgname}-dev ${pkgname}-doc"
-source="https://www.gnupg.org/ftp/gcrypt/${pkgname}/${pkgname}-${pkgver}.tar.bz2"
-builddir="${srcdir}/${pkgname}-${pkgver}"
+subpackages="$pkgname-static $pkgname-dev $pkgname-doc"
+source="https://www.gnupg.org/ftp/gcrypt/libassuan/libassuan-$pkgver.tar.bz2"
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
-		--prefix=/usr
+		--prefix=/usr \
+		--enable-static
 	make
 }
 
 check() {
-	cd "$builddir"
 	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="c8829925221780f175cee8c4084060b0d661229f583a50d400a1903ab7303b2724b99ff9c0fa242881d4c5d779036756e1da54d9143acc0fcd92f302ecb5882d  libassuan-2.5.1.tar.bz2"
+sha512sums="
+a591eda350ecbf4fe8568b5087f69830df31f36ec67e2a50672aacea9bee16020f374a0bface459aeac1897c048072415ab5962a97034ce6fa413100b2a427fb  libassuan-3.0.2.tar.bz2
+"

@@ -1,18 +1,18 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=iso-codes
-pkgver=3.79
+pkgver=4.18.0
 pkgrel=0
 pkgdesc="ISO codes and their translations"
-url="http://pkg-isocodes.alioth.debian.org"
+url="https://salsa.debian.org/iso-codes-team/iso-codes"
 arch="noarch"
 license="LGPL-2.1-or-later"
-depends=""
-subpackages="$pkgname-lang $pkgname-dev"
+depends_dev="$pkgname=$pkgver-r$pkgrel"
 makedepends="python3 gettext"
-source="http://http.debian.net/debian/pool/main/i/$pkgname/${pkgname}_${pkgver}.orig.tar.xz"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-lang $pkgname-dev"
+source="https://salsa.debian.org/iso-codes-team/iso-codes/-/archive/v$pkgver/iso-codes-v$pkgver.tar.bz2"
+builddir="$srcdir/iso-codes-v$pkgver"
+
 build() {
-	cd "$builddir"
 	./configure \
 		--host=$CHOST \
 		--build=$CBUILD \
@@ -21,12 +21,13 @@ build() {
 }
 
 check() {
-	make -C "$builddir" check
+	make check
 }
 
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" pkgconfigdir=/usr/lib/pkgconfig install
 }
 
-sha512sums="286d4f328142cdc7ace409d2aaa811e3732df49d78b1875ce71f76f1bb683ce0c4d3f9d2bba752bf6cd25ee8f4c53bdc84568e2eaf85f49650452df19800b345  iso-codes_3.79.orig.tar.xz"
+sha512sums="
+eb9a00e700ca67097e7de8822be4ea7c55874319cb0a8515e90c048584d3fb30cdca14c2da1470e8cd0651c4e2af605bac6989119463c53532d867bf4881859d  iso-codes-v4.18.0.tar.bz2
+"

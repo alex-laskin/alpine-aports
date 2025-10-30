@@ -2,20 +2,20 @@
 # Maintainer: Ted Trask <ttrask01@yahoo.com>
 pkgname=acf-freeradius3
 pkgver=0.3.1
-pkgrel=0
+pkgrel=2
 pkgdesc="ACF for freeradius 3"
-url="https://git.alpinelinux.org/cgit/acf/acf-freeradius3"
+url="https://gitlab.alpinelinux.org/acf/acf-freeradius3"
 arch="noarch"
-license="GPL-2.0"
+license="GPL-2.0-only"
+options="!check" # no test suite
 depends="acf-core freeradius>3"
-makedepends=""
-install=
-subpackages=""
-source="http://dev.alpinelinux.org/archive/$pkgname/$pkgname-$pkgver.tar.xz"
+source="https://gitlab.alpinelinux.org/acf/acf-freeradius3/-/archive/v$pkgver/acf-freeradius3-v$pkgver.tar.gz"
+builddir="$srcdir/$pkgname-v$pkgver"
 
 package() {
-	cd "$srcdir/$pkgname-$pkgver"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="79a60ad1114c8e050431824b042b5799d39c96cfc2c101d0ec2c15569c5d4354565e0596bb7ef6471860d063df3f72e201e283b04ab9a50ffbf3e6bf7d31a9ee  acf-freeradius3-0.3.1.tar.xz"
+sha512sums="
+6ac56cd59e61258dcb639567d8820e7c2fb0c7b674ce49dd139b42917bfd24edeea08ca507c9b40e1a1a96decc63a279a569bd5a547e7835399a3f786899540a  acf-freeradius3-v0.3.1.tar.gz
+"

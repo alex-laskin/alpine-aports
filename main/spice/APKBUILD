@@ -1,24 +1,43 @@
-# Contributor: Natanael Copa <ncopa@alpinelinux.org>
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=spice
-pkgver=0.14.0
-pkgrel=7
+pkgver=0.16.0
+pkgrel=0
 pkgdesc="Implements the SPICE protocol"
 url="http://www.spice-space.org/"
 arch="all"
 license="LGPL-2.0-or-later"
-depends=""
-depends_dev="spice-protocol pixman-dev celt051-dev libxinerama-dev"
-makedepends="$depends_dev alsa-lib-dev libjpeg-turbo-dev libxrandr-dev
-	cyrus-sasl-dev libxfixes-dev python2-dev bash cegui06-dev py-parsing
-	py-six glib-dev opus-dev libressl-dev"
-subpackages="$pkgname-dev $pkgname-server"
-source="http://www.spice-space.org/download/releases/$pkgname-$pkgver.tar.bz2
-	disable-test-channel.patch
+makedepends="
+	cyrus-sasl-dev
+	gdk-pixbuf-dev
+	glib-dev
+	gst-plugins-base-dev
+	gstreamer-dev
+	libjpeg-turbo-dev
+	lz4-dev
+	meson
+	openssl-dev>3
+	opus-dev
+	orc-dev
+	pixman-dev
+	py3-parsing
+	py3-six
+	spice-protocol
+	zlib-dev
 	"
-builddir="$srcdir/$pkgname-$pkgver"
+subpackages="$pkgname-dev"
+source="https://www.spice-space.org/download/releases/spice-server/spice-$pkgver.tar.bz2
+	failing-tests.patch
+	"
 
 # secfixes:
+#   0.15.0-r0:
+#     - CVE-2020-14355
+#   0.14.3-r1:
+#     - CVE-2021-20201
+#   0.14.1-r4:
+#     - CVE-2019-3813
+#   0.14.1-r0:
+#     - CVE-2018-10873
 #   0.12.8-r4:
 #     - CVE-2017-7506
 #   0.12.8-r3:
@@ -26,38 +45,27 @@ builddir="$srcdir/$pkgname-$pkgver"
 #     - CVE-2016-9578
 
 build() {
-	cd "$builddir"
-	./configure \
-		--build=$CBUILD \
-		--host=$CHOST \
-		--prefix=/usr \
-		--sysconfdir=/etc \
-		--mandir=/usr/share/man \
-		--infodir=/usr/share/info \
-		--localstatedir=/var \
-		--enable-gui \
-		--enable-client \
-		--disable-smartcard \
-		--enable-opus
-	make -C spice-common WARN_CFLAGS=''
-	make WARN_CFLAGS=''
+	abuild-meson \
+		-Db_lto=true \
+		-Dgstreamer=1.0 \
+		-Dlz4=true \
+		-Dsasl=true \
+		-Dopus=enabled \
+		-Dsmartcard=disabled \
+		. output
+	meson compile -C output
 }
 
 check() {
-	cd "$builddir"
-	make check
+	meson test --print-errorlogs -C output
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	provides="$pkgname-server=$pkgver-r$pkgrel"
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
 }
 
-server() {
-	pkgdesc="Server library for SPICE"
-	mkdir -p "$subpkgdir"/usr/lib
-	mv "$pkgdir"/usr/lib/*server.so.* "$subpkgdir"/usr/lib/
-}
-
-sha512sums="84532146aa628ca6ca459a82afb89d6391892e063668fd4a68023c92cee7ca868b6c82e31dd9886819b76ea745ebdae0d0030e1f608d8f58f51c00f0b09bae1f  spice-0.14.0.tar.bz2
-77d3600f17c7b64b7b8eca4440244fbe4198c8541be262dd7825925bab731b116f4483a07f4b1d5a2e3d3761caedfaded2f999f57596495b65d11af9390e8242  disable-test-channel.patch"
+sha512sums="
+21fb8cc3cc4b3c185a1d3735dfda5df054e9244eeec9f3e2e2cf6f67acce70b213766502e55ac7c7e3b69872895cb28b79a39b4d428b63e030eaa157b6c48731  spice-0.16.0.tar.bz2
+4fe7665ba7ef63d92570a870eb74f907e9d68f465e6607de7f16233c1d4cd209f390b3d51e2f9da1dd2365027e0402c042396d049d8e78e1eebdd3f5c56686d5  failing-tests.patch
+"

@@ -1,0 +1,49 @@
+# Contributor: Taner Tas <taner76@gmail.com>
+maintainer="Krassy Boykinov <kboykinov@teamcentrixx.com>"
+pkgname=gst-vaapi
+# NOTE: Upgrade only to even-numbered minor versions (e.g. 1.20.x, 1.22.x)!
+#  Odd versions are unstable development releases.
+pkgver=1.26.7
+pkgrel=0
+pkgdesc="GStreamer streaming media framework VA API plug-ins"
+url="https://gstreamer.freedesktop.org/"
+arch="all"
+license="LGPL-2.1-or-later"
+makedepends="
+	eudev-dev
+	glib-dev
+	gst-plugins-bad-dev
+	libva-dev
+	libxrandr-dev
+	meson
+	"
+options="!check" # Need actual display with HW accel
+source="https://gstreamer.freedesktop.org/src/gstreamer-vaapi/gstreamer-vaapi-$pkgver.tar.xz"
+builddir="$srcdir/gstreamer-vaapi-$pkgver"
+
+# make name more consistent with gst-
+provides="gstreamer-vaapi=$pkgver-r$pkgrel"
+replaces="gstreamer-vaapi"
+
+build() {
+	CFLAGS="$CFLAGS -O2" \
+	CXXFLAGS="$CXXFLAGS -O2" \
+	CPPFLAGS="$CPPFLAGS -O2" \
+	abuild-meson \
+		-Db_lto=true \
+		-Dtests="$(want_check && echo enabled || echo disabled)" \
+		. output
+	meson compile -C output
+}
+
+check() {
+	meson test -C output --print-errorlogs
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+sha512sums="
+c34a7652a4dcafbf372a42a9cb4db97654a36c9a3b6433c0aa29d7e8907a0d577b779dea9acd0220a56ea7342fff92208932356843c2793fc81e8b18a33b592b  gstreamer-vaapi-1.26.7.tar.xz
+"

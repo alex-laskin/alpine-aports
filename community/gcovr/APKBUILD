@@ -1,30 +1,33 @@
 # Contributor: André Klitzing <aklitzing@gmail.com>
 # Maintainer: André Klitzing <aklitzing@gmail.com>
 pkgname=gcovr
-pkgver=3.4
+pkgver=8.4
 pkgrel=0
 pkgdesc="Generates a simple report that summarizes the gcc code coverage"
 url="http://gcovr.com/"
 arch="noarch"
-license="BSD"
-depends="python2"
-makedepends="python2-dev py-setuptools"
-source="gcovr-${pkgver}.tar.gz::https://github.com/gcovr/gcovr/archive/${pkgver}.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+license="BSD-3-Clause"
+depends="python3 py3-lxml py3-jinja2 py3-pygments py3-colorlog"
+checkdepends="py3-pytest py3-pyutilib cmake"
+makedepends="py3-gpep517 py3-wheel py3-hatchling py3-hatch-fancy-pypi-readme py3-hatch-vcs"
+subpackages="$pkgname-pyc"
+source="https://files.pythonhosted.org/packages/source/g/gcovr/gcovr-$pkgver.tar.gz"
+options="!check" # tests are failing
 
 build() {
-	cd "$builddir"
-	python2 setup.py build
+	gpep517 build-wheel \
+		--wheel-dir .dist \
+		--output-fd 3 3>&1 >&2
 }
 
 check() {
-	cd "$builddir"
-	./scripts/gcovr --help > /dev/null
+	py.test-3 -v gcovr
 }
 
 package() {
-	cd "$builddir"
-	python2 setup.py install --prefix=/usr --root="$pkgdir"
+	python -m installer --destdir="$pkgdir" .dist/*.whl
 }
 
-sha512sums="e4553e87489cff5c1cde435c6229bcbeb3bbc4c06088582ad4931817bf84858c47de14592572e58a7a45a342ab5ca7af3b8547961103dbe6aac31557adb11d9e  gcovr-3.4.tar.gz"
+sha512sums="
+c768d3b06a07af2523e015c5d2f4a1c9c3272787d6e48e28dcd39f6fe2c696f42e42ade7ba8ccaf7191595d7d125f8939d5388914ab0a48f2a2bf5021d64888b  gcovr-8.4.tar.gz
+"

@@ -1,0 +1,69 @@
+# Contributor: Pedro Lucas Porcellis <porcellis@eletrotupi.com>
+# Maintainer: Pedro Lucas Porcellis <porcellis@eletrotupi.com>
+pkgname=niri
+pkgver=25.08
+pkgrel=0
+pkgdesc="A scrollable-tiling Wayland compositor"
+url="https://github.com/YaLTeR/niri"
+arch="x86_64 ppc64le aarch64"
+license="GPL-3.0-only"
+makedepends="
+	cargo
+	cargo-auditable
+	clang-libclang
+	clang-libs
+	eudev-dev
+	glib-dev
+	libdisplay-info-dev
+	libinput-dev
+	libseat-dev
+	libxkbcommon-dev
+	mesa-dev
+	pango-dev
+	pipewire-dev
+	rust
+	"
+checkdepends="wayland-libs-server"
+subpackages="
+	$pkgname-portalsconf
+	"
+source="$pkgname-$pkgver.tar.gz::https://github.com/YaLTeR/niri/archive/refs/tags/v$pkgver.tar.gz
+	niri-session.patch
+	libdisplay-info-0.3.0.patch
+	"
+options="net" # rust crates
+
+build() {
+	cargo auditable build \
+		--release \
+		--no-default-features \
+		--features dbus,xdp-gnome-screencast
+}
+
+check() {
+	ulimit -n 4096 # Fails otherwise due to lack of file descriptors
+	cargo test \
+		--release \
+		--no-default-features \
+		--features dbus,xdp-gnome-screencast
+}
+
+package() {
+	install -Dm755 target/release/niri -t "$pkgdir"/usr/bin/
+	install -Dm644 resources/niri.desktop -t "$pkgdir"/usr/share/wayland-sessions/
+	install -Dm644 resources/niri-portals.conf -t "$pkgdir"/usr/share/xdg-desktop-portal/
+}
+
+portalsconf() {
+	pkgdesc="xdg-desktop-portal configuration of compatible portals for Niri"
+	install_if="$pkgname=$pkgver-r$pkgrel"
+	depends="xdg-desktop-portal xdg-desktop-portal-gnome"
+	amove usr/share/xdg-desktop-portal/niri-portals.conf
+}
+
+
+sha512sums="
+d8a10bb726d2e79f695544130cc9f55b1ac0f76dd9a9fb1cafb16cd7934b29a4fecf88656a3bc46ab6140aef7d2c58ed87f3ba43dfe8882df50de997283f2292  niri-25.08.tar.gz
+f488ed2f316e96902c737a1104c425f2281349d519825c02a39205957ee65607730a69b4857d5a5803f43b74180ab4efef7fcb4eb8bfb75e042d09a3e22d1dff  niri-session.patch
+116fe3fda99b91c88d70c650a18c3473c804da30e29d41932e5fcc974a86bf272cef90ce52b6ebff2164e25f53a8d0c95559163d811b661818e6fd4b170f573e  libdisplay-info-0.3.0.patch
+"

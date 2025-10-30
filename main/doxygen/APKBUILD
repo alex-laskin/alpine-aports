@@ -1,42 +1,35 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 pkgname=doxygen
-pkgver=1.8.14
+pkgver=1.13.2
 pkgrel=0
-pkgdesc="A documentation system for C++, C, Java, IDL and PHP"
-url="http://www.doxygen.org/"
+pkgdesc="Documentation system for C++, C, Java, IDL and PHP"
+url="https://www.doxygen.nl/"
 arch="all"
-license="GPL"
-depends=""
+license="GPL-2.0-or-later"
 checkdepends="libxml2-utils"
-makedepends="flex bison coreutils perl python3 cmake"
-subpackages=""
-source="http://ftp.stack.nl/pub/users/dimitri/doxygen-$pkgver.src.tar.gz
-	doxygen-1.8.14-install.patch
-	"
+makedepends="flex bison coreutils perl python3 cmake samurai"
+subpackages="$pkgname-doc"
+source="https://doxygen.nl/files/doxygen-$pkgver.src.tar.gz"
 
 build() {
-	cd "$builddir"
-	cmake .\
+	cmake -B build -G Ninja \
+		-DGIT_EXECUTABLE=/bin/false \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DCMAKE_BUILD_TYPE=Release \
-		-Dbuild_xmlparser=ON \
-		-DMAN_INSTALL_DIR=/usr/share/man/man1 \
-		-DDOC_INSTALL_DIR=/usr/share/doc/doxygen
-
-	make
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-Dbuild_xmlparser=ON
+	cmake --build build
 }
 
 check() {
-	cd "$builddir"
 	# Remove test that use bibtex
 	rm -f ./testing/012_cite.dox
-	make test
+	ctest --test-dir build
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install
+	DESTDIR="$pkgdir" cmake --install build
 }
 
-sha512sums="5fac7e457a51b1f8e39fb65de5e0c07633e573f74e876580e7bcad5693540d6970fde1b2cb799a4df6ab9dfca951ece15b76b3010134d7658db3500183bea85c  doxygen-1.8.14.src.tar.gz
-725a29a6f21ffc8ec6ca8ed6d746a69cc78060e97704c7fe909abee603ba0a99f27dc3b80c414afd886d0ee81d9948b13f29c43f7db2e00aae8c0c3a32aa9ec1  doxygen-1.8.14-install.patch"
+sha512sums="
+7b6b3285706e10c0b27230503b83cc669aec83ebc3ef9cc1087d5e36118fd726a5368d567dd553ba01acf4d739cdbb41c5e66af4541fc8e51effbbdaa241c812  doxygen-1.13.2.src.tar.gz
+"

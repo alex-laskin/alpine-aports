@@ -1,0 +1,42 @@
+# Contributor: Zachary Lee Andrews <zcrayfish@gmail.com>
+maintainer="Antoni Aloy <aaloytorrens@gmail.com>"
+pkgname=libqtxdg
+pkgver=4.2.0
+pkgrel=3
+pkgdesc="Qt implementation of freedesktop.org xdg specifications"
+url="https://github.com/lxqt/libqtxdg"
+arch="all"
+license="LGPL-2.0-or-later"
+depends="gtk+3.0"
+makedepends="
+	cmake samurai lxqt-build-tools qt6-qtbase-dev
+	qt6-qtbase-private-dev qt6-qtsvg-dev glib-dev
+	"
+checkdepends="xvfb-run"
+subpackages="$pkgname-dev"
+source="https://github.com/lxqt/libqtxdg/releases/download/$pkgver/libqtxdg-$pkgver.tar.xz"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
+		-DBUILD_SHARED_LIBS=True \
+		-DBUILD_TESTS=Yes
+	cmake --build build
+}
+
+check() {
+	xvfb-run cmake --build build --target test
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+
+	mkdir -p "$pkgdir"/usr/lib
+	mv "$pkgdir"/usr/share/cmake "$pkgdir"/usr/lib
+}
+
+sha512sums="
+635dafea97bcb5f6283d82e99be17b1d7af526311d757c48eef8ac58ec18f59597f2b0fa112d31b9e58ed92576112f9357db9f728df705552e42cd4f59392eff  libqtxdg-4.2.0.tar.xz
+"

@@ -1,21 +1,18 @@
 # Contributor: z3bra <willy at mailoo dot org>
-# Maintainer:
+# Maintainer: Roberto Oliveira <robertoguimaraes8@gmail.com>
 pkgname=detox
-pkgver=1.3.0
+pkgver=2.0.0
 pkgrel=0
 pkgdesc="Utility for cleaning up filenames"
 url="https://github.com/dharple/detox"
 arch="all"
 license="BSD-3-Clause"
-depends=""
-depends_dev=""
-makedepends="$depends_dev autoconf automake coreutils libtool"
-install=""
+makedepends="autoconf automake coreutils libtool"
+checkdepends="bash check-dev musl-locales"
 subpackages="$pkgname-doc"
-options="!check" # no upstream/available test-suite
-source="$pkgname-$pkgver.tar.gz::https://github.com/dharple/detox/archive/v$pkgver.tar.gz"
-
-builddir="$srcdir/$pkgname-$pkgver"
+source="detox-$pkgver.tar.gz::https://github.com/dharple/detox/archive/v$pkgver.tar.gz
+	tests.patch
+	"
 
 prepare() {
 	default_prepare
@@ -23,19 +20,25 @@ prepare() {
 }
 
 build() {
-	cd "$builddir"
 	./configure \
 		--prefix=/usr \
 		--sysconfdir=/etc \
 		--infodir=/usr/share/info \
 		--mandir=/usr/share/man \
-		--datadir=/usr/share
+		--datadir=/usr/share \
+		$(want_check && echo --with-check)
 	make
 }
 
+check() {
+	make check
+}
+
 package() {
-	cd "$builddir"
 	make DESTDIR="$pkgdir" install
 }
 
-sha512sums="e30d4a2151e4288036db04e0fe91273acf5a6d353126dce0ba19d4fe8a568078e58441fddfd49b6d5034a880e0eccd58a70024cfd2093ad610c6838303b45978  detox-1.3.0.tar.gz"
+sha512sums="
+a52e0f66caedce03d442dfe1f4b2f1db991c20dbc22b975c106266f1b5edcf653b22b166bbcae908c549371296c732898655002b3b95929fab5f4c03a526118f  detox-2.0.0.tar.gz
+9bd6c7e5637952c049eaf1fc2ef5632d94068407dea2aecaed8784f0ac864b81805d5dd167205ec239e71080fa0c80fb1ae3561367b414cb0913284b6e331fcf  tests.patch
+"
